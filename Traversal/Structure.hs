@@ -9,6 +9,7 @@ data Structure = Annotate { name         :: String
                           , predecessor  :: Either [Structure] [Structure]
                           }
 --               deriving (Show)
+--               
 
 instance Show (Structure) where
     show (Annotate { name        = name'
