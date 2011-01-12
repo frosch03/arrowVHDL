@@ -26,23 +26,33 @@ where a Source is something that produces something (OUTPUT)
 >            , compID     :: CompID
 > --         , fmtStrg    :: String
 >            }
-            
 
-So the next datatype to be defined is an edge.
-The edge knows the pin it comes from, as well as
-the pin it goes to.
+A connection is defined by the tuple of componentID and a pinID
+There are two special types of edges, those that come from the
+outside into the component (called SinkEdge). And those that go
+from the component to the outside (called SourceEdge). 
+            
+> type Connection = (CompID, PinID)
+> type SinkEdge   = Connection
+> type SourceEdge = Connection
+
+So the next datatype to be defined is an edge. The edge knows 
+the pin/component it comes from, as well as the pin/component
+it goes to.
 
 > data Edge
->   = MkEdge { sourceInfo :: (CompID, PinID)
->            , sinkInfo   :: (CompID, PinID)
+>   = MkEdge { sourceInfo :: SourceEdge
+>            , sinkInfo   :: SinkEdge
 >            }
 
 
 The actual Graph is formed from the Nodes and Edges
 
 > data StructGraph
->   = MkSG { getNodes :: [Node]
->          , getEdges :: [Edge]
+>   = MkSG { getNodes   :: [Node]
+>          , getEdges   :: [Edge]
+>          , getSinks   :: [SinkEdge]
+>          , getSources :: [SourceEdge]
 >          }
 
 > andNode1 = MkNode { name = "AND", sinkPins = [1, 2], sourcePins = [1], compID = 1 }
@@ -54,12 +64,14 @@ The actual Graph is formed from the Nodes and Edges
 > edge2 = MkEdge { sourceInfo = (1, 1), sinkInfo = (4, 1) }
 > edge3 = MkEdge { sourceInfo = (2, 1), sinkInfo = (4, 2) }
 
-> inEdge1 = MkEdge { sourceInfo = (0, 1), sinkInfo = (1, 1) }
-> inEdge2 = MkEdge { sourceInfo = (0, 2), sinkInfo = (2, 1) }
-> inEdge3 = MkEdge { sourceInfo = (0, 3), sinkInfo = (2, 2) }
+> inEdge1 = (1, 1)
+> inEdge2 = (2, 1)
+> inEdge3 = (2, 2)
 
-> outEdge1 = MkEdge { sourceInfo = (4, 1), sinkInfo = (0, 1) }
+> outEdge1 = (4, 1)
 
-> mux1bit = MkSG { getNodes = [andNode1, andNode2, notNode, orNode]
->                , getEdges = [edge1, edge2, edge3, inEdge1, inEdge2, inEdge3, outEdge1]
+> mux1bit = MkSG { getNodes   = [andNode1, andNode2, notNode, orNode]
+>                , getEdges   = [edge1, edge2, edge3]
+>                , getSinks   = [inEdge1, inEdge2, inEdge3]
+>                , getSources = [outEdge1]
 >                }

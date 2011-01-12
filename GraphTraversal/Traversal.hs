@@ -24,25 +24,27 @@ import Control.Arrow.Transformer
 import GraphTraversal.Core
 import GraphTraversal.Auxillary
 
+emptyGraph :: StructGraph
+emptyGraph = MkSG [] [] [] []
 
 newtype TraversalArrow a b c = TR (a (b, StructGraph) (c, StructGraph))
 
 instance (Category a, Arrow a) => Category (TraversalArrow a) where
     id              = TR id
-    (TR f) . (TR g) = TR $ proc (x, t) -> do
-                            (x', t_g) <- g -< (x,  t)
-                            (y,  t_f) <- f -< (x', t_g `connect` t  )
-                            returnA        -< (y,  t_f `connect` t_g)
+    (TR f) . (TR g) = TR $ proc (x, sg) -> do
+                            (x', sg_g) <- g -< (x,  sg)
+                            (y,  sg_f) <- f -< (x', sg_g `connect` sg  )
+                            returnA         -< (y,  sg_f `connect` sg_g)
 
 
 instance (Arrow a) => Arrow (TraversalArrow a) where
-    arr f        = TR (arr (\(x, _) -> (f x, MkSG [] [] [] [])))
+    arr f        = TR (arr (\(x, _) -> (f x, emptyGraph)))
     first (TR f) = TR (arr swapsnd >>> first f >>> arr swapsnd)
-     where swapsnd ((x, y), t) = ((x, t), y)
-    (TR f) *** (TR g) = TR $ proc ((x, y), t) -> do 
-                            (x', t_f) <- f -< (x,   t)
-                            (y', t_g) <- g -< (y,   t)
-                            returnA        -< ((x', y'), t_f `combine` t_g)
+     where swapsnd ((x, y), sg) = ((x, sg), y)
+    (TR f) *** (TR g) = TR $ proc ((x, y), sg) -> do 
+                            (x', sg_f) <- f -< (x,   sg)
+                            (y', sg_g) <- g -< (y,   sg)
+                            returnA         -< ((x', y'), sg_f `combine` sg_g)
                           
 
 
@@ -52,7 +54,19 @@ instance (Arrow a) => ArrowTransformer (TraversalArrow) a where
 runTraversal :: (Arrow a) => TraversalArrow a b c -> a (b, StructGraph) (c, StructGraph)
 runTraversal (TR f) = f
 
---runTraversal_ f x = runTraversal f (x, emptyStructure)
+runTraversal_ f x = runTraversal f (x, emptyGraph)
+
+
+augment :: (Arrow a) => a b c -> a () StructGraph -> TraversalArrow a b c
+augment aA aSG
+    = TR $ proc (x, sg) -> do
+        sg' <- aSG -< ()
+        x'  <- aA  -< x
+        returnA    -< (x', sg')
+
+ :: (Arrow a) => (b -> c) -> StructGraph -> TraversalArrow a b c
+f sg = 
+
 
 
 
