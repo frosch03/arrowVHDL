@@ -1,4 +1,4 @@
-{-# LANGUAGE Arrows #-}
+{-# LANGUAGE Arrows, FunctionalDependencies #-}
 {-# OPTIONS_GHC -fglasgow-exts #-} 
 module GraphTraversal.Traversal 
 --  ( 
@@ -57,16 +57,40 @@ runTraversal (TR f) = f
 runTraversal_ f x = runTraversal f (x, emptyGraph)
 
 
-augment :: (Arrow a) => a b c -> a () StructGraph -> TraversalArrow a b c
-augment aA aSG
-    = TR $ proc (x, sg) -> do
-        sg' <- aSG -< ()
-        x'  <- aA  -< x
-        returnA    -< (x', sg')
+class (Arrow a) => Augment t1 t2 a b c where
+    augment :: (Arrow a) => t1 -> t2 -> TraversalArrow a b c 
 
- -- a class for augmenting would be great becouse of the naming problem
- :: (Arrow a) => (b -> c) -> StructGraph -> TraversalArrow a b c
-f sg = 
+instance (Arrow a) => Augment (a b c) (a () StructGraph) a b c where
+    augment aA aSG 
+        = TR $ proc (x, sg) -> do
+            sg' <- aSG -< ()
+            x'  <- aA  -< x
+            returnA    -< (x', sg')
+
+instance (Arrow a) => Augment (a b c) (StructGraph) a b c where
+    augment aA sg 
+        = augment aA ((arr (\_ -> sg)) :: Arrow a => a () StructGraph)
+
+instance (Arrow a) => Augment (b -> c) (StructGraph) a b c where
+    augment f sg 
+        = augment ((arr f) :: Arrow a => a b c) sg
+
+instance (Arrow a) => Augment (TraversalArrow a b c) (StructGraph) a b c where
+    augment (TR f) sg 
+        = TR $ proc (x, s) -> do
+            (x', _) <- f -< (x,  s) 
+            returnA      -< (x', sg)
+
+-- augment :: (Arrow a) => a b c -> a () StructGraph -> TraversalArrow a b c
+-- augment aA aSG
+--     = TR $ proc (x, sg) -> do
+--         sg' <- aSG -< ()
+--         x'  <- aA  -< x
+--         returnA    -< (x', sg')
+-- 
+--  -- a class for augmenting would be great becouse of the naming problem
+--  :: (Arrow a) => (b -> c) -> StructGraph -> TraversalArrow a b c
+-- f sg = 
 
 
 
@@ -131,5 +155,3 @@ f sg =
 --                           , output       = ""
 --                           , predecessor  = Left []
 --                           }
-
-
