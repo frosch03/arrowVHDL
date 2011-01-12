@@ -64,6 +64,7 @@ augment aA aSG
         x'  <- aA  -< x
         returnA    -< (x', sg')
 
+ -- a class for augmenting would be great becouse of the naming problem
  :: (Arrow a) => (b -> c) -> StructGraph -> TraversalArrow a b c
 f sg = 
 
