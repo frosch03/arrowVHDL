@@ -4,8 +4,10 @@ module GraphTraversal.Traversal
     ( runTraversal
     , runTraversal_
     , TraversalArrow (..)
-    , Augment
-    , augment
+    , augment_aA_aSG
+    , augment_aA_SG
+    , augment_f_SG
+    , augment_aTA_SG
     , emptyGraph
     )
 where
@@ -50,6 +52,28 @@ runTraversal :: (Arrow a) => TraversalArrow a b c -> a (b, StructGraph) (c, Stru
 runTraversal (TR f) = f
 
 runTraversal_ f x = runTraversal f (x, emptyGraph)
+
+
+augment_aA_aSG :: (Arrow a) => (a b c) -> (a () StructGraph) -> TraversalArrow a b c
+augment_aA_aSG aA aSG 
+    = TR $ proc (x, sg) -> do
+        sg' <- aSG -< ()
+        x'  <- aA  -< x
+        returnA    -< (x', sg')
+
+augment_aA_SG :: (Arrow a) => (a b c) -> (StructGraph) -> TraversalArrow a b c
+augment_aA_SG aA sg 
+    = augment_aA_aSG aA (arr (\_ -> sg))
+
+augment_f_SG :: (Arrow a) => (b -> c) -> (StructGraph) -> TraversalArrow a b c
+augment_f_SG f sg 
+    = augment_aA_aSG (arr f) (arr (\_ -> sg))
+
+augment_aTA_SG :: (Arrow a) => (TraversalArrow a b c) -> (StructGraph) -> TraversalArrow a b c
+augment_aTA_SG (TR f) sg 
+    = TR $ proc (x, s) -> do
+        (x', _) <- f -< (x,  s) 
+        returnA      -< (x', sg)
 
 
 -- class (Arrow a) => Augment t1 t2 a b c where

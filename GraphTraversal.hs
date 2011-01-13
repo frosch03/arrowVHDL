@@ -2,10 +2,12 @@ module GraphTraversal
     ( StructGraph (..)
     , Node (..)
     , TraversalArrow (..)
-    , Augment
+    , augment_aA_aSG
+    , augment_aA_SG
+    , augment_f_SG
+    , augment_aTA_SG
     , runTraversal
     , runTraversal_
-    , augment
     , emptyGraph
     )
 where
