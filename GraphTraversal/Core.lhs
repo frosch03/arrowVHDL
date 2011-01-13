@@ -55,6 +55,8 @@ The actual Graph is formed from the Nodes and Edges
 >          , getSources :: [SourceEdge]
 >          }
 
+The following defines a simple 1 Bit multiplexer with the needed parts.
+
 > andNode1 = MkNode { name = "AND", sinkPins = [1, 2], sourcePins = [1], compID = 1 }
 > andNode2 = MkNode { name = "AND", sinkPins = [1, 2], sourcePins = [1], compID = 2 }
 > notNode  = MkNode { name = "NOT", sinkPins = [1],    sourcePins = [1], compID = 3 }
@@ -75,3 +77,30 @@ The actual Graph is formed from the Nodes and Edges
 >                , getSinks   = [inEdge1, inEdge2, inEdge3]
 >                , getSources = [outEdge1]
 >                }
+
+To draw a StructGraph it is necessary to make StructGraph an instance of Show and 
+therefore the Node- and the Edge datatypes also need to be an instance of Show. 
+
+> instance Show (Node) where
+>   show nd =  enclose ""    ":"  (show (compID nd))
+>           ++ enclose " I(" ")"  (split (map show (sinkPins nd)))
+>           ++ enclose "\""  "\"" (name nd)
+>           ++ enclose " O(" ")"  (split (map show (sourcePins nd)))
+>       where split [] = ""
+>             split s  = foldl1 (\x y -> x ++ ", " ++ y) s
+>             enclose l r s = l ++ s ++ r
+
+> instance Show (Edge) where
+>   show ed =  "-"
+>           ++ enclose ""   "> " (show (sinkInfo   ed))
+>           ++ enclose " >" ""   (show (sourceInfo ed))
+>           ++ "-"
+>       where enclose l r s = l ++ s ++ r
+
+> instance Show (StructGraph) where
+>   show g =  "\n"
+>          ++ enclose "Sinks:   " "\n" (show (getSinks g))
+>          ++ enclose "Nodes:   " "\n" (show (getNodes g))
+>          ++ enclose "Edges:   " "\n" (show (getEdges g))
+>          ++ enclose "Sources: " ""   (show (getSources g))
+>       where enclose l r s = l ++ s ++ r

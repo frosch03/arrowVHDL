@@ -9,6 +9,9 @@ import GraphTraversal
 oneNodeGraph :: String -> StructGraph
 oneNodeGraph s = MkSG [(MkNode s [] [] 0)] [] [] []
 
+aId :: (Arrow a) => TraversalArrow a b b
+aId = augment_f_SG (id) (oneNodeGraph "ID")
+
 -- aId :: (Arrow a, Augment (b -> b) StructGraph a b b) => TraversalArrow a (b) (b)
 -- aId =  augment ((id) :: b -> b) def
 --     where def = oneNodeGraph "ID"
