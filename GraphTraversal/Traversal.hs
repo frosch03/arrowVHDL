@@ -1,18 +1,13 @@
-{-# LANGUAGE Arrows, FunctionalDependencies #-}
+{-# LANGUAGE Arrows #-}
 {-# OPTIONS_GHC -fglasgow-exts #-} 
 module GraphTraversal.Traversal 
---  ( 
---    runTraversal
---  , runTraversal_
---  , TraversalArrow (..)
---  , saugment
---  , saugmentStruct
---  , saugmentStructFunct
---  , saugmentTraversal
---  , saugmentSubcomponent
-
---  , emptyStructure
---  )
+    ( runTraversal
+    , runTraversal_
+    , TraversalArrow (..)
+    , Augment
+    , augment
+    , emptyGraph
+    )
 where
 
 import Prelude hiding (id, (.))
@@ -57,101 +52,28 @@ runTraversal (TR f) = f
 runTraversal_ f x = runTraversal f (x, emptyGraph)
 
 
-class (Arrow a) => Augment t1 t2 a b c where
-    augment :: (Arrow a) => t1 -> t2 -> TraversalArrow a b c 
-
-instance (Arrow a) => Augment (a b c) (a () StructGraph) a b c where
-    augment aA aSG 
-        = TR $ proc (x, sg) -> do
-            sg' <- aSG -< ()
-            x'  <- aA  -< x
-            returnA    -< (x', sg')
-
-instance (Arrow a) => Augment (a b c) (StructGraph) a b c where
-    augment aA sg 
-        = augment aA ((arr (\_ -> sg)) :: Arrow a => a () StructGraph)
-
-instance (Arrow a) => Augment (b -> c) (StructGraph) a b c where
-    augment f sg 
-        = augment ((arr f) :: Arrow a => a b c) sg
-
-instance (Arrow a) => Augment (TraversalArrow a b c) (StructGraph) a b c where
-    augment (TR f) sg 
-        = TR $ proc (x, s) -> do
-            (x', _) <- f -< (x,  s) 
-            returnA      -< (x', sg)
-
--- augment :: (Arrow a) => a b c -> a () StructGraph -> TraversalArrow a b c
--- augment aA aSG
---     = TR $ proc (x, sg) -> do
---         sg' <- aSG -< ()
---         x'  <- aA  -< x
---         returnA    -< (x', sg')
+-- class (Arrow a) => Augment t1 t2 a b c where
+--     augment :: (Arrow a) => t1 -> t2 -> TraversalArrow a b c 
 -- 
---  -- a class for augmenting would be great becouse of the naming problem
---  :: (Arrow a) => (b -> c) -> StructGraph -> TraversalArrow a b c
--- f sg = 
-
-
-
-
--- saugment  :: (Arrow a) => a () Structure -> a b c -> TraversalArrow a b c
--- saugment aT aA 
---     = TR $ proc (x, t) -> do 
---         t' <- aT -< ()
---         x' <- aA -< x
---         returnA  -< (x', t')
+-- instance (Arrow a) => Augment (a b c) (a () StructGraph) a b c where
+--     augment aA aSG 
+--         = TR $ proc (x, sg) -> do
+--             sg' <- aSG -< ()
+--             x'  <- aA  -< x
+--             returnA    -< (x', sg')
 -- 
--- saugmentStruct :: (Arrow a) => Structure -> a b c -> TraversalArrow a b c
--- saugmentStruct t  
---     = saugment $ arr (\_ -> t)
+-- instance (Arrow a) => Augment (a b c) (StructGraph) a b c where
+--     augment aA sg 
+--         = augment aA 
+--                 ((arr (\_ -> sg))   :: Arrow a => a () StructGraph)
 -- 
--- saugmentStructFunct :: (Arrow a) => Structure -> (b -> c) -> TraversalArrow a b c
--- saugmentStructFunct t f  
---     = saugmentStruct t $ (arr f)
+-- instance (Arrow a) => Augment (b -> c) (StructGraph) a b c where
+--     augment f sg 
+--         = augment ((arr f)          :: Arrow a => a b c) 
+--                   ((arr (\_ -> sg)) :: Arrow a => a () StructGraph)
 -- 
--- saugmentTraversal :: (Arrow a) => Structure -> TraversalArrow a b c -> TraversalArrow a b c
--- saugmentTraversal s (TR f) 
---     = TR $ proc (x, t) -> do
---         (x', _) <- f -< (x,  t)
---         returnA      -< (x', s)
--- 
--- saugmentSubcomponent :: (Arrow a) => Structure -> TraversalArrow a b c -> TraversalArrow a b c
--- saugmentSubcomponent s@(Annotate { predecessor = Left p }) (TR f)
---     = TR $ proc (x, t) -> do
---         (x', t') <- f -< (x,  t)
---         returnA       -< (x', s { predecessor = Right p } `with_predecessor` t')
--- 
--- 
--- 
--- -- do i really need this older version ??? 
--- saug  :: (Arrow a) => a b Structure -> a b c -> TraversalArrow a b c
--- saug t a =   (lift a) &&& (lift t >>> store)
---          >>> drop_second
---     where store = TR (arr(\(t, _) -> ((), t)))
--- 
--- 
--- 
--- 
--- 
--- 
--- testStructure = emptyStructure { name = " " }
--- 
--- outroStructure = emptyStructure { name         = "Outro"
---                                 , formatstring = "%o1, %o2 <= %i1" 
---                                 , inputs       = [ "pin" ]
---                                 , output       = "out"
---                                 }
--- 
--- finalStructure = emptyStructure { name         = "Final"
---                                 , formatstring = "%i1" 
---                                 , inputs       = [ "pin" ]
---                                 }
--- 
--- emptyStructure = Annotate { name         = ""
---                           , returnvalue  = Nothing
---                           , formatstring = "" 
---                           , inputs       = []
---                           , output       = ""
---                           , predecessor  = Left []
---                           }
+-- instance (Arrow a) => Augment (TraversalArrow a b c) (StructGraph) a b c where
+--     augment (TR f) sg 
+--         = TR $ proc (x, s) -> do
+--             (x', _) <- f -< (x,  s) 
+--             returnA      -< (x', sg)
