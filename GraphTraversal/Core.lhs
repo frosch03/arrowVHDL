@@ -78,6 +78,25 @@ The following defines a simple 1 Bit multiplexer with the needed parts.
 >                , getSources = [outEdge1]
 >                }
 
+For creating a graph more easily, in the following are some funktions defined, that
+help to build a struct graph. 
+
+> mkNode :: String -> [PinID] -> [PinID] -> CompID -> Node
+> mkNode name snk src cmp = MkNode name snk src cmp
+
+> mkEdge :: SourceEdge -> SinkEdge -> Edge
+> mkEdge srce snke = MkEdge srce snke 
+
+> mkSnkEdge :: PinID -> CompID -> SinkEdge
+> mkSnkEdge pid cid = (cid, pid)
+
+> mkSrcEdge :: PinID -> CompID -> SourceEdge
+> mkSrcEdge pid cid = (cid, pid)
+
+> mkStructGraph :: [Node] -> [Edge] -> [SinkEdge] -> [SourceEdge] -> StructGraph
+> mkStructGraph ns es snks srcs = MkSG ns es snks srcs
+
+
 To draw a StructGraph it is necessary to make StructGraph an instance of Show and 
 therefore the Node- and the Edge datatypes also need to be an instance of Show. 
 

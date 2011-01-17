@@ -9,6 +9,11 @@ module GraphTraversal
     , runTraversal
     , runTraversal_
     , emptyGraph
+    , mkNode
+    , mkEdge
+    , mkSnkEdge
+    , mkSrcEdge
+    , mkStructGraph
     )
 where
 

@@ -10,7 +10,11 @@ oneNodeGraph :: String -> StructGraph
 oneNodeGraph s = MkSG [(MkNode s [] [] 0)] [] [] []
 
 aId :: (Arrow a) => TraversalArrow a b b
-aId = augment_f_SG (id) (oneNodeGraph "ID")
+aId = augment_f_SG (id) (mkStructGraph [node] [] [snke] [srce])
+    where node = mkNode "ID" [0] [0] 0
+          snke = mkSnkEdge 0 0
+          srce = mkSrcEdge 0 0
+
 
 -- aId :: (Arrow a, Augment (b -> b) StructGraph a b b) => TraversalArrow a (b) (b)
 -- aId =  augment ((id) :: b -> b) def
