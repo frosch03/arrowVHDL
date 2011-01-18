@@ -20,12 +20,20 @@ Remember, a Sink is something that takes something  (INPUT)
 where a Source is something that produces something (OUTPUT)
 
 > data Node
->   = MkNode { name       :: String
->            , sinkPins   :: [PinID]
->            , sourcePins :: [PinID]
->            , compID     :: CompID
-> --         , fmtStrg    :: String
->            }
+>   = MkNode   { name       :: String
+> --           , info       :: Either String StructGraph
+> --           ^^ Maybe this is the right form, 
+>              , sinkPins   :: [PinID]
+>              , sourcePins :: [PinID]
+>              , compID     :: CompID
+> --           , fmtStrg    :: String
+>              }
+>   | MkSGNode { subGraph   :: StructGraph
+>              , sinkPins   :: [PinID]
+>              , sourcePins :: [PinID]
+>              , compID     :: CompID
+>              } 
+ 
 
 A connection is defined by the tuple of componentID and a pinID
 There are two special types of edges, those that come from the
