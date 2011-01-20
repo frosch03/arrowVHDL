@@ -34,12 +34,12 @@ that defines sub structures. It also could hold no sub structure
 and has only a name and a component id.
 
 > data StructGraph
->   = MkSG { getName    :: String
->          , getCompID  :: CompID
->          , getNode    :: Maybe StructGraph
->          , getEdges   :: [Edge]
->          , getSinks   :: [SinkEdge]
->          , getSources :: [SourceEdge]
+>   = MkSG { name    :: String
+>          , compID  :: CompID
+>          , node    :: Maybe StructGraph
+>          , edges   :: [Edge]
+>          , sinks   :: [SinkEdge]
+>          , sources :: [SourceEdge]
 >          }
 
 So the next datatype to be defined is an edge. The edge knows 
@@ -106,10 +106,10 @@ therefore the Edge datatypes also needs to be an instance of Show.
 
 > instance Show (StructGraph) where
 >   show g =  "\n"
->          ++ enclose "Sinks:   "         "\n" (show (getSinks g))
->          ++ enclose (getName g ++ ": ") "\n" (showNode (getNode g))
->          ++ enclose "Edges:   "         "\n" (show (getEdges g))
->          ++ enclose "Sources: "         ""   (show (getSources g))
+>          ++ enclose "Sinks:   "         "\n" (show (sinks g))
+>          ++ enclose (name g ++ ": ") "\n" (showNode (node g))
+>          ++ enclose "Edges:   "         "\n" (show (edges g))
+>          ++ enclose "Sources: "         ""   (show (sources g))
 >       where enclose l r s = l ++ s ++ r
 >             showNode Nothing  = ""
 >             showNode (Just n) = show n
