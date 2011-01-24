@@ -1,6 +1,5 @@
 module GraphTraversal 
     ( StructGraph (..)
-    , Node (..)
     , TraversalArrow (..)
     , augment_aA_aSG
     , augment_aA_SG
@@ -9,11 +8,6 @@ module GraphTraversal
     , runTraversal
     , runTraversal_
     , emptyGraph
-    , mkNode
-    , mkEdge
-    , mkSnkEdge
-    , mkSrcEdge
-    , mkStructGraph
     )
 where
 

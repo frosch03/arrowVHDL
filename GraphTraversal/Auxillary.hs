@@ -9,68 +9,67 @@ where
 
 import Control.Arrow
 
-import Data.Either ( lefts
-                   , rights
-                   )
-import Data.Maybe  ( fromJust
-                   , isNothing
-                   )
-
 import GraphTraversal.Core
 
 connect :: StructGraph -> StructGraph -> StructGraph
-connect left right = MkSG { name    = (name left ++ ">>>" ++ name right)
-                          , compID  = nextID $ (collectCompIDs left) ++ 
-                                               (collectCompIDs right)
-                          , node    = connSG (node left) (node right)
-                          , edges   = newedges ++ edges left ++ edges right
-                          , sinks   = sinks left
-                          , sources = sources right
+connect left right = MkSG { name    = (name left') ++ ">>>" ++ (name right')
+                          , compID  = nextID $ (allCompIDs left') ++ (allCompIDs right')
+                          , nodes   = left' : right' : []
+                          , edges   = rewire (sources left', compID left') (sinks right', compID right')
+                          , sinks   = sinks left'
+                          , sources = sources right'
                           }
-    where sources_l = map snd $ filter isOuterEdge $ sources left
-          sinks_r   = map snd $ filter isOuterEdge $ sinks right
+    where [left',right'] = fst.unifyCompIDs $ ([left, right], 0)
 
-          newedges = zipWith (\src snk -> MkEdge (Just $ compID left , src) 
-                                                 (Just $ compID right, snk)) sources_l sinks_r
-
-
-newEdges :: (Maybe CompID, Maybe CompID) -> [PinID] -> [PinID] -> [Edge]
-newEdges (cid_l, cid_r) = zipWith (\src snk -> MkEdge (cid_l, src) 
-                                                      (cid_r, snk))
-
-outerPins :: Connection -> [PinID]
-outerPins ops = map snd $ filter isOuterEdge $ ops
-
-connSG :: (CompID, (CompID, CompID)) -> StructGraph -> Maybe StructGraph -> Maybe StructGraph -> (Maybe StructGraph, [Edge])
-connSG (cid_super, (cid_l, cid_r)) sg Nothing        Nothing        = (Nothing, newEdges (Nothing, Nothing) (sources sg) (sinks sg))
-connSG (cid_super, (cid_l, cid_r)) sg (Just inner_l) Nothing        = (
-connSG (cid_super, (cid_l, cid_r)) sg Nothing        (Just inner_r) = 
-connSG (cid_super, (cid_l, cid_r)) sg (Just inner_l) (Just inner_r) = 
 
 combine :: StructGraph -> StructGraph -> StructGraph
-combine (MkSG n e snk src) (MkSG n' e' snk' src')
-    = MkSG (n ++ n') (e ++ e') (snk ++ snk') (src ++ src')
+combine left right = MkSG { name    = (name left') ++ "+++" ++ (name right') 
+                          , compID  = nextID $ (allCompIDs left') ++ (allCompIDs right')
+                          , nodes   = left' : right' : []
+                          , edges   = (edges left') ++ (edges right') 
+                          , sinks   = (sinks left') ++ (sinks right')
+                          , sources = (sources left') ++ (sources right')
+                          }
+    where [left', right'] = fst.unifyCompIDs $ ([left, right], 0)
+    
 
 
-isOuterEdge :: Connection -> Bool
-isOuterEdge (Nothing, _) = True
-isOuterEdge otherwise    = False
+allCompIDs :: StructGraph -> [CompID]
+allCompIDs sg 
+    = if (length next_sg == 0) then cid : []
+                               else cid : (concat $ map allCompIDs next_sg)
+    where next_sg = nodes sg
+          cid     = compID sg 
 
 
-collectCompIDs :: StructGraph -> [CompID]
-collectCompIDs sg = if isNothing sg'
-                        then cid : []
-                        else cid : (collectCompIDs $ fromJust sg')
-    where cid = compID sg 
-          sg' = node sg
+rewire :: ([SourceEdge], CompID) -> ([SinkEdge], CompID) -> [Edge]
+rewire (srcs, cid_l) (snks, cid_r) 
+    = zipWith (\src snk -> MkEdge (Just $ cid_l, src)
+                                  (Just $ cid_r, snk)) (map snd srcs) (map snd snks)
 
+
+unifyCompID :: (StructGraph, CompID) -> (StructGraph, CompID)
+unifyCompID (sg, cid) 
+    = ( sg { compID = cid
+           , nodes  = sub_sg' 
+           }
+      , cid_next
+      )
+    where (sub_sg', cid_next) = unifyCompIDs (nodes sg, (cid+1))
+
+
+unifyCompIDs :: ([StructGraph], CompID) -> ([StructGraph], CompID)
+unifyCompIDs ([],     cid) = ([], cid)
+unifyCompIDs (sg:sgs, cid) = (sg' : sgs', cid'')
+    where (sg',  cid')  = unifyCompID  (sg, cid)
+          (sgs', cid'') = unifyCompIDs (sgs, cid')
 
 
 newCompID :: StructGraph -> CompID
 newCompID sg = nextID compIDs
-    where compIDs = compID sg : (next $ node sg)
-          next Nothing        = []
-          next (Just innerSG) = compID innerSG : next (node innerSG)
+    where compIDs = compID sg : (next $ nodes sg)
+          next []        = []
+          next [innerSG] = compID innerSG : next (nodes innerSG)
           
     -- where compIDs = map compID $ node sg
 

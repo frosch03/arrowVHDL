@@ -22,7 +22,13 @@ import GraphTraversal.Core
 import GraphTraversal.Auxillary
 
 emptyGraph :: StructGraph
-emptyGraph = MkSG [] [] [] []
+emptyGraph = MkSG { name    = ""
+                  , compID  = 0
+                  , nodes   = []
+                  , edges   = []
+                  , sinks   = []
+                  , sources = []
+                  }
 
 newtype TraversalArrow a b c = TR (a (b, StructGraph) (c, StructGraph))
 

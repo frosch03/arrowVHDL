@@ -36,7 +36,7 @@ and has only a name and a component id.
 > data StructGraph
 >   = MkSG { name    :: String
 >          , compID  :: CompID
->          , node    :: Maybe StructGraph
+>          , nodes   :: [StructGraph]
 >          , edges   :: [Edge]
 >          , sinks   :: [SinkEdge]
 >          , sources :: [SourceEdge]
@@ -75,25 +75,6 @@ The following defines a simple 1 Bit multiplexer with the needed parts.
                 , getSources = [outEdge1]
                 }
 
-For creating a graph more easily, in the following are some funktions defined, that
-help to build a struct graph. 
-
- mkNode :: String -> [PinID] -> [PinID] -> CompID -> Node
- mkNode name snk src cmp = MkNode name snk src cmp
-
- mkEdge :: SourceEdge -> SinkEdge -> Edge
- mkEdge srce snke = MkEdge srce snke 
-
- mkSnkEdge :: PinID -> CompID -> SinkEdge
- mkSnkEdge pid cid = (cid, pid)
-
- mkSrcEdge :: PinID -> CompID -> SourceEdge
- mkSrcEdge pid cid = (cid, pid)
-
- mkStructGraph :: [Node] -> [Edge] -> [SinkEdge] -> [SourceEdge] -> StructGraph
- mkStructGraph ns es snks srcs = MkSG ns es snks srcs
-
-
 To draw a StructGraph it is necessary to make StructGraph an instance of Show and 
 therefore the Edge datatypes also needs to be an instance of Show. 
 
@@ -107,9 +88,9 @@ therefore the Edge datatypes also needs to be an instance of Show.
 > instance Show (StructGraph) where
 >   show g =  "\n"
 >          ++ enclose "Sinks:   "         "\n" (show (sinks g))
->          ++ enclose (name g ++ ": ") "\n" (showNode (node g))
+>          ++ enclose (name g ++ ": ") "\n" (showNode (nodes g))
 >          ++ enclose "Edges:   "         "\n" (show (edges g))
 >          ++ enclose "Sources: "         ""   (show (sources g))
 >       where enclose l r s = l ++ s ++ r
->             showNode Nothing  = ""
->             showNode (Just n) = show n
+>             showNode [] = ""
+>             showNode n  = concat $ map show n
