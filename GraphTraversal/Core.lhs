@@ -74,4 +74,5 @@ therefore the Edge datatypes also needs to be an instance of Show.
 >          ++ (showNode.nodes) g
 >       where showNode [] = ""
 >             showNode n  = concat $ map show n
->             prtInOuts x = foldl1 (\x y -> x ++ ',':y) $ map (show.snd) $ filter (isNothing.fst) x
+>             prtInOuts [] = "_"
+>             prtInOuts x  = foldl1 (\x y -> x ++ ',':y) $ map (show.snd) $ filter (isNothing.fst) x

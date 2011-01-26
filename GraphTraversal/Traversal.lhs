@@ -32,14 +32,16 @@
 >                   , sources = []
 >                   }
 
+> arrGraph = emptyGraph { name = " " }
+
 > newtype TraversalArrow a b c = TR (a (b, StructGraph) (c, StructGraph))
 
 > instance (Category a, Arrow a) => Category (TraversalArrow a) where
 >     id              = TR id
 >     (TR f) . (TR g) = TR $ proc (x, sg) -> do
 >                             (x', sg_g) <- g -< (x,  sg)
->                             (y,  sg_f) <- f -< (x', sg_g `connect` sg  )
->                             returnA         -< (y,  sg_f `connect` sg_g)
+>                             (y,  sg_f) <- f -< (x', sg   `connect` sg_g)
+>                             returnA         -< (y,  sg_g `connect` sg_f)
 
 
 > instance (Arrow a) => Arrow (TraversalArrow a) where
@@ -61,11 +63,7 @@ instance (ArrowChoice a) => ArrowChoice (TraversalArrow a) where
            distr (Right z, s) = Right (z, s)
            undistr (Left (y, s)) = (Left y, s)
            undistr (Right (z, s)) = (Right z, s)
-    (TR f) +++ (TR g) = TR $ proc (x, sg) -> do
-                            (x', sg') <- either f g  -< (x, sg)
-                            returnA                  -< (x', sg)
-
-
+    (TR f) +++ (TR g) = 
 
 > instance (Arrow a) => ArrowTransformer (TraversalArrow) a where
 >     lift f = TR (first f)
