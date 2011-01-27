@@ -34,6 +34,12 @@
 
 > arrGraph = emptyGraph { name = " " }
 
+> throughGraph = emptyGraph { name    = "(-)"
+>                           , sinks   = [ (Nothing, 0) ]
+>                           , sources = [ (Nothing, 0) ]
+>                           }
+
+
 > newtype TraversalArrow a b c = TR (a (b, StructGraph) (c, StructGraph))
 
 > instance (Category a, Arrow a) => Category (TraversalArrow a) where
@@ -45,9 +51,10 @@
 
 
 > instance (Arrow a) => Arrow (TraversalArrow a) where
->     arr f        = TR (arr (\(x, _) -> (f x, emptyGraph)))
->     first (TR f) = TR (arr swapsnd >>> first f >>> arr swapsnd)
->      where swapsnd ((x, y), sg) = ((x, sg), y)
+>     arr f        = TR (arr (\(x, _) -> (f x, arrGraph)))
+>     first (TR f) = TR $ proc ((x, y), sg) -> do
+>                             (x', sg_f) <- f -< (x, sg)
+>                             returnA         -< ((x', y), sg_f `combine` throughGraph)
 >     (TR f) &&& (TR g) = TR $ proc (x, sg) -> do 
 >                             (x', sg_f) <- f -< (x,   sg)
 >                             (y', sg_g) <- g -< (x,   sg)
