@@ -6,6 +6,11 @@ import Data.Bits (xor, shiftL, shiftR)
 
 import GraphTraversal
 
+-- runTraversal_ aId (5)
+-- runTraversal_ (aXor >>> aId) (1, 2)
+-- runTraversal_ (aXor >>> (aId &&& (aConst 4)) >>> aXor)  (1, 2)
+-- runTraversal_ aFeistelRound ((0, 0), (0, 0))
+
 type KeyChunk = Int
 type ValChunk = Int
 type Key   = (KeyChunk, KeyChunk, KeyChunk, KeyChunk)

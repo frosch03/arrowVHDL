@@ -39,6 +39,16 @@
 >                           , sources = [ (Nothing, 0) ]
 >                           }
 
+> leftGraph = emptyGraph { name    = "(L)"
+>                        , sinks   = [ (Nothing, 0) ]
+>                        , sources = [ (Nothing, 0) ]
+>                        }
+
+> rightGraph = emptyGraph { name    = "(R)"
+>                         , sinks   = [ (Nothing, 0) ]
+>                         , sources = [ (Nothing, 0) ]
+>                         }
+
 
 > newtype TraversalArrow a b c = TR (a (b, StructGraph) (c, StructGraph))
 
@@ -48,6 +58,7 @@
 >                             (x', sg_g) <- g -< (x,  sg)
 >                             (y,  sg_f) <- f -< (x', sg   `connect` sg_g)
 >                             returnA         -< (y,  sg_g `connect` sg_f)
+
 
 
 > instance (Arrow a) => Arrow (TraversalArrow a) where
@@ -64,16 +75,18 @@
 >                             (y', sg_g) <- g -< (y,   sg)
 >                             returnA         -< ((x', y'), sg_f `combine` sg_g)
 
-instance (ArrowChoice a) => ArrowChoice (TraversalArrow a) where
-    left (TR f) = TR (arr distr >>> left f >>> arr undistr) 
-     where distr (Left y, s) = Left (y, s)
-           distr (Right z, s) = Right (z, s)
-           undistr (Left (y, s)) = (Left y, s)
-           undistr (Right (z, s)) = (Right z, s)
-    (TR f) +++ (TR g) = 
 
-> instance (Arrow a) => ArrowTransformer (TraversalArrow) a where
->     lift f = TR (first f)
+We need here two versions of ArrowChoice,
+one, that processes every path and this one, that processes 
+only a specific path. (btw, the combine-function here is still not 
+the correct combinator for the two StructGraph's)
+
+> instance (ArrowChoice a) => ArrowChoice (TraversalArrow a) where
+>     left (TR f) = TR $ arr distr >>> left f >>> arr undistr
+>         where distr   (Left  x, sg)   = Left  (x, sg) 
+>               distr   (Right x, sg)   = Right (x, sg) 
+>               undistr (Left  (x, sg)) = (Left  x, sg `combine` leftGraph)
+>               undistr (Right (x, sg)) = (Right x, sg `combine` rightGraph)
 
 > runTraversal :: (Arrow a) => TraversalArrow a b c -> a (b, StructGraph) (c, StructGraph)
 > runTraversal (TR f) = f

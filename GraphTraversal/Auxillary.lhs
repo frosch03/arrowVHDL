@@ -56,14 +56,40 @@ The component id's are updated so that every id is still unique.
 >                                   (Just $ cid_r, snk)) (map snd srcs) (map snd snks)
 
 
+
+While the CompID's are unified it is necessary to also update the edges. The fitedges
+functions takes an old and a new component id together with a list of edges that need
+to be adopted. Every edge, that comes from or goes to an CompID which is updated, is 
+updated also. 
+
+> type OldCID = CompID
+> type NewCID = CompID
+
+> fitedges :: (OldCID, NewCID) -> [Edge] -> [Edge]
+> fitedges (_    , _    ) []     = []
+> fitedges (o_cid, n_cid) (e:es) = MkEdge (replaceCID $ sourceInfo e) 
+>                                         (replaceCID $ sinkInfo e) 
+>                                : fitedges (o_cid, n_cid) es  
+>     where (src_cid, snk_cid) = (fst.sourceInfo $ e, fst.sinkInfo $ e)
+>           replaceCID :: Connection -> Connection
+>           replaceCID ((Nothing),  pid) = (Nothing, pid) 
+>           replaceCID ((Just cid), pid) = if cid == o_cid then ((Just n_cid), pid)
+>                                                          else ((Just cid), pid) 
+
+
+
+
 > unifyCompID :: (StructGraph, CompID) -> (StructGraph, CompID)
 > unifyCompID (sg, cid) 
 >     = ( sg { compID = cid
 >            , nodes  = sub_sg' 
+>            , edges  = fit_edges
 >            }
 >       , cid_next
 >       )
 >     where (sub_sg', cid_next) = unifyCompIDs (nodes sg, (cid+1))
+>           old_cid             = compID sg
+>           fit_edges           = fitedges (old_cid, cid) $ edges sg
 
 
 > unifyCompIDs :: ([StructGraph], CompID) -> ([StructGraph], CompID)
