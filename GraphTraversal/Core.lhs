@@ -4,6 +4,7 @@
 > import Data.Maybe ( isNothing
 >                   , fromJust
 >                   )
+> import Prelude hiding (break)
 
 > type PinID  = Int
 > type CompID = Int
@@ -65,12 +66,50 @@ therefore the Edge datatypes also needs to be an instance of Show.
 >       where prtConnection (cid, pid) = show (fromJust cid, pid)
 
 > instance Show (StructGraph) where
->     show = toArchitecture
+>     show = toVHDL
 
 In a VHDL-Sorce file, there are two main sections, that we need to specify 
 in order to get working VHDL-Source.
 
 Lets concentrate in this function on the "port"-specification ... 
+
+
+> break :: String -> String
+> break =  flip (++) "\n"
+
+> space :: String -> String
+> space = flip (++) " "
+
+> toVHDL :: StructGraph -> String
+> toVHDL g = concat $ map break
+>          [ ""
+>          , vhdl_header
+>          , vhdl_entity g 
+>          ]
+
+> vhdl_header :: String
+> vhdl_header = concat $ map break
+>             [ "LIBRARY ieee;"
+>             , "USE ieee.std_logic_1164.all;"
+>             ]
+
+> vhdl_entity :: StructGraph -> String
+> vhdl_entity g = concat $ map break
+>               [ "ENTITY " ++ name g ++ " IS"
+>               , "PORT (" ++ vhdl_port_definition g ++ ");"
+>               , "END " ++ name g ++ ";"
+>               ]
+
+> vhdl_port_definition :: StructGraph -> String
+> vhdl_port_definition g = concat $ map break
+>                        [ inpins  ++ " : in std_logic;"
+>                        , outpins ++ " : out std_logic;"
+>                        ]
+>    where pins :: String -> (StructGraph -> [Connection]) -> [String]
+>          pins s f  = map (\x -> s ++ (show.snd $ x)) $ filter (isNothing.fst) $ f g
+>          inpins  = prtPins $ pins "inpin" sinks 
+>          outpins = prtPins $ pins "outpin" sources
+>          prtPins x = foldl1 (\x y -> x ++ ", " ++ y) $ x
 
 > toArchitecture :: StructGraph -> String
 > toArchitecture g =  "\n"
