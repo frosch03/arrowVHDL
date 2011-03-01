@@ -65,11 +65,48 @@ therefore the Edge datatypes also needs to be an instance of Show.
 >       where prtConnection (cid, pid) = show (fromJust cid, pid)
 
 > instance Show (StructGraph) where
->     show = toNetlist
+>     show = toArchitecture
+
+In a VHDL-Sorce file, there are two main sections, that we need to specify 
+in order to get working VHDL-Source.
+
+Lets concentrate in this function on the "port"-specification ... 
+
+> toArchitecture :: StructGraph -> String
+> toArchitecture g =  "\n"
+>                  ++ "architecture " ++ name g ++ " of " ++ " >>> TODO <<< " ++ " is"
+>                  ++ toComponentSpec g
+>                  ++ toSourceSpec g 
+
+> toComponentSpec :: StructGraph -> String
+> toComponentSpec g =  "\n"
+>                   ++ "component " ++ name g 
+>                   ++ "\n"
+>                   ++     toPortSpec g
+>                   ++ "\n"
+>                   ++ "end component;"
+
+> toPortSpec :: StructGraph -> String
+> toPortSpec g =  "\n"
+>              ++ "port(" ++ "\n"
+>              ++ inpins  ++ " : in std_logic;" ++ "\n"
+>              ++ outpins ++ " : out std_logic;" ++ "\n"
+>              ++ ");" ++ "\n"
+>    where inpins  = prtPins $ pins "inpin" sinks 
+>          outpins = prtPins $ pins "outpin" sources
+>          pins :: String -> (StructGraph -> [Connection]) -> [String]
+>          pins s f  = map (\x -> s ++ (show.snd $ x)) $ filter (isNothing.fst) $ f g
+>          prtPins x = foldl1 (\x y -> x ++ ", " ++ y) $ x
+
+> toSourceSpec :: StructGraph -> String
+> toSourceSpec g =  "\n"
+>                ++ "begin" ++ "\n"
+>                ++ "   >>> something in between <<<   " ++ "\n"
+>                ++ "end" ++ "\n"
 
 
-> toNetlist :: StructGraph -> String
-> toNetlist g =  "\n"
+> toSimpleList :: StructGraph -> String
+> toSimpleList g =  "\n"
 >             ++ (show.compID) g
 >             ++ "(" ++ (show.name) g ++ "): "
 >             ++ (prtInOuts.sinks) g ++ "] "
@@ -81,45 +118,3 @@ therefore the Edge datatypes also needs to be an instance of Show.
 >                prtInOuts [] = "_"
 >                prtInOuts x  = foldl1 (\x y -> x ++ ',':y) $ map (show.snd) $ filter (isNothing.fst) x
 
-toVHDL :: StructGraph -> String
-toVHDL g =  "\n"
-         ++ "var_" ++ (show.name) g ++ " <= "
-         ++ 
-         ++
-         ++
-         ++
-         ++
-
-In a VHDL-Sorce file, there are two main sections, that we need to specify 
-in order to get working VHDL-Source.
-
-Lets concentrate in this function on the "port"-specification ... 
-
-> toPortSpec :: StructGraph -> String
-> toPortSpec g =  "\n"
->              ++ "port( clockpin, resetpin : in std_logic;" ++ "\n"
->              ++ inpins  ++ " : in std_logic;" ++ "\n"
->              ++ outpins ++ " : out std_logic;" ++ "\n"
->              ++ ");" ++ "\n"
->    where inpins  = prtPins $ pins "inpin" sinks 
->          outpins = prtPins $ pins "outpin" sources
->          pins :: String -> (StructGraph -> [Connection]) -> [String]
->          pins s f  = map (\x -> s ++ (show.snd $ x)) $ filter (isNothing.fst) $ f g
->          prtPins x = foldl1 (\x y -> x ++ ", " ++ y) $ x
-
-> toComponentSpec :: StructGraph -> String
-> toComponentSpec g =  "\n"
->                   ++ "component " ++ name g 
->                   ++ "\n"
->                   ++     toPortSpec g
->                   ++ "\n"
->                   ++ "end component;"
-
-> toSourceSpec :: StructGraph -> String
-> toSourceSpec g =  "\n"
->                ++ "begin"
->                ++ 
->                ++ "end"
->                ++ 
->                ++ 
->                ++ 
