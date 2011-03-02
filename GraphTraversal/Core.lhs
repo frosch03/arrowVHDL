@@ -31,8 +31,8 @@ a name and a component id.
 >          , compID  :: CompID
 >          , nodes   :: [StructGraph]
 >          , edges   :: [Edge]
->          , sinks   :: [SinkEdge]
->          , sources :: [SourceEdge]
+>          , sinks   :: [SinkAnchor]
+>          , sources :: [SourceAnchor]
 >          }
 
 Remember, a Sink is something that takes something  (INPUT)
@@ -43,18 +43,18 @@ the pin/component it comes from, as well as the pin/component
 it goes to.
 
 > data Edge
->   = MkEdge { sourceInfo :: SourceEdge
->            , sinkInfo   :: SinkEdge
+>   = MkEdge { sourceInfo :: SourceAnchor
+>            , sinkInfo   :: SinkAnchor
 >            }
 
 A connection is defined by the tuple of componentID and a pinID
 There are two special types of edges, those that come from the
-outside into the component (called SinkEdge). And those that go
-from the component to the outside (called SourceEdge). 
+outside into the component (called SinkAnchor). And those that go
+from the component to the outside (called SourceAnchor). 
             
-> type Connection = (Maybe CompID, PinID)
-> type SinkEdge   = Connection
-> type SourceEdge = Connection
+> type AnchorPoint = (Maybe CompID, PinID)
+> type SinkAnchor   = AnchorPoint
+> type SourceAnchor = AnchorPoint
 
 
 
@@ -66,7 +66,8 @@ therefore the Edge datatypes also needs to be an instance of Show.
 >       where prtConnection (cid, pid) = show (fromJust cid, pid)
 
 > instance Show (StructGraph) where
->     show = toVHDL
+>--   show = toVHDL
+>     show = toSimpleList
 
 In a VHDL-Sorce file, there are two main sections, that we need to specify 
 in order to get working VHDL-Source.
@@ -105,7 +106,7 @@ Lets concentrate in this function on the "port"-specification ...
 >                        [ inpins  ++ " : in std_logic;"
 >                        , outpins ++ " : out std_logic;"
 >                        ]
->    where pins :: String -> (StructGraph -> [Connection]) -> [String]
+>    where pins :: String -> (StructGraph -> [AnchorPoint]) -> [String]
 >          pins s f  = map (\x -> s ++ (show.snd $ x)) $ filter (isNothing.fst) $ f g
 >          inpins  = prtPins $ pins "inpin" sinks 
 >          outpins = prtPins $ pins "outpin" sources
@@ -133,7 +134,7 @@ Lets concentrate in this function on the "port"-specification ...
 >              ++ ");" ++ "\n"
 >    where inpins  = prtPins $ pins "inpin" sinks 
 >          outpins = prtPins $ pins "outpin" sources
->          pins :: String -> (StructGraph -> [Connection]) -> [String]
+>          pins :: String -> (StructGraph -> [AnchorPoint]) -> [String]
 >          pins s f  = map (\x -> s ++ (show.snd $ x)) $ filter (isNothing.fst) $ f g
 >          prtPins x = foldl1 (\x y -> x ++ ", " ++ y) $ x
 

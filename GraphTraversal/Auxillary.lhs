@@ -35,10 +35,17 @@ The component id's are updated so that every id is still unique.
 >                        , compID  = nextID $ (allCompIDs up') ++ (allCompIDs down')
 >                        , nodes   = up' : down' : []
 >                        , edges   = (edges up') ++ (edges down') 
->                        , sinks   = (sinks up') ++ (sinks down')
->                        , sources = (sources up') ++ (sources down')
+>                        , sinks   = (sinks up')   ++ (sinksDown)
+>                        , sources = (sources up') ++ (sourcesDown)
 >                        }
 >     where [up', down'] = fst.unifyCompIDs $ ([up, down], 0)
+>           sinkCntUp    = length.map snd.sinks   $ up'  
+>           sourceCntUp  = length.map snd.sources $ up'  
+>           sinksDown    = unifyPinIDs ((sinks   down'), sinkCntUp)
+>           sourcesDown  = unifyPinIDs ((sources down'), sourceCntUp)
+
+> unifyPinIDs :: ([AnchorPoint], PinID) -> [AnchorPoint]
+> unifyPinIDs (aps, pid) = map (\(x, y) -> (x, y + pid)) aps
 
 
 
@@ -50,7 +57,7 @@ The component id's are updated so that every id is still unique.
 >           cid     = compID sg 
 
 
-> rewire :: ([SourceEdge], CompID) -> ([SinkEdge], CompID) -> [Edge]
+> rewire :: ([SourceAnchor], CompID) -> ([SinkAnchor], CompID) -> [Edge]
 > rewire (srcs, cid_l) (snks, cid_r) 
 >     = zipWith (\src snk -> MkEdge (Just $ cid_l, src)
 >                                   (Just $ cid_r, snk)) (map snd srcs) (map snd snks)
@@ -71,7 +78,7 @@ updated also.
 >                                         (replaceCID $ sinkInfo e) 
 >                                : fitedges (o_cid, n_cid) es  
 >     where (src_cid, snk_cid) = (fst.sourceInfo $ e, fst.sinkInfo $ e)
->           replaceCID :: Connection -> Connection
+>           replaceCID :: AnchorPoint -> AnchorPoint
 >           replaceCID ((Nothing),  pid) = (Nothing, pid) 
 >           replaceCID ((Just cid), pid) = if cid == o_cid then ((Just n_cid), pid)
 >                                                          else ((Just cid), pid) 
