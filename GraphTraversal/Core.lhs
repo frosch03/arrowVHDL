@@ -66,8 +66,8 @@ therefore the Edge datatypes also needs to be an instance of Show.
 >       where prtConnection (cid, pid) = show (fromJust cid, pid)
 
 > instance Show (StructGraph) where
->--   show = toVHDL
->     show = toSimpleList
+>     show = toVHDL
+> --  show = toSimpleList
 
 In a VHDL-Sorce file, there are two main sections, that we need to specify 
 in order to get working VHDL-Source.
@@ -78,14 +78,12 @@ Lets concentrate in this function on the "port"-specification ...
 > break :: String -> String
 > break =  flip (++) "\n"
 
-> space :: String -> String
-> space = flip (++) " "
-
 > toVHDL :: StructGraph -> String
 > toVHDL g = concat $ map break
 >          [ ""
 >          , vhdl_header
 >          , vhdl_entity g 
+>          , vhdl_components g
 >          ]
 
 > vhdl_header :: String
@@ -100,6 +98,15 @@ Lets concentrate in this function on the "port"-specification ...
 >               , "PORT (" ++ vhdl_port_definition g ++ ");"
 >               , "END " ++ name g ++ ";"
 >               ]
+
+> vhdl_components :: StructGraph -> String
+> vhdl_components g = concat $ map component nodes_level1
+>     where nodes_level1 = nodes g
+>           component g_level1 = concat $ map break
+>                              [ ""
+>                              , "COMPONENT " ++ name g_level1
+>                              , "PORT (" ++ vhdl_port_definition g_level1 ++ ");"
+>                              ] 
 
 > vhdl_port_definition :: StructGraph -> String
 > vhdl_port_definition g = concat $ map break
