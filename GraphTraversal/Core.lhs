@@ -6,6 +6,7 @@
 >                   )
 > import Prelude hiding (break)
 
+
 > type PinID  = Int
 > type CompID = Int
 
@@ -69,55 +70,121 @@ therefore the Edge datatypes also needs to be an instance of Show.
 >     show = toVHDL
 > --  show = toSimpleList
 
+
 In a VHDL-Sorce file, there are two main sections, that we need to specify 
 in order to get working VHDL-Source.
 
-Lets concentrate in this function on the "port"-specification ... 
 
+First of all we need a function, that appends a newline character t the 
+end of a string. 
 
 > break :: String -> String
 > break =  flip (++) "\n"
 
+
+The function that starts the show-process is the toVHDL-function. Here we 
+define the basic structure of a VHDL-SourceCode with an header, the 
+entity-definition as well as the component-definition. 
+TODO: Add the signal-definition and the port-map-definitions
+
 > toVHDL :: StructGraph -> String
-> toVHDL g = concat $ map break
->          [ ""
->          , vhdl_header
->          , vhdl_entity g 
->          , vhdl_components g
->          ]
+> toVHDL g 
+>      = concat $ map break
+>      [ ""
+>      , vhdl_header
+>      , vhdl_entity g 
+>      , vhdl_components g
+>      , vhdl_signals g
+>      ]
+
+
+The VHDL-Header is just some boilerplate-code where library's are imported
 
 > vhdl_header :: String
-> vhdl_header = concat $ map break
->             [ "LIBRARY ieee;"
->             , "USE ieee.std_logic_1164.all;"
->             ]
+> vhdl_header 
+>      = concat $ map break
+>      [ "LIBRARY ieee;"
+>      , "USE ieee.std_logic_1164.all;"
+>      ]
+
+
+A VHDL-Entity defines an "interface" to a hardware component. It consists of
+a name and of some port-definitions (like what wires go inside and come back out)
 
 > vhdl_entity :: StructGraph -> String
-> vhdl_entity g = concat $ map break
->               [ "ENTITY " ++ name g ++ " IS"
->               , "PORT (" ++ vhdl_port_definition g ++ ");"
->               , "END " ++ name g ++ ";"
->               ]
+> vhdl_entity g 
+>      = concat $ map break
+>      [ "ENTITY " ++ name g ++ " IS"
+>      , "PORT (" ++ vhdl_port_definition g ++ ");"
+>      , "END " ++ name g ++ ";"
+>      ]
+
+
+The VHDL-Component definitions describe the basic interface to the components
+that are used inside this new definition. We therefore pick the components 
+of which these new component consists. We call this components the level 1 
+components, because we descent only one step down in the graph. 
 
 > vhdl_components :: StructGraph -> String
-> vhdl_components g = concat $ map component nodes_level1
+> vhdl_components g 
+>      = concat $ map component nodes_level1
 >     where nodes_level1 = nodes g
 >           component g_level1 = concat $ map break
 >                              [ ""
 >                              , "COMPONENT " ++ name g_level1
->                              , "PORT (" ++ vhdl_port_definition g_level1 ++ ");"
+>                              , "PORT (" ++ vhdl_component_ports g_level1 ++ ");"
 >                              ] 
 
+
+With the VHDL-Component-Ports function we generate a nice string with all the
+in and output pins, seperated by a comma and a blank. 
+
+> vhdl_component_ports :: StructGraph -> String
+> vhdl_component_ports g 
+>      = concat $ map break
+>      [ name_anchors "in" (sinks g)    ++ " : in  std_logic;" 
+>      , name_anchors "out" (sources g) ++ " : out std_logic;"
+>      ]
+
+
+With the VHDL-Port-Definition function we generate a nice string with all the
+in and output pins, seperated by a comma and a blank. 
+
 > vhdl_port_definition :: StructGraph -> String
-> vhdl_port_definition g = concat $ map break
->                        [ inpins  ++ " : in std_logic;"
->                        , outpins ++ " : out std_logic;"
->                        ]
->    where pins :: String -> (StructGraph -> [AnchorPoint]) -> [String]
->          pins s f  = map (\x -> s ++ (show.snd $ x)) $ filter (isNothing.fst) $ f g
->          inpins  = prtPins $ pins "inpin" sinks 
->          outpins = prtPins $ pins "outpin" sources
->          prtPins x = foldl1 (\x y -> x ++ ", " ++ y) $ x
+> vhdl_port_definition g 
+>      = concat $ map break
+>      [ name_anchors "inpin" (sinks g)    ++ " : in  std_logic;"
+>      , name_anchors "outpin" (sources g) ++ " : out std_logic;"
+>      ]
+
+
+The VHDL-Signals is the list of inner wires, that are used inside the new component.
+
+> vhdl_signals :: StructGraph -> String
+> vhdl_signals g 
+>      = concat $ map break
+>      [ "SIGNAL " ++ signals ++ ": std_logic" 
+>      ]
+>     where signals = seperate_with ", " ['i': (show x) | x <- [0 .. length (edges g) -1]]
+
+
+
+The Name-Anchors function takes a string and a list of anchor points. The string is the 
+prepended infront of every anchor points number. All the strings are then concated and 
+seperated with a comma and a blank. 
+
+> name_anchors :: String -> [AnchorPoint] -> String
+> name_anchors name as = seperate_with ", " 
+>                      $ map (\x -> name ++ (show.snd $ x)) 
+>                      $ filter (isNothing.fst) 
+>                      $ as
+
+> seperate_with :: String -> [String] -> String
+> seperate_with sep = foldl1 (\x y -> x ++ sep ++ y)
+
+
+
+
 
 > toArchitecture :: StructGraph -> String
 > toArchitecture g =  "\n"
@@ -163,5 +230,4 @@ Lets concentrate in this function on the "port"-specification ...
 >          where showNode [] = ""
 >                showNode n  = concat $ map show n
 >                prtInOuts [] = "_"
->                prtInOuts x  = foldl1 (\x y -> x ++ ',':y) $ map (show.snd) $ filter (isNothing.fst) x
-
+>
