@@ -35,6 +35,7 @@ a name and a component id.
 >          , sinks   :: [SinkAnchor]
 >          , sources :: [SourceAnchor]
 >          }
+> --  deriving (Show)
 
 Remember, a Sink is something that takes something  (INPUT)
 where a Source is something that produces something (OUTPUT)
@@ -47,6 +48,7 @@ it goes to.
 >   = MkEdge { sourceInfo :: SourceAnchor
 >            , sinkInfo   :: SinkAnchor
 >            }
+> --  deriving (Show)
 
 A connection is defined by the tuple of componentID and a pinID
 There are two special types of edges, those that come from the
@@ -95,6 +97,7 @@ TODO: Add the signal-definition and the port-map-definitions
 >      , vhdl_entity g 
 >      , vhdl_components g
 >      , vhdl_signals g
+>      , vhdl_portmaps g
 >      ]
 
 
@@ -168,6 +171,17 @@ The VHDL-Signals is the list of inner wires, that are used inside the new compon
 >     where signals = seperate_with ", " ['i': (show x) | x <- [0 .. length (edges g) -1]]
 
 
+> vhdl_portmaps :: StructGraph -> String
+> vhdl_portmaps g 
+>      = concat $ map break
+>      [ "BEGIN"
+> --   , 
+> --   ,
+> --   ,
+> --   ,
+>      , "END"
+>      ]
+>     where nodes_level1 = nodes g
 
 The Name-Anchors function takes a string and a list of anchor points. The string is the 
 prepended infront of every anchor points number. All the strings are then concated and 
@@ -230,4 +244,4 @@ seperated with a comma and a blank.
 >          where showNode [] = ""
 >                showNode n  = concat $ map show n
 >                prtInOuts [] = "_"
->
+>                prtInOuts x  = foldl1 (\x y -> x ++ ',':y) $ map (show.snd) $ filter (isNothing.fst) x
