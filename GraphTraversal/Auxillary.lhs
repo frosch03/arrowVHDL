@@ -74,8 +74,8 @@ updated also.
 
 > fitedges :: (OldCID, NewCID) -> [Edge] -> [Edge]
 > fitedges (_    , _    ) []     = []
-> fitedges (o_cid, n_cid) (e:es) = MkEdge (replaceCID $ sourceInfo e) 
->                                         (replaceCID $ sinkInfo e) 
+> fitedges (o_cid, n_cid) (e:es) = MkEdge (replaceCID . sourceInfo $ e) 
+>                                         (replaceCID . sinkInfo   $ e) 
 >                                : fitedges (o_cid, n_cid) es  
 >     where (src_cid, snk_cid) = (fst.sourceInfo $ e, fst.sinkInfo $ e)
 >           replaceCID :: AnchorPoint -> AnchorPoint
@@ -90,13 +90,13 @@ updated also.
 > unifyCompID (sg, cid) 
 >     = ( sg { compID = cid
 >            , nodes  = sub_sg' 
->            , edges  = fit_edges
+>            , edges  = fitted_edges
 >            }
 >       , cid_next
 >       )
 >     where (sub_sg', cid_next) = unifyCompIDs (nodes sg, (cid+1))
 >           old_cid             = compID sg
->           fit_edges           = fitedges (old_cid, cid) $ edges sg
+>           fitted_edges        = fitedges (old_cid, cid) $ edges sg
 
 
 > unifyCompIDs :: ([StructGraph], CompID) -> ([StructGraph], CompID)

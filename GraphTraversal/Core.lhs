@@ -69,8 +69,8 @@ therefore the Edge datatypes also needs to be an instance of Show.
 >       where prtConnection (cid, pid) = show (fromJust cid, pid)
 
 > instance Show (StructGraph) where
->     show = toVHDL
-> --  show = toSimpleList
+> --  show = toVHDL
+>     show = toSimpleList
 
 
 In a VHDL-Sorce file, there are two main sections, that we need to specify 
@@ -171,6 +171,10 @@ The VHDL-Signals is the list of inner wires, that are used inside the new compon
 >     where signals = seperate_with ", " ['i': (show x) | x <- [0 .. length (edges g) -1]]
 
 
+
+The VHDL-Portmaps function ... 
+TODO: 
+
 > vhdl_portmaps :: StructGraph -> String
 > vhdl_portmaps g 
 >      = concat $ map break
@@ -182,6 +186,15 @@ The VHDL-Signals is the list of inner wires, that are used inside the new compon
 >      , "END"
 >      ]
 >     where nodes_level1 = nodes g
+>           firstSubNode (n:[]) = n
+>           firstSubNode ns     = let minID = foldl1 min $ map compID nodes_level1
+>                                 in  head $ filter (\n -> compID n == minID) ns
+>           lastSubNode (n:[]) = n
+>           lastSubNode ns     = let maxID = foldl1 max $ map compID nodes_level1
+>                                in  head $ filter (\n -> compID n == maxID) ns
+>           anchors name as = map (\x -> name ++ (show.snd $ x))
+>                           $ filter (isNothing.fst)
+>                           $ as
 
 The Name-Anchors function takes a string and a list of anchor points. The string is the 
 prepended infront of every anchor points number. All the strings are then concated and 
