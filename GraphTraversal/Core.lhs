@@ -9,6 +9,7 @@
 
 > type PinID  = Int
 > type CompID = Int
+> type Pins   = [PinID]
 
 
 The structured graph is the fundamental datatype. It holds information
@@ -32,8 +33,8 @@ a name and a component id.
 >          , compID  :: CompID
 >          , nodes   :: [StructGraph]
 >          , edges   :: [Edge]
->          , sinks   :: [SinkAnchor]
->          , sources :: [SourceAnchor]
+>          , sinks   :: Pins
+>          , sources :: Pins
 >          }
 > --  deriving (Show)
 
@@ -55,7 +56,7 @@ There are two special types of edges, those that come from the
 outside into the component (called SinkAnchor). And those that go
 from the component to the outside (called SourceAnchor). 
             
-> type AnchorPoint = (Maybe CompID, PinID)
+> type AnchorPoint = (CompID, PinID)
 > type SinkAnchor   = AnchorPoint
 > type SourceAnchor = AnchorPoint
 
@@ -66,7 +67,7 @@ therefore the Edge datatypes also needs to be an instance of Show.
 
 > instance Show (Edge) where
 >   show ed = (prtConnection.sourceInfo) ed ++ "->" ++ (prtConnection.sinkInfo) ed
->       where prtConnection (cid, pid) = show (fromJust cid, pid)
+>       where prtConnection (cid, pid) = show (cid, pid)
 
 > instance Show (StructGraph) where
 > --  show = toVHDL
@@ -145,8 +146,8 @@ in and output pins, seperated by a comma and a blank.
 > vhdl_component_ports :: StructGraph -> String
 > vhdl_component_ports g 
 >      = concat $ map break
->      [ name_anchors "in" (sinks g)    ++ " : in  std_logic;" 
->      , name_anchors "out" (sources g) ++ " : out std_logic;"
+>      [ name_pins "in" (sinks g)    ++ " : in  std_logic;" 
+>      , name_pins "out" (sources g) ++ " : out std_logic;"
 >      ]
 
 
@@ -156,8 +157,8 @@ in and output pins, seperated by a comma and a blank.
 > vhdl_port_definition :: StructGraph -> String
 > vhdl_port_definition g 
 >      = concat $ map break
->      [ name_anchors "inpin" (sinks g)    ++ " : in  std_logic;"
->      , name_anchors "outpin" (sources g) ++ " : out std_logic;"
+>      [ name_pins "inpin" (sinks g)    ++ " : in  std_logic;"
+>      , name_pins "outpin" (sources g) ++ " : out std_logic;"
 >      ]
 
 
@@ -200,11 +201,10 @@ The Name-Anchors function takes a string and a list of anchor points. The string
 prepended infront of every anchor points number. All the strings are then concated and 
 seperated with a comma and a blank. 
 
-> name_anchors :: String -> [AnchorPoint] -> String
-> name_anchors name as = seperate_with ", " 
->                      $ map (\x -> name ++ (show.snd $ x)) 
->                      $ filter (isNothing.fst) 
->                      $ as
+> name_pins :: String -> Pins -> String
+> name_pins name pins 
+>     = seperate_with ", " 
+>     $ map (\x -> name ++ (show x)) pins
 
 > seperate_with :: String -> [String] -> String
 > seperate_with sep = foldl1 (\x y -> x ++ sep ++ y)
@@ -235,8 +235,8 @@ seperated with a comma and a blank.
 >              ++ ");" ++ "\n"
 >    where inpins  = prtPins $ pins "inpin" sinks 
 >          outpins = prtPins $ pins "outpin" sources
->          pins :: String -> (StructGraph -> [AnchorPoint]) -> [String]
->          pins s f  = map (\x -> s ++ (show.snd $ x)) $ filter (isNothing.fst) $ f g
+>          pins :: String -> (StructGraph -> Pins) -> [String]
+>          pins s f  = map (\x -> s ++ (show x)) $ f g
 >          prtPins x = foldl1 (\x y -> x ++ ", " ++ y) $ x
 
 > toSourceSpec :: StructGraph -> String
@@ -257,4 +257,4 @@ seperated with a comma and a blank.
 >          where showNode [] = ""
 >                showNode n  = concat $ map show n
 >                prtInOuts [] = "_"
->                prtInOuts x  = foldl1 (\x y -> x ++ ',':y) $ map (show.snd) $ filter (isNothing.fst) x
+>                prtInOuts x  = foldl1 (\x y -> x ++ ',':y) $ map show x

@@ -21,13 +21,15 @@ The component id's are updated so that every id is still unique.
 
 > connect :: StructGraph -> StructGraph -> StructGraph
 > connect left right = MkSG { name    = (name left') ++ ">>>" ++ (name right')
->                           , compID  = nextID $ (allCompIDs left') ++ (allCompIDs right')
+>                           , compID  = newCompID
 >                           , nodes   = left' : right' : []
->                           , edges   = rewire (sources left', compID left') (sinks right', compID right')
->                           , sinks   = sinks left'
->                           , sources = sources right'
+>                           , edges   = edgs
+>                           , sinks   = srcs 
+>                           , sources = snks
 >                           }
->     where [left',right'] = fst.unifyCompIDs $ ([left, right], 0)
+>     where (edgs, (srcs, snks)) = rewire newCompID left' right'
+>           [left',right']       = fst.unifyCompIDs $ ([left, right], 0)
+>           newCompID            = nextID $ (allCompIDs left') ++ (allCompIDs right')
 
 
 > combine :: StructGraph -> StructGraph -> StructGraph
@@ -57,10 +59,24 @@ The component id's are updated so that every id is still unique.
 >           cid     = compID sg 
 
 
-> rewire :: ([SourceAnchor], CompID) -> ([SinkAnchor], CompID) -> [Edge]
-> rewire (srcs, cid_l) (snks, cid_r) 
->     = zipWith (\src snk -> MkEdge (Just $ cid_l, src)
->                                   (Just $ cid_r, snk)) (map snd srcs) (map snd snks)
+> rewire :: CompID -> StructGraph -> StructGraph -> ([Edge], (Pins, Pins))
+> rewire cid sg_l sg_r
+>     = (edgs ++ src_edges ++ snk_edges, (super_srcs, super_snks))
+>     where (edgs, (srcs_l', snks_r')) =  wire (compID sg_l) (compID sg_r) (sources sg_l) (sinks sg_r)
+>           super_snks                 =  [0..(length (sinks   sg_l) + length snks_r' -1)]
+>           super_srcs                 =  [0..(length (sources sg_r) + length srcs_l' -1)]
+>           src_edges                  =  (fst $ wire cid (compID sg_l) super_srcs (sinks sg_l))
+>                                      ++ (fst $ wire cid (compID sg_r) super_srcs (sinks sg_l))
+>           snk_edges                  =  (fst $ wire (compID sg_l) cid (sources sg_l) super_snks)
+>                                      ++ (fst $ wire (compID sg_r) cid (sources sg_r) super_snks)
+
+> wire :: CompID -> CompID -> Pins -> Pins -> ([Edge], (Pins, Pins))
+> wire cid_l cid_r pins_l pins_r 
+>     = (edges, (drop cnt pins_l, drop cnt pins_r))
+>     where points_l = map ((,) cid_l) pins_l
+>           points_r = map ((,) cid_r) pins_r
+>           edges    = map (uncurry MkEdge) $ zip points_l points_r
+>           cnt      = length edges
 
 
 
