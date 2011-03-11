@@ -83,20 +83,24 @@ updated also.
 >           replaceCID ((Just cid), pid) = if cid == o_cid then ((Just n_cid), pid)
 >                                                          else ((Just cid), pid) 
 
+> fitedges' :: (OldCID, NewCID) -> [StructGraph] -> [StructGraph]
+> fitedges' (_,     _)     []  = []
+> fitedges' (o_cid, n_cid) sgs = sgs'
+>     where ess  = map (fitedges (o_cid, n_cid) . edges) $ sgs
+>           sgs' = zipWith (\sg es -> sg { edges = es }) sgs ess
+
 
 
 
 > unifyCompID :: (StructGraph, CompID) -> (StructGraph, CompID)
 > unifyCompID (sg, cid) 
 >     = ( sg { compID = cid
->            , nodes  = sub_sg' 
->            , edges  = fitted_edges
+>            , nodes  = sub_sg'
 >            }
 >       , cid_next
 >       )
->     where (sub_sg', cid_next) = unifyCompIDs (nodes sg, (cid+1))
+>     where (sub_sg', cid_next) = unifyCompIDs (nodes sg, cid+1)
 >           old_cid             = compID sg
->           fitted_edges        = fitedges (old_cid, cid) $ edges sg
 
 
 > unifyCompIDs :: ([StructGraph], CompID) -> ([StructGraph], CompID)
