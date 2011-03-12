@@ -25,8 +25,8 @@ aId
     = augment_f_SG 
         (id) 
         emptyGraph { name    = "ID"
-                   , sinks   = [ (Nothing, 0) ]
-                   , sources = [ (Nothing, 0) ]
+                   , sinks   = mkPins 1
+                   , sources = mkPins 1
                    }
 
 aConst :: (Arrow a, Show b) => b -> TraversalArrow a c b
@@ -34,8 +34,8 @@ aConst x
     = augment_f_SG
         (\_ -> x)
         emptyGraph { name    = "CONST_" ++ (show x)
-                   , sinks   = [ ]
-                   , sources = [ (Nothing, 0) ]
+                   , sinks   = mkPins 0
+                   , sources = mkPins 1
                    }
 
 aXor :: (Arrow a) => TraversalArrow a (Int, Int) (Int)
@@ -43,10 +43,8 @@ aXor
     = augment_f_SG 
         (uncurry xor) 
         emptyGraph { name    = "XOR"
-                   , sinks   = [ (Nothing, 0) 
-                               , (Nothing, 1)
-                               ]
-                   , sources = [ (Nothing, 0) ]
+                   , sinks   = mkPins 2
+                   , sources = mkPins 1
                    }
 
 
@@ -55,10 +53,8 @@ aShiftL
     = augment_f_SG 
         (uncurry shiftL) 
         emptyGraph { name    = "SHIFTL"
-                   , sinks   = [ (Nothing, 0) 
-                               , (Nothing, 1)
-                               ] 
-                   , sources = [ (Nothing, 0) ]
+                   , sinks   = mkPins 2
+                   , sources = mkPins 1
                    }
 
 aShiftR :: (Arrow a) => TraversalArrow a (Int, Int) (Int)
@@ -66,10 +62,8 @@ aShiftR
     = augment_f_SG 
         (uncurry shiftR) 
         emptyGraph { name    = "SHIFTR"
-                   , sinks   = [ (Nothing, 0) 
-                               , (Nothing, 1)
-                               ] 
-                   , sources = [ (Nothing, 0) ]
+                   , sinks   = mkPins 2
+                   , sources = mkPins 1
                    }
 
 aAdd :: (Arrow a) => TraversalArrow a  (Int, Int) (Int)
@@ -77,10 +71,8 @@ aAdd
     = augment_f_SG 
         (uncurry (+))
         emptyGraph { name    = "ADD"
-                   , sinks   = [ (Nothing, 0) 
-                               , (Nothing, 1)
-                               ] 
-                   , sources = [ (Nothing, 0) ]
+                   , sinks   = mkPins 2
+                   , sources = mkPins 1
                    }
 
 aFlip :: (Arrow a) => TraversalArrow a (b, c) (c, b)
@@ -88,12 +80,8 @@ aFlip
     = augment_f_SG 
         (\(x, y) -> (y, x))
          emptyGraph { name    = "FLIP"
-                    , sinks   = [ (Nothing, 0)
-                                , (Nothing, 1)
-                                ]
-                    , sources = [ (Nothing, 0)
-                                , (Nothing, 1)
-                                ]
+                    , sinks   = mkPins 2
+                    , sources = mkPins 2
                     }
 
 -- aShiftL4addKey :: (Arrow a) => TraversalArrow a (ValChunk, KeyChunk) Int
@@ -150,8 +138,8 @@ aAddMagic
         >>> aAdd
         )
         emptyGraph { name    = "ADDMAGIC"
-                   , sinks   = [ (Nothing, 0) ]
-                   , sources = [ (Nothing, 0) ]
+                   , sinks   = mkPins 1
+                   , sources = mkPins 1
                    }
 
 

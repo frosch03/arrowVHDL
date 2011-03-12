@@ -8,6 +8,7 @@ module GraphTraversal
     , runTraversal
     , runTraversal_
     , emptyGraph
+    , mkPins
     )
 where
 

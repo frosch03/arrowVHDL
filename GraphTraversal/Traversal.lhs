@@ -35,18 +35,18 @@
 > arrGraph = emptyGraph { name = " " }
 
 > throughGraph = emptyGraph { name    = "(-)"
->                           , sinks   = [ (Nothing, 0) ]
->                           , sources = [ (Nothing, 0) ]
+>                           , sinks   = []
+>                           , sources = []
 >                           }
 
 > leftGraph = emptyGraph { name    = "(L)"
->                        , sinks   = [ (Nothing, 0) ]
->                        , sources = [ (Nothing, 0) ]
+>                        , sinks   = []
+>                        , sources = []
 >                        }
 
 > rightGraph = emptyGraph { name    = "(R)"
->                         , sinks   = [ (Nothing, 0) ]
->                         , sources = [ (Nothing, 0) ]
+>                         , sinks   = []
+>                         , sources = []
 >                         }
 
 

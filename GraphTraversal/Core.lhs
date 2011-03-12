@@ -70,8 +70,8 @@ therefore the Edge datatypes also needs to be an instance of Show.
 >       where prtConnection (cid, pid) = show (cid, pid)
 
 > instance Show (StructGraph) where
-> --  show = toVHDL
->     show = toSimpleList
+>     show = toVHDL
+> --  show = toSimpleList
 
 
 In a VHDL-Sorce file, there are two main sections, that we need to specify 
@@ -135,7 +135,7 @@ components, because we descent only one step down in the graph.
 >     where nodes_level1 = nodes g
 >           component g_level1 = concat $ map break
 >                              [ ""
->                              , "COMPONENT " ++ name g_level1
+>                              , "COMPONENT " ++ name g_level1 ++ "Comp"
 >                              , "PORT (" ++ vhdl_component_ports g_level1 ++ ");"
 >                              ] 
 
@@ -166,10 +166,12 @@ The VHDL-Signals is the list of inner wires, that are used inside the new compon
 
 > vhdl_signals :: StructGraph -> String
 > vhdl_signals g 
->      = concat $ map break
->      [ "SIGNAL " ++ signals ++ ": std_logic" 
->      ]
->     where signals = seperate_with ", " ['i': (show x) | x <- [0 .. length (edges g) -1]]
+>      = if (length $ edges g) > 0 
+>           then concat $ map break
+>                [ "SIGNAL " ++ signals ++ ": std_logic" 
+>                ]
+>           else ""
+>     where signals = seperate_with ", " ["sig" ++ (show x) | x <- [0 .. length (edges g) -1]]
 
 
 
@@ -180,22 +182,22 @@ TODO:
 > vhdl_portmaps g 
 >      = concat $ map break
 >      [ "BEGIN"
-> --   , 
-> --   ,
-> --   ,
-> --   ,
+>      , vhdl_portmap (sources g) (head nodes_level1) (sinks g)
 >      , "END"
 >      ]
->     where nodes_level1 = nodes g
->           firstSubNode (n:[]) = n
->           firstSubNode ns     = let minID = foldl1 min $ map compID nodes_level1
->                                 in  head $ filter (\n -> compID n == minID) ns
->           lastSubNode (n:[]) = n
->           lastSubNode ns     = let maxID = foldl1 max $ map compID nodes_level1
->                                in  head $ filter (\n -> compID n == maxID) ns
->           anchors name as = map (\x -> name ++ (show.snd $ x))
->                           $ filter (isNothing.fst)
->                           $ as
+>      where nodes_level1 = nodes g
+
+> vhdl_portmap :: Pins -> StructGraph -> Pins -> String
+> vhdl_portmap ins sg outs
+>      = concat $ map break
+>      [ (name sg) ++ "Inst: " ++ (name sg) ++ "Comp"
+>      , "  " ++ "PORT MAP (" ++ pmap ++ ")"
+>      ]
+>      where pmap =  seperate_with ", "
+>                 $  (map (\(x, y) -> y ++ "inpin"  ++ (show x)) $ zip [0..(length ins)-1]  (map (\x -> x ++ " => ") snks))
+>                 ++ (map (\(x, y) -> y ++ "outpin" ++ (show x)) $ zip [0..(length outs)-1] (map (\x -> x ++ " => ") srcs))
+>            snks = map (\x -> "in"  ++ (show x)) $ sinks   sg
+>            srcs = map (\x -> "out" ++ (show x)) $ sources sg
 
 The Name-Anchors function takes a string and a list of anchor points. The string is the 
 prepended infront of every anchor points number. All the strings are then concated and 
@@ -207,7 +209,9 @@ seperated with a comma and a blank.
 >     $ map (\x -> name ++ (show x)) pins
 
 > seperate_with :: String -> [String] -> String
-> seperate_with sep = foldl1 (\x y -> x ++ sep ++ y)
+> seperate_with sep []     = ""
+> seperate_with sep (x:[]) = x
+> seperate_with sep xs     = foldl1 (\x y -> x ++ sep ++ y) xs
 
 
 
