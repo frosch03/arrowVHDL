@@ -56,9 +56,13 @@ There are two special types of edges, those that come from the
 outside into the component (called SinkAnchor). And those that go
 from the component to the outside (called SourceAnchor). 
             
-> type AnchorPoint = (CompID, PinID)
+> type AnchorPoint  = (CompID, PinID)
 > type SinkAnchor   = AnchorPoint
 > type SourceAnchor = AnchorPoint
+
+> type NamedPins = [(String, (CompID, PinID))]
+> type NamedIOs  = (NamedPins, NamedPins)
+> type NamedSigs = [(String, Edge)]
 
 
 
@@ -98,7 +102,11 @@ TODO: Add the signal-definition and the port-map-definitions
 >      , vhdl_entity g (map fst namedSuperSinks, map fst namedSuperSources)
 >      , vhdl_components g (namedSubSinks, namedSubSources)
 >      , vhdl_signals g namedEdges
->      , vhdl_portmaps g (((namedSubSinks ++ namedSuperSinks), (namedSubSources ++ namedSuperSources)), namedEdges)
+>      , vhdl_portmaps g ( ( (namedSubSinks   ++ namedSuperSinks)
+>                          , (namedSubSources ++ namedSuperSources)
+>                          )
+>                        , namedEdges
+>                        )
 >      ]
 >      where namedSuperSinks   = namePins sinks   "inpin"    g
 >            namedSuperSources = namePins sources "outpin"   g
@@ -151,16 +159,6 @@ components, because we descent only one step down in the graph.
 >               where compSnks = filter (isAtComp $ compID g') namedSnks
 >                     compSrcs = filter (isAtComp $ compID g') namedSrcs
 
-> isAtComp :: CompID -> (String, (CompID, PinID)) -> Bool
-> isAtComp cid (_, (cid', _)) 
->     = cid == cid'
-
-> isFromOrToComp :: CompID -> (String, Edge) -> Bool
-> isFromOrToComp cid (_, (MkEdge from to))
->     =  isAtComp cid ("", from)
->     || isAtComp cid ("", to)
-
-
 
 The VHDL-Signals is the list of inner wires, that are used inside the new component.
 
@@ -170,12 +168,6 @@ The VHDL-Signals is the list of inner wires, that are used inside the new compon
 >      = "SIGNAL " ++ seperate_with ", " signals ++ ": std_logic" 
 >      where signals = map fst namedEdges
 
-
-
-
-> type NamedPins = [(String, (CompID, PinID))]
-> type NamedIOs  = (NamedPins, NamedPins)
-> type NamedSigs = [(String, Edge)]
 
 > vhdl_portmaps :: StructGraph -> (NamedIOs, NamedSigs) ->  String
 > vhdl_portmaps g names@((namedSnks, namedSrcs), namedSigs)
@@ -208,47 +200,6 @@ The VHDL-Signals is the list of inner wires, that are used inside the new compon
 
 
 
-With the VHDL-Component-Ports function we generate a nice string with all the
-in and output pins, seperated by a comma and a blank. 
-
-> vhdl_component_ports :: StructGraph -> String
-> vhdl_component_ports g 
->      = concat $ map break
->      [ name_pins "in" (sinks g)    ++ " : in  std_logic;" 
->      , name_pins "out" (sources g) ++ " : out std_logic;"
->      ]
-
-
-With the VHDL-Port-Definition function we generate a nice string with all the
-in and output pins, seperated by a comma and a blank. 
-
-> vhdl_port_definition :: StructGraph -> String
-> vhdl_port_definition g 
->      = concat $ map break
->      [ name_pins "inpin" (sinks g)    ++ " : in  std_logic;"
->      , name_pins "outpin" (sources g) ++ " : out std_logic;"
->      ]
-
-or:
-
-> vhdl_port :: StructGraph -> (String, String) -> String
-> vhdl_port g (snk_name, src_name) 
->      = concat $ map break
->      [ name_pins snk_name (sinks g)   ++ " : in  std_logic;"
->      , name_pins src_name (sources g) ++ " : out std_logic;"
->      ]
-
-
-The Name-Anchors function takes a string and a list of anchor points. The string is the prepended infront of every anchor points number. All the strings are then concated and 
-seperated with a comma and a blank. 
-
-> name_pins :: String -> Pins -> String
-> name_pins name pins 
->     = seperate_with ", " 
->     $ map (\x -> name ++ (show x)) pins
-
-
-
 The namePins function takes a function that extracts a list of PinIDs out of an StructGraph.
 (This could be the sinks or the sources functions) 
 It also takes a StructGraph (suprise :)) and a String, that is prepended to the actual PinName.
@@ -271,49 +222,24 @@ to do this once more.
 >     = map (\(num, edge) -> (pre ++ (show num), edge)) $ zip [0..] (edges g)
 
 
-
-
-
 > seperate_with :: String -> [String] -> String
 > seperate_with sep []     = ""
 > seperate_with sep (x:[]) = x
 > seperate_with sep xs     = foldl1 (\x y -> x ++ sep ++ y) xs
 
 
+> isAtComp :: CompID -> (String, (CompID, PinID)) -> Bool
+> isAtComp cid (_, (cid', _)) 
+>     = cid == cid'
+
+> isFromOrToComp :: CompID -> (String, Edge) -> Bool
+> isFromOrToComp cid (_, (MkEdge from to))
+>     =  isAtComp cid ("", from)
+>     || isAtComp cid ("", to)
 
 
 
-> toArchitecture :: StructGraph -> String
-> toArchitecture g =  "\n"
->                  ++ "architecture " ++ name g ++ " of " ++ " >>> TODO <<< " ++ " is"
->                  ++ toComponentSpec g
->                  ++ toSourceSpec g 
 
-> toComponentSpec :: StructGraph -> String
-> toComponentSpec g =  "\n"
->                   ++ "component " ++ name g 
->                   ++ "\n"
->                   ++     toPortSpec g
->                   ++ "\n"
->                   ++ "end component;"
-
-> toPortSpec :: StructGraph -> String
-> toPortSpec g =  "\n"
->              ++ "port(" ++ "\n"
->              ++ inpins  ++ " : in std_logic;" ++ "\n"
->              ++ outpins ++ " : out std_logic;" ++ "\n"
->              ++ ");" ++ "\n"
->    where inpins  = prtPins $ pins "inpin" sinks 
->          outpins = prtPins $ pins "outpin" sources
->          pins :: String -> (StructGraph -> Pins) -> [String]
->          pins s f  = map (\x -> s ++ (show x)) $ f g
->          prtPins x = foldl1 (\x y -> x ++ ", " ++ y) $ x
-
-> toSourceSpec :: StructGraph -> String
-> toSourceSpec g =  "\n"
->                ++ "begin" ++ "\n"
->                ++ "   >>> something in between <<<   " ++ "\n"
->                ++ "end" ++ "\n"
 
 
 > toSimpleList :: StructGraph -> String
