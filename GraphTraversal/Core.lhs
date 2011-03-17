@@ -95,11 +95,16 @@ TODO: Add the signal-definition and the port-map-definitions
 >      = concat $ map break
 >      [ ""
 >      , vhdl_header
->      , vhdl_entity g 
->      , vhdl_components g
->      , vhdl_signals g
->      , vhdl_portmaps g
+>      , vhdl_entity g (map fst namedSuperSinks, map fst namedSuperSources)
+>      , vhdl_components g (namedSubSinks, namedSubSources)
+>      , vhdl_signals g namedEdges
+>      , vhdl_portmaps g (((namedSubSinks ++ namedSuperSinks), (namedSubSources ++ namedSuperSources)), namedEdges)
 >      ]
+>      where namedSuperSinks   = namePins sinks   "inpin"    g
+>            namedSuperSources = namePins sources "outpin"   g
+>            namedEdges        = nameEdges        "internal" g
+>            namedSubSinks     = concat $ map (namePins sinks   "in")  $ nodes g
+>            namedSubSources   = concat $ map (namePins sources "out") $ nodes g
 
 
 The VHDL-Header is just some boilerplate-code where library's are imported
@@ -115,11 +120,14 @@ The VHDL-Header is just some boilerplate-code where library's are imported
 A VHDL-Entity defines an "interface" to a hardware component. It consists of
 a name and of some port-definitions (like what wires go inside and come back out)
 
-> vhdl_entity :: StructGraph -> String
-> vhdl_entity g 
+> vhdl_entity :: StructGraph -> ([String], [String]) -> String
+> vhdl_entity g (snks, srcs)
 >      = concat $ map break
 >      [ "ENTITY " ++ name g ++ " IS"
->      , "PORT (" ++ vhdl_port_definition g ++ ");"
+>      , "PORT (" 
+>      , (seperate_with "\n" $ map (\x -> x ++ " IN  std_logic;") snks)
+>      , (seperate_with "\n" $ map (\x -> x ++ " OUT std_logic;") srcs)
+>      , ");"
 >      , "END " ++ name g ++ ";"
 >      ]
 
@@ -129,15 +137,75 @@ that are used inside this new definition. We therefore pick the components
 of which these new component consists. We call this components the level 1 
 components, because we descent only one step down in the graph. 
 
-> vhdl_components :: StructGraph -> String
-> vhdl_components g 
->      = concat $ map component nodes_level1
->     where nodes_level1 = nodes g
->           component g_level1 = concat $ map break
->                              [ ""
->                              , "COMPONENT " ++ name g_level1 ++ "Comp"
->                              , "PORT (" ++ vhdl_component_ports g_level1 ++ ");"
->                              ] 
+> vhdl_components :: StructGraph -> ([(String, (CompID, PinID))], [(String, (CompID, PinID))]) -> String
+> vhdl_components g  (namedSnks, namedSrcs)
+>      = concat $ map f (nodes g)
+>     where f g' = concat $ map break
+>                [ ""
+>                , "COMPONENT " ++ name g' ++ "Comp"
+>                , "PORT ("
+>                , (seperate_with "\n" $ map (\x -> x ++ " IN  std_logic;") $ map fst compSnks)
+>                , (seperate_with "\n" $ map (\x -> x ++ " OUT std_logic;") $ map fst compSrcs)
+>                , ");"
+>                ] 
+>               where compSnks = filter (isAtComp $ compID g') namedSnks
+>                     compSrcs = filter (isAtComp $ compID g') namedSrcs
+
+> isAtComp :: CompID -> (String, (CompID, PinID)) -> Bool
+> isAtComp cid (_, (cid', _)) 
+>     = cid == cid'
+
+> isFromOrToComp :: CompID -> (String, Edge) -> Bool
+> isFromOrToComp cid (_, (MkEdge from to))
+>     =  isAtComp cid ("", from)
+>     || isAtComp cid ("", to)
+
+
+
+The VHDL-Signals is the list of inner wires, that are used inside the new component.
+
+> vhdl_signals :: StructGraph -> [(String, Edge)] -> String
+> vhdl_signals _ [] = ""
+> vhdl_signals g namedEdges
+>      = "SIGNAL " ++ seperate_with ", " signals ++ ": std_logic" 
+>      where signals = map fst namedEdges
+
+
+
+
+> type NamedPins = [(String, (CompID, PinID))]
+> type NamedIOs  = (NamedPins, NamedPins)
+> type NamedSigs = [(String, Edge)]
+
+> vhdl_portmaps :: StructGraph -> (NamedIOs, NamedSigs) ->  String
+> vhdl_portmaps g names@((namedSnks, namedSrcs), namedSigs)
+>      = concat $ map break
+>      [ "BEGIN"
+>      , concat $ map (flip vhdl_portmap names) $ nodes g 
+>      , "END"
+>      ]
+>      where nodes_level1 = nodes g
+
+> vhdl_portmap :: StructGraph -> (NamedIOs, NamedSigs) -> String
+> vhdl_portmap g names@((namedSnks, namedSrcs), namedSigs)
+>      = concat $ map break
+>      [ (name g) ++ "Inst: " ++ (name g) ++ "Comp"
+>      , "PORT MAP ("
+>      ++ (seperate_with ", " $ (map (\(_, (x, y)) -> x ++ " <= " ++ y)) $ snk_sig_combi ++ src_sig_combi)
+>      ++ ");"
+>      ]
+>      where relevantSnks  = filter (isAtComp       $ compID g) namedSnks
+>            relevantSrcs  = filter (isAtComp       $ compID g) namedSrcs
+>            relevantSigs  = filter (isFromOrToComp $ compID g) namedSigs
+>            compIOs       = map (\x -> (compID g, x)) $ (sinks g ++ sources g)
+>            snk_sig_combi = concat $ [[ (a_snk, (s_snk, s_sig)) 
+>                              | (s_snk, a_snk)                  <- relevantSnks, a_snk == a2_sig]
+>                              | (s_sig, (MkEdge a1_sig a2_sig)) <- relevantSigs]
+>            src_sig_combi = concat $ [[ (a_src, (s_src, s_sig)) 
+>                              | (s_src, a_src)                  <- relevantSrcs, a_src == a1_sig]
+>                              | (s_sig, (MkEdge a1_sig a2_sig)) <- relevantSigs]
+
+
 
 
 With the VHDL-Component-Ports function we generate a nice string with all the
@@ -161,52 +229,50 @@ in and output pins, seperated by a comma and a blank.
 >      , name_pins "outpin" (sources g) ++ " : out std_logic;"
 >      ]
 
+or:
 
-The VHDL-Signals is the list of inner wires, that are used inside the new component.
-
-> vhdl_signals :: StructGraph -> String
-> vhdl_signals g 
->      = if (length $ edges g) > 0 
->           then concat $ map break
->                [ "SIGNAL " ++ signals ++ ": std_logic" 
->                ]
->           else ""
->     where signals = seperate_with ", " ["sig" ++ (show x) | x <- [0 .. length (edges g) -1]]
-
-
-
-The VHDL-Portmaps function ... 
-TODO: 
-
-> vhdl_portmaps :: StructGraph -> String
-> vhdl_portmaps g 
+> vhdl_port :: StructGraph -> (String, String) -> String
+> vhdl_port g (snk_name, src_name) 
 >      = concat $ map break
->      [ "BEGIN"
->      , vhdl_portmap (sources g) (head nodes_level1) (sinks g)
->      , "END"
+>      [ name_pins snk_name (sinks g)   ++ " : in  std_logic;"
+>      , name_pins src_name (sources g) ++ " : out std_logic;"
 >      ]
->      where nodes_level1 = nodes g
 
-> vhdl_portmap :: Pins -> StructGraph -> Pins -> String
-> vhdl_portmap ins sg outs
->      = concat $ map break
->      [ (name sg) ++ "Inst: " ++ (name sg) ++ "Comp"
->      , "  " ++ "PORT MAP (" ++ pmap ++ ")"
->      ]
->      where pmap =  seperate_with ", "
->                 $  (map (\(x, y) -> y ++ "inpin"  ++ (show x)) $ zip [0..(length ins)-1]  (map (\x -> x ++ " => ") snks))
->                 ++ (map (\(x, y) -> y ++ "outpin" ++ (show x)) $ zip [0..(length outs)-1] (map (\x -> x ++ " => ") srcs))
->            snks = map (\x -> "in"  ++ (show x)) $ sinks   sg
->            srcs = map (\x -> "out" ++ (show x)) $ sources sg
 
-The Name-Anchors function takes a string and a list of anchor points. The string is the 
-prepended infront of every anchor points number. All the strings are then concated and 
+The Name-Anchors function takes a string and a list of anchor points. The string is the prepended infront of every anchor points number. All the strings are then concated and 
 seperated with a comma and a blank. 
 
 > name_pins :: String -> Pins -> String
 > name_pins name pins 
 >     = seperate_with ", " 
 >     $ map (\x -> name ++ (show x)) pins
+
+
+
+The namePins function takes a function that extracts a list of PinIDs out of an StructGraph.
+(This could be the sinks or the sources functions) 
+It also takes a StructGraph (suprise :)) and a String, that is prepended to the actual PinName.
+This functions returns a list, where every element is a tuple of the actual named pin (a string)
+and a part, that identifies the name.
+
+> namePins :: (StructGraph -> Pins) -> String -> StructGraph -> [(String, (CompID, PinID))]
+> namePins f pre g
+>     = map (\x -> (pre ++ (show x), (compID g, x))) $ f g
+
+
+The nameEdges function is pretty similar to the namePins function with some minor differences. 
+First of all, you don't need a function that extracts the edges of a StructGraph. There is 
+only one field in the StructGraph that holds the edges. 
+And also the return-type is a bit simpler, becaus an edge identifies itself, so there is no need
+to do this once more.
+
+> nameEdges :: String -> StructGraph -> [(String, Edge)]
+> nameEdges pre g
+>     = map (\(num, edge) -> (pre ++ (show num), edge)) $ zip [0..] (edges g)
+
+
+
+
 
 > seperate_with :: String -> [String] -> String
 > seperate_with sep []     = ""
