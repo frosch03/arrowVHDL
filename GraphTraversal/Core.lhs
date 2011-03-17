@@ -64,7 +64,11 @@ from the component to the outside (called SourceAnchor).
 > type NamedIOs  = (NamedPins, NamedPins)
 > type NamedSigs = [(String, Edge)]
 
-
+> nameSig = "i"
+> nameExI = "in"
+> nameExO = "out"
+> nameInI = "e"
+> nameInO = "a"
 
 To draw a StructGraph it is necessary to make StructGraph an instance of Show and 
 therefore the Edge datatypes also needs to be an instance of Show. 
@@ -100,6 +104,7 @@ TODO: Add the signal-definition and the port-map-definitions
 >      [ ""
 >      , vhdl_header
 >      , vhdl_entity g (map fst namedSuperSinks, map fst namedSuperSources)
+>      , "ARCHITECTURE"
 >      , vhdl_components g (namedSubSinks, namedSubSources)
 >      , vhdl_signals g namedEdges
 >      , vhdl_portmaps g ( ( (namedSubSinks   ++ namedSuperSinks)
@@ -108,11 +113,11 @@ TODO: Add the signal-definition and the port-map-definitions
 >                        , namedEdges
 >                        )
 >      ]
->      where namedSuperSinks   = namePins sinks   "inpin"    g
->            namedSuperSources = namePins sources "outpin"   g
->            namedEdges        = nameEdges        "internal" g
->            namedSubSinks     = concat $ map (namePins sinks   "in")  $ nodes g
->            namedSubSources   = concat $ map (namePins sources "out") $ nodes g
+>      where namedSuperSinks   = namePins sinks   nameExI g
+>            namedSuperSources = namePins sources nameExO g
+>            namedEdges        = nameEdges        nameSig g
+>            namedSubSinks     = concat $ map (namePins sinks   nameInI) $ nodes g
+>            namedSubSources   = concat $ map (namePins sources nameInO) $ nodes g
 
 
 The VHDL-Header is just some boilerplate-code where library's are imported
