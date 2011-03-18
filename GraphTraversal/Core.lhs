@@ -7,22 +7,56 @@
 > import Prelude hiding (break)
 
 
+First of all, lets name some basic types that are used through the whole
+source...
+There are the pins of a hardware component, and they are identified by an 
+integer. The same holds for the identification of a whole component, which 
+is also done by an integer. And than there is also a name for the list of
+pins that a component holds (either the sink pins or the source pins).
+
 > type PinID  = Int
 > type CompID = Int
 > type Pins   = [PinID]
 
 
+An edge is like a wire between two pins on different components. So it is
+identified by the component id and the pin id. This tupel is called an
+AnchorPoint, and for documentation reasons there are two different versions,
+the SinkAnchor and the SourceAnchor.
+
+> type AnchorPoint  = (CompID, PinID)
+> type SinkAnchor   = AnchorPoint
+> type SourceAnchor = AnchorPoint
+
+
+To translate the graph structure into a VHDL-sourcecode the anchors and the
+edges are named and stored in lookup tables. There are two of them, one for 
+the named pins and one for the named edges. For documentation there is also
+a input output tuple, that holds the lookup table for the sinks and the 
+sources.
+
+> type NamedPins = [(String, AnchorPoint)]
+> type NamedSigs = [(String, Edge)]
+> type NamedSnks = NamedPins
+> type NamedSrcs = NamedPins
+> type NamedIOs  = (NamedSnks, NamedSrcs)
+
+> nameSig = "i"
+> nameExI = "in"
+> nameExO = "out"
+> nameInI = "e"
+> nameInO = "a"
+
+
 The structured graph is the fundamental datatype. It holds information
-about its nodes, is identified by an unique id. Additionally the in- 
+about its nodes and is identified by an unique id. Additionally the in- 
 and out pins are listed as well as connections (edges) between the nodes.
   [InPin]       := [Int]
   [OutPin]      := [Int]
   Component ID  := Int
 
-Also a name (for debuggin) is helpfull, but could also stored in a 
-lookuptable together with a format string that defines the VHDL-Format
+Also a name is needed later on to identify the components.
   Name          := String
-  Format String := String
 
 It turns out, that a Node actually could hold another StructGraph, that 
 defines sub structures. It also could hold no sub structure and has only 
@@ -36,10 +70,9 @@ a name and a component id.
 >          , sinks   :: Pins
 >          , sources :: Pins
 >          }
-> --  deriving (Show)
 
 Remember, a Sink is something that takes something  (INPUT)
-where a Source is something that produces something (OUTPUT)
+and a Source is something that produces something (OUTPUT)
 
 So the next datatype to be defined is an edge. The edge knows 
 the pin/component it comes from, as well as the pin/component
@@ -49,27 +82,12 @@ it goes to.
 >   = MkEdge { sourceInfo :: SourceAnchor
 >            , sinkInfo   :: SinkAnchor
 >            }
-> --  deriving (Show)
 
 A connection is defined by the tuple of componentID and a pinID
 There are two special types of edges, those that come from the
 outside into the component (called SinkAnchor). And those that go
 from the component to the outside (called SourceAnchor). 
             
-> type AnchorPoint  = (CompID, PinID)
-> type SinkAnchor   = AnchorPoint
-> type SourceAnchor = AnchorPoint
-
-> type NamedPins = [(String, (CompID, PinID))]
-> type NamedIOs  = (NamedPins, NamedPins)
-> type NamedSigs = [(String, Edge)]
-
-> nameSig = "i"
-> nameExI = "in"
-> nameExO = "out"
-> nameInI = "e"
-> nameInO = "a"
-
 To draw a StructGraph it is necessary to make StructGraph an instance of Show and 
 therefore the Edge datatypes also needs to be an instance of Show. 
 
