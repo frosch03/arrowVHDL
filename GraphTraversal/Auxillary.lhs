@@ -2,10 +2,13 @@
 >     ( connect
 >     , combine
 >     , mkPins
+>     , flatten
 >     )
 > where
 
 > import Control.Arrow
+
+> import Data.List (union)
 
 > import GraphTraversal.Core
 
@@ -121,6 +124,23 @@ The component id's are updated so that every id is still unique.
 > nextID []    = 0
 > nextID [cid] = cid + 1
 > nextID cids  = nextID [foldl max 0 cids]
+
+
+> flatten :: StructGraph -> StructGraph 
+> flatten g = g { nodes = gs, edges = es }
+>     where (gs, es) = flatten' (nodes g, edges g)
+
+> flatten' :: ([StructGraph], [Edge]) -> ([StructGraph], [Edge])
+> flatten' ([], e)  = ([], e)
+> flatten' ((g:gs), es) | (length.nodes) g > 1 = flatten' (nodes g { edges = [] }, es `union` edges g)
+> flatten' ((g:gs), es) | otherwise            = (g : gs' , es `union` es')
+>     where (gs', es') = flatten' (gs, es)
+
+> unifyEdges :: StructGraph -> StructGraph 
+
+> missingComps :: StructGraph -> [CompID]
+> missingComps g = 
+>     where allCIDs = compID : concat . map missingComps $ nodes g
 
 
 > drop_first  :: (Arrow a) => a (b, b') b'

@@ -70,6 +70,7 @@ a name and a component id.
 >          , sinks   :: Pins
 >          , sources :: Pins
 >          }
+>   deriving (Show)
 
 Remember, a Sink is something that takes something  (INPUT)
 and a Source is something that produces something (OUTPUT)
@@ -82,6 +83,7 @@ it goes to.
 >   = MkEdge { sourceInfo :: SourceAnchor
 >            , sinkInfo   :: SinkAnchor
 >            }
+>   deriving (Eq, Show)
 
 A connection is defined by the tuple of componentID and a pinID
 There are two special types of edges, those that come from the
@@ -91,13 +93,13 @@ from the component to the outside (called SourceAnchor).
 To draw a StructGraph it is necessary to make StructGraph an instance of Show and 
 therefore the Edge datatypes also needs to be an instance of Show. 
 
-> instance Show (Edge) where
->   show ed = (prtConnection.sourceInfo) ed ++ "->" ++ (prtConnection.sinkInfo) ed
->       where prtConnection (cid, pid) = show (cid, pid)
+ instance Show (Edge) where
+   show ed = (prtConnection.sourceInfo) ed ++ "->" ++ (prtConnection.sinkInfo) ed
+       where prtConnection (cid, pid) = show (cid, pid)
 
-> instance Show (StructGraph) where
->     show = toVHDL
-> --  show = toSimpleList
+ instance Show (StructGraph) where
+     show = toVHDL
+ --  show = toSimpleList
 
 
 In a VHDL-Sorce file, there are two main sections, that we need to specify 

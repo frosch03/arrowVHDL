@@ -9,6 +9,7 @@ module GraphTraversal
     , runTraversal_
     , emptyGraph
     , mkPins
+    , flatten
     )
 where
 
