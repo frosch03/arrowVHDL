@@ -10,6 +10,7 @@ module GraphTraversal
     , emptyGraph
     , mkPins
     , flatten
+    , allCompIDs
     )
 where
 

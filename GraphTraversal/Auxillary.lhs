@@ -3,12 +3,13 @@
 >     , combine
 >     , mkPins
 >     , flatten
+>     , allCompIDs
 >     )
 > where
 
 > import Control.Arrow
 
-> import Data.List (union)
+> import Data.List (union, groupBy, (\\))
 
 > import GraphTraversal.Core
 
@@ -125,10 +126,69 @@ The component id's are updated so that every id is still unique.
 > nextID [cid] = cid + 1
 > nextID cids  = nextID [foldl max 0 cids]
 
+  allCompIDs :: StructGraph -> [CompID]
+  allCompIDs g | length.nodes $ g >  2 = compID g : (map allCompIDs) $ nodes g
+               | length.nodes $ g == 1 = compID g : allCompIDs $ head.nodes $ g
+               | otherwise             = compID g : []
+
+
+> fromOrToComps :: Edge -> [CompID] -> Bool
+> fromOrToComps e cs = foldl (&&) True $ map (fromOrToComp e) cs
+
+> fromOrToComp :: Edge -> CompID -> Bool
+> fromOrToComp edg cid 
+>     =  fromComp edg cid
+>     || toComp   edg cid
+
+> fromComp, toComp :: Edge -> CompID -> Bool
+> fromComp (MkEdge (fromID,_) _)        cid = cid == fromID
+> toComp   (MkEdge _          (toID,_)) cid = cid == toID
+
+> fromComps, toComps :: Edge -> [CompID] -> Bool
+> fromComps e cs = foldl (&&) True $ map (fromComp e) cs
+> toComps   e cs = foldl (&&) True $ map (toComp e)   cs
+
+
+> mergeEdge :: Edge -> Edge -> Edge
+> mergeEdge (MkEdge from _) (MkEdge _ to) = MkEdge from to
+
+> mergeEdge2 :: [Edge] -> Edge
+> mergeEdge2 es |  length es > 2  || length es < 2    
+>     = error "How to merge other than 2 edges?"
+> mergeEdge2 [(MkEdge from1 to1), (MkEdge from2 to2)]  
+>     = if from1 /= to2 
+>           then MkEdge from1 to2
+>           else MkEdge from2 to1
+
+> samePin :: Edge -> Edge -> Bool
+> samePin (MkEdge (_, ip1) (_, op1))
+>         (MkEdge (_, ip2) (_, op2))
+>     =  op1 == ip2
+>     || op2 == ip1
+
+> mergeEdges :: [Edge] -> CompID -> [Edge]
+> mergeEdges es mcid = (es \\ tofrom) ++ (map mergeEdge2 $ groupBy samePin tofrom)
+>     where tofrom = [ xs | xs <- es, xs `toComp` mcid || xs `fromComp` mcid ]
+
+           f :: ([Edge], [Edge]) -> ([Edge], [Edge])
+           f ([],    fines) = ([], fines)
+           f (oldes, fines) = (oldes \\ newes, newes ++ fines)
+               where newes = map mergeEdge $ groupBy samePin oldes
+
+
+> missingCIDs :: StructGraph -> StructGraph -> [CompID]
+> missingCIDs g1 g2 = [ missing | missing <- cs_super, not $ missing `elem` cs_sub]
+>     where (cs_super, cs_sub) = if length cids1 > length cids2 
+>                                   then (cids1, cids2) 
+>                                   else (cids2, cids1)
+>           cids1              = allCompIDs g1
+>           cids2              = allCompIDs g2
 
 > flatten :: StructGraph -> StructGraph 
-> flatten g = g { nodes = gs, edges = es }
+> flatten g = g' { edges = es' }
 >     where (gs, es) = flatten' (nodes g, edges g)
+>           g'       = g { nodes = gs, edges = es }
+>           es'      = foldl union [] $ map (mergeEdges es) $ (missingCIDs g g')
 
 > flatten' :: ([StructGraph], [Edge]) -> ([StructGraph], [Edge])
 > flatten' ([], e)  = ([], e)
@@ -136,11 +196,6 @@ The component id's are updated so that every id is still unique.
 > flatten' ((g:gs), es) | otherwise            = (g : gs' , es `union` es')
 >     where (gs', es') = flatten' (gs, es)
 
-> unifyEdges :: StructGraph -> StructGraph 
-
-> missingComps :: StructGraph -> [CompID]
-> missingComps g = 
->     where allCIDs = compID : concat . map missingComps $ nodes g
 
 
 > drop_first  :: (Arrow a) => a (b, b') b'
