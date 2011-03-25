@@ -154,7 +154,7 @@ The component id's are updated so that every id is still unique.
 
 > mergeEdge2 :: [Edge] -> Edge
 > mergeEdge2 es |  length es > 2  || length es < 2    
->     = error "How to merge other than 2 edges?"
+>     = error ("How to merge other than 2 edges?" ++ (concat $ map show es))
 > mergeEdge2 [(MkEdge from1 to1), (MkEdge from2 to2)]  
 >     = if from1 /= to2 
 >           then MkEdge from1 to2

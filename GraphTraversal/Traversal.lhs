@@ -114,30 +114,3 @@ the correct combinator for the two StructGraph's)
 >     = TR $ proc (x, s) -> do
 >         (x', _) <- f -< (x,  s) 
 >         returnA      -< (x', sg)
-
-
-> -- class (Arrow a) => Augment t1 t2 a b c where
-> --     augment :: (Arrow a) => t1 -> t2 -> TraversalArrow a b c 
-> -- 
-> -- instance (Arrow a) => Augment (a b c) (a () StructGraph) a b c where
-> --     augment aA aSG 
-> --         = TR $ proc (x, sg) -> do
-> --             sg' <- aSG -< ()
-> --             x'  <- aA  -< x
-> --             returnA    -< (x', sg')
-> -- 
-> -- instance (Arrow a) => Augment (a b c) (StructGraph) a b c where
-> --     augment aA sg 
-> --         = augment aA 
-> --                 ((arr (\_ -> sg))   :: Arrow a => a () StructGraph)
-> -- 
-> -- instance (Arrow a) => Augment (b -> c) (StructGraph) a b c where
-> --     augment f sg 
-> --         = augment ((arr f)          :: Arrow a => a b c) 
-> --                   ((arr (\_ -> sg)) :: Arrow a => a () StructGraph)
-> -- 
-> -- instance (Arrow a) => Augment (TraversalArrow a b c) (StructGraph) a b c where
-> --     augment (TR f) sg 
-> --         = TR $ proc (x, s) -> do
-> --             (x', _) <- f -< (x,  s) 
-> --             returnA      -< (x', sg)
