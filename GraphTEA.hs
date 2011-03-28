@@ -229,3 +229,94 @@ aFeistelRound
 -- --     erg <- feistelRound -< (tmp     , (k2, k3))
 -- --     returnA -< erg
 --     
+
+
+g1 :: StructGraph
+g1 = MkSG { name    = " G1 "
+          , compID  = 0
+          , nodes   = [ MkSG { name     = "G1_SUB1"
+                             , compID   = 1
+                             , nodes    = []
+                             , edges    = []
+                             , sinks    = [0,1,2]
+                             , sources  = [0,1]
+                             }
+                      , MkSG { name     = "G1_SUB2"
+                             , compID   = 2
+                             , nodes    = []
+                             , edges    = []
+                             , sinks    = [0,1]
+                             , sources  = [0]
+                             }
+                      ]
+          , edges   = [ MkEdge { sourceInfo = (Nothing, 0)
+                               , sinkInfo   = (Just 1, 0)
+                               }
+                      , MkEdge { sourceInfo = (Nothing, 1)
+                               , sinkInfo   = (Just 1, 1)
+                               }
+                      , MkEdge { sourceInfo = (Nothing, 2)
+                               , sinkInfo   = (Just 1, 2)
+                               }
+                      , MkEdge { sourceInfo = (Just 1, 0)
+                               , sinkInfo   = (Just 2, 0)
+                               }
+                      , MkEdge { sourceInfo = (Just 1, 1)
+                               , sinkInfo   = (Just 2, 1)
+                               }
+                      , MkEdge { sourceInfo = (Just 2, 0)
+                               , sinkInfo   = (Nothing, 0)
+                               }
+                      ]
+          , sinks   = [0,1,2]
+          , sources = [0]
+          }
+
+g2 :: StructGraph
+g2 = MkSG { name    = " G2 "
+          , compID  = 0
+          , nodes   = [ MkSG { name     = "G2_SUB1"
+                             , compID   = 1
+                             , nodes    = []
+                             , edges    = []
+                             , sinks    = [0]
+                             , sources  = [0,1]
+                             }
+                      , MkSG { name     = "G2_SUB2"
+                             , compID   = 2
+                             , nodes    = []
+                             , edges    = []
+                             , sinks    = [0,1]
+                             , sources  = [0]
+                             }
+                      ]
+          , edges   = [ MkEdge { sourceInfo = (Nothing, 0)
+                               , sinkInfo   = (Just 1, 0)
+                               }
+                      , MkEdge { sourceInfo = (Just 1, 0)
+                               , sinkInfo   = (Just 2, 0)
+                               }
+                      , MkEdge { sourceInfo = (Just 1, 1)
+                               , sinkInfo   = (Just 2, 1)
+                               }
+                      , MkEdge { sourceInfo = (Just 2, 0)
+                               , sinkInfo   = (Nothing, 0)
+                               }
+                      ]
+          , sinks   = [0]
+          , sources = [0]
+          }
+
+
+aG1 :: (Arrow a) => TraversalArrow a (Int, Int, Int) (Int)
+aG1
+    = augment_f_SG 
+        (\(x, y, z) -> x)
+        g1
+
+aG2 :: (Arrow a) => TraversalArrow a (Int) (Int)
+aG2
+    = augment_f_SG 
+        (\x -> x)
+        g2 
+

@@ -51,10 +51,10 @@ The component id's are updated so that every id is still unique.
 >           super_srcs   =  [0..(length.sinks   $ up') + (length.sinks   $ down')-1]
 >           edgs         =  let len_snks_up   = (length.sinks   $ up')
 >                               len_srcs_down = (length.sources $ down')
->                           in (fst $ wire newCompID      (compID up')   (super_srcs)                  (sinks up'))
->                           ++ (fst $ wire newCompID      (compID down') (drop len_snks_up super_srcs) (sinks down'))
->                           ++ (fst $ wire (compID up')   newCompID      (sources down')               (super_snks))
->                           ++ (fst $ wire (compID down') newCompID      (sources down')               (drop len_srcs_down super_snks))
+>                           in (fst $ wire (Just $ newCompID)    (Just $ compID up')   (super_srcs)                  (sinks up'))
+>                           ++ (fst $ wire (Just $ newCompID)    (Just $ compID down') (drop len_snks_up super_srcs) (sinks down'))
+>                           ++ (fst $ wire (Just $ compID up')   (Just $ newCompID)    (sources down')               (super_snks))
+>                           ++ (fst $ wire (Just $ compID down') (Just $ newCompID)    (sources down')               (drop len_srcs_down super_snks))
 
 > unifyPinIDs :: ([AnchorPoint], PinID) -> [AnchorPoint]
 > unifyPinIDs (aps, pid) = map (\(x, y) -> (x, y + pid)) aps
@@ -72,22 +72,22 @@ The component id's are updated so that every id is still unique.
 > rewire :: CompID -> StructGraph -> StructGraph -> ([Edge], (Pins, Pins))
 > rewire cid sg_l sg_r
 >     = (edgs ++ src_edges ++ snk_edges, (super_srcs, super_snks))
->     where (edgs, (srcs_l', snks_r')) =  wire (compID sg_l) (compID sg_r) (sources sg_l) (sinks sg_r)
+>     where (edgs, (srcs_l', snks_r')) =  wire (Just $ compID sg_l) (Just $ compID sg_r) (sources sg_l) (sinks sg_r)
 >           super_srcs                 =  [0..(length.sinks   $ sg_l) + length snks_r' -1]
 >           super_snks                 =  [0..(length.sources $ sg_r) + length srcs_l' -1]
 >           src_edges                  =  let len_snks_l = (length.sinks $ sg_l)
->                                         in (fst $ wire cid (compID sg_l) super_srcs                   (sinks sg_l))
->                                         ++ (fst $ wire cid (compID sg_r) (drop len_snks_l super_srcs) (sinks sg_r))
+>                                         in (fst $ wire Nothing (Just $ compID sg_l) super_srcs                   (sinks sg_l))
+>                                         ++ (fst $ wire Nothing (Just $ compID sg_r) (drop len_snks_l super_srcs) (sinks sg_r))
 >           snk_edges                  =  let len_srcs_r = (length.sources $ sg_r)
->                                         in (fst $ wire (compID sg_r) cid (sources sg_r) (super_snks))
->                                         ++ (fst $ wire (compID sg_l) cid (sources sg_l) (drop len_srcs_r super_snks))
+>                                         in (fst $ wire (Just $ compID sg_r) Nothing (sources sg_r) (super_snks))
+>                                         ++ (fst $ wire (Just $ compID sg_l) Nothing (sources sg_l) (drop len_srcs_r super_snks))
 
 
-> wire :: CompID -> CompID -> Pins -> Pins -> ([Edge], (Pins, Pins))
+> wire :: Maybe CompID -> Maybe CompID -> Pins -> Pins -> ([Edge], (Pins, Pins))
 > wire cid_l cid_r pins_l pins_r 
 >     = (edges, (drop cnt pins_l, drop cnt pins_r))
->     where points_l = map ((,) cid_l) pins_l
->           points_r = map ((,) cid_r) pins_r
+>     where points_l = map ((,) (cid_l)) pins_l
+>           points_r = map ((,) (cid_r)) pins_r
 >           edges    = map (uncurry MkEdge) $ zip points_l points_r
 >           cnt      = length edges
 
@@ -97,11 +97,13 @@ The component id's are updated so that every id is still unique.
 > unifyCompID (sg, cid) 
 >     = ( sg { compID = cid
 >            , nodes  = sub_sg'
+>            , edges  = new_edges
 >            }
 >       , cid_next
 >       )
 >     where (sub_sg', cid_next) = unifyCompIDs (nodes sg, cid+1)
 >           old_cid             = compID sg
+>           new_edges           = map (fitEdge (compID sg, cid)) $ edges sg
 
 
 > unifyCompIDs :: ([StructGraph], CompID) -> ([StructGraph], CompID)
@@ -116,6 +118,16 @@ The component id's are updated so that every id is still unique.
 >     where compIDs = compID sg : (next $ nodes sg)
 >           next []        = []
 >           next [innerSG] = compID innerSG : next (nodes innerSG)
+
+
+> fitEdges  :: ([Edge], (CompID, CompID)) -> [Edge]
+> fitEdges (edges, (old_cid, new_cid)) 
+>     = map (fitEdge (old_cid, new_cid)) edges
+
+> fitEdge :: (CompID, CompID) -> Edge -> Edge
+> fitEdge (o, n) (MkEdge (Just c, p) s) = error $ show (o,n) ++ "1: " ++ (show $ MkEdge (if o == c then Just n else Just c, p) s)
+> fitEdge (o, n) (MkEdge s (Just c, p)) = error $ show (o,n) ++ "2: " ++ (show $ MkEdge s (if o == c then Just n else Just c, p))
+> fitEdge _      _                      = error $ "3: " ++ "this should't happen"
 
 > mkPins :: Int -> Pins
 > mkPins 0 = []
@@ -141,8 +153,8 @@ The component id's are updated so that every id is still unique.
 >     || toComp   edg cid
 
 > fromComp, toComp :: Edge -> CompID -> Bool
-> fromComp (MkEdge (fromID,_) _)        cid = cid == fromID
-> toComp   (MkEdge _          (toID,_)) cid = cid == toID
+> fromComp (MkEdge (Just fromID,_) _)        cid = cid == fromID
+> toComp   (MkEdge _          (Just toID,_)) cid = cid == toID
 
 > fromComps, toComps :: Edge -> [CompID] -> Bool
 > fromComps e cs = foldl (&&) True $ map (fromComp e) cs

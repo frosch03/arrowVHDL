@@ -24,7 +24,7 @@ identified by the component id and the pin id. This tupel is called an
 AnchorPoint, and for documentation reasons there are two different versions,
 the SinkAnchor and the SourceAnchor.
 
-> type AnchorPoint  = (CompID, PinID)
+> type AnchorPoint  = (Maybe CompID, PinID)
 > type SinkAnchor   = AnchorPoint
 > type SourceAnchor = AnchorPoint
 
@@ -98,7 +98,8 @@ therefore the Edge datatypes also needs to be an instance of Show.
 
 > instance Show (Edge) where
 >   show ed = (prtConnection.sourceInfo) ed ++ "->" ++ (prtConnection.sinkInfo) ed
->       where prtConnection (cid, pid) = show (cid, pid)
+>       where prtConnection (Just cid, pid) = show (cid, pid)
+>             prtConnection (Nothing,  pid) = "(_," ++ show pid ++ ")"
 
 > instance Show (StructGraph) where
 > --  show = toVHDL
@@ -173,7 +174,7 @@ that are used inside this new definition. We therefore pick the components
 of which these new component consists. We call this components the level 1 
 components, because we descent only one step down in the graph. 
 
-> vhdl_components :: StructGraph -> ([(String, (CompID, PinID))], [(String, (CompID, PinID))]) -> String
+> vhdl_components :: StructGraph -> ([(String, AnchorPoint)], [(String, AnchorPoint)]) -> String
 > vhdl_components g  (namedSnks, namedSrcs)
 >      = concat $ map f (nodes g)
 >     where f g' = concat $ map break
@@ -234,9 +235,10 @@ It also takes a StructGraph (suprise :)) and a String, that is prepended to the 
 This functions returns a list, where every element is a tuple of the actual named pin (a string)
 and a part, that identifies the name.
 
-> namePins :: (StructGraph -> Pins) -> String -> StructGraph -> [(String, (CompID, PinID))]
+> namePins :: (StructGraph -> Pins) -> String -> StructGraph -> [(String, AnchorPoint)]
 > namePins f pre g
->     = map (\x -> (pre ++ (show x), (compID g, x))) $ f g
+>     = map (\x -> (pre ++ (show x), (Nothing, x))) $ f g
+> --  = map (\x -> (pre ++ (show x), (compID g, x))) $ f g
 
 
 The nameEdges function is pretty similar to the namePins function with some minor differences. 
@@ -256,8 +258,8 @@ to do this once more.
 > seperate_with sep xs     = foldl1 (\x y -> x ++ sep ++ y) xs
 
 
-> isAtComp :: CompID -> (String, (CompID, PinID)) -> Bool
-> isAtComp cid (_, (cid', _)) 
+> isAtComp :: CompID -> (String, AnchorPoint) -> Bool
+> isAtComp cid (_, (Just cid', _)) 
 >     = cid == cid'
 
 > isFromOrToComp :: CompID -> (String, Edge) -> Bool

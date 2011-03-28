@@ -1,5 +1,6 @@
 module GraphTraversal 
     ( StructGraph (..)
+    , Edge (..)
     , TraversalArrow (..)
     , augment_aA_aSG
     , augment_aA_SG
