@@ -46,7 +46,7 @@ sources.
 > type NamedIOs  = (NamedSnks, NamedSrcs)
 
 > nameSig = "i"
-> nameExI = "in"
+> nameExI = "inc"
 > nameExO = "out"
 > nameInI = "e"
 > nameInO = "a"
@@ -132,7 +132,7 @@ TODO: Add the signal-definition and the port-map-definitions
 >      [ ""
 >      , vhdl_header
 >      , vhdl_entity g namedGraphPins
->      , "ARCHITECTURE"
+>      , vhdl_architecture g 
 >      , vhdl_components g namedGraphPins
 >      , vhdl_signals g namedEdges'
 >      , vhdl_portmaps g namedGraphPins namedEdges'
@@ -183,12 +183,16 @@ a name and of some port-definitions (like what wires go inside and come back out
 >      = concat $ map break
 >      [ "ENTITY " ++ name g ++ " IS"
 >      , "PORT (" 
->      , (seperate_with "\n" $ map (\x -> x ++ " IN  std_logic;") $ map snd snks)
->      , (seperate_with "\n" $ map (\x -> x ++ " OUT std_logic;") $ map snd srcs)
+>      , (seperate_with "\n" $ map (\x -> x ++ " : IN  std_logic;") $ map snd snks)
+>      , (seperate_with "\n" $ map (\x -> x ++ " : OUT std_logic ") $ map snd srcs)
 >      , ");"
 >      , "END " ++ name g ++ ";"
 >      ]
 >      where (_, (snks, srcs)) = head $ filter ((== compID g).fst) namedGraph 
+
+> vhdl_architecture :: StructGraph -> String
+> vhdl_architecture g 
+>     = "ARCHITECTURE " ++ (name g) ++ "Struct OF " ++ (name g) ++ " IS"
 
 
 The VHDL-Component definitions describe the basic interface to the components
@@ -202,9 +206,10 @@ components, because we descent only one step down in the graph.
 >     where f g' = concat $ map break
 >                [ "COMPONENT " ++ name g' ++ "Comp"
 >                , "PORT ("
->                , (seperate_with "\n" $ map (\x -> x ++ " IN  std_logic;") $ map snd snks)
->                , (seperate_with "\n" $ map (\x -> x ++ " OUT std_logic;") $ map snd srcs)
+>                , (seperate_with "\n" $ map (\x -> x ++ " : IN  std_logic;") $ map snd snks)
+>                , (seperate_with "\n" $ map (\x -> x ++ " : OUT std_logic ") $ map snd srcs)
 >                , ");"
+>                , "END COMPONENT " ++ name g' ++ "Comp;"
 >                ] 
 >               where (_, (snks, srcs)) = head $ filter ((== compID g').fst) namedGraph
 
@@ -214,7 +219,7 @@ The VHDL-Signals is the list of inner wires, that are used inside the new compon
 > vhdl_signals :: StructGraph -> [([AnchorPoint], String)] -> String
 > vhdl_signals _ [] = ""
 > vhdl_signals g namedEdges
->      = "SIGNAL " ++ seperate_with ", " signals ++ ": std_logic" 
+>      = "SIGNAL " ++ seperate_with ", " signals ++ ": std_logic;" 
 >      where signals = map snd namedEdges
 
 
@@ -223,7 +228,7 @@ The VHDL-Signals is the list of inner wires, that are used inside the new compon
 >      = concat $ map break
 >      [ "BEGIN"
 >      , concat $ map (vhdl_portmap g namedGraphPins namedEdges') $ nodes g
->      , "END"
+>      , "END;"
 >      ]
 
 > vhdl_portmap :: StructGraph -> [(CompID, ([(PinID, String)], [(PinID, String)]))] -> [([AnchorPoint], String)] -> StructGraph -> String
