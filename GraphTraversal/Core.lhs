@@ -136,11 +136,6 @@ TODO: Add the signal-definition and the port-map-definitions
 >      , vhdl_components g namedGraphPins
 >      , vhdl_signals g namedEdges'
 >      , vhdl_portmaps g namedGraphPins namedEdges'
-> --   , vhdl_portmaps g ( ( (namedSubSinks   ++ namedSuperSinks)
-> --                       , (namedSubSources ++ namedSuperSources)
->  --                      )
->   --                   , namedEdges
->    --                  )
 >      ]
 >      where namedSuperSinks   = namePins sinks   nameExI g
 >            namedSuperSources = namePins sources nameExO g
@@ -236,7 +231,7 @@ The VHDL-Signals is the list of inner wires, that are used inside the new compon
 >      = concat $ map break
 >      [ (name g) ++ "Inst: " ++ (name g) ++ "Comp"
 >      , "PORT MAP ("
->      ++ (seperate_with ", " [signaling, incoming, outgoing])
+>      ++ (seperate_with ", " $ filter ((>0).length) [incoming, signaling, outgoing])
 >      ++ ");"
 >      ]
 >      where relevantEdges = filter (isFromOrToComp' $ compID g) $ edges superG
