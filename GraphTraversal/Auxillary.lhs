@@ -25,27 +25,30 @@ right one.
 The component id's are updated so that every id is still unique. 
 
 > connect :: StructGraph -> StructGraph -> StructGraph
-> connect left right = MkSG { name    = (name left') ++ ">>>" ++ (name right')
->                           , compID  = newCompID
->                           , nodes   = left' : right' : []
->                           , edges   = edgs
->                           , sinks   = srcs 
->                           , sources = snks
->                           }
->     where (edgs, (srcs, snks)) = rewire newCompID left' right'
->           [left',right']       = fst.unifyCompIDs $ ([left, right], 0)
->           newCompID            = nextID $ (allCompIDs left') ++ (allCompIDs right')
+> connect left_ right_ = MkSG { name    = (name left) ++ ">>>" ++ (name right)
+>                             , compID  = 0
+>                             , nodes   = left' : right' : []
+>                             , edges   = new_es
+>                             , sinks   = srcs 
+>                             , sources = snks
+>                             }
+>     where left                   = alterCompIDs 1                   left_
+>           right                  = alterCompIDs (maxCompID left +1) right_
+>           left'                  = left  { edges = onlyInnerEdges $ edges left }
+>           right'                 = right { edges = onlyInnerEdges $ edges right }
+>           (new_es, (srcs, snks)) = rewire left right
 
 
 > combine :: StructGraph -> StructGraph -> StructGraph
-> combine up down = MkSG { name    = (name up') ++ "***" ++ (name down') 
->                        , compID  = newCompID
+> combine up down_ = MkSG { name    = (name up') ++ "***" ++ (name down') 
+>                        , compID  = 0
 >                        , nodes   = up' : down' : []
->                        , edges   = edgs
+>                        , edges   = es'
 >                        , sinks   = super_snks
 >                        , sources = super_srcs
 >                        }
->     where [up', down'] =  fst.unifyCompIDs $ ([up, down], 0)
+>     where down                   = alterCompIDs (maxCompID up) down_
+>           ([up', down'], es', _) = unifyCompIDs $ ([up, down], edges up ++ edges down, 1)
 >           newCompID    =  nextID $ (allCompIDs up') ++ (allCompIDs down')
 >           super_snks   =  [0..(length.sources $ up') + (length.sources $ down')-1]
 >           super_srcs   =  [0..(length.sinks   $ up') + (length.sinks   $ down')-1]
@@ -60,6 +63,32 @@ The component id's are updated so that every id is still unique.
 > unifyPinIDs (aps, pid) = map (\(x, y) -> (x, y + pid)) aps
 
 
+> unifyCompID :: StructGraph -> StructGraph
+> unifyCompID sg = sg { compID = 0
+>                     , nodes  = sg'
+>                     , edges  = es' 
+>                     }
+>     where (sg', es', cid') = unifyCompIDs (nodes sg, edges sg, 1)
+
+> unifyCompID' :: (StructGraph, CompID) -> (StructGraph, CompID)
+> unifyCompID' (sg, cid) 
+>     = ( sg { compID = cid
+>            , nodes  = sub_sg'
+>            , edges  = es'
+>            }
+>       , cid_next
+>       )
+>     where (sub_sg', es', cid_next) = unifyCompIDs (nodes sg, edges sg, cid+1)
+
+
+> unifyCompIDs :: ([StructGraph], [Edge], CompID) -> ([StructGraph], [Edge], CompID)
+> unifyCompIDs ([],     es, cid) = ([],         es,   cid)
+> unifyCompIDs (sg:sgs, es, cid) = (sg' : sgs', es'', cid'')
+>     where (sg',  cid')        = unifyCompID' (sg, cid)
+>           es'                 = fitEdges (compID sg, cid) es
+>           (sgs', es'', cid'') = unifyCompIDs (sgs, es', cid')
+
+
 
 > allCompIDs :: StructGraph -> [CompID]
 > allCompIDs sg 
@@ -69,9 +98,56 @@ The component id's are updated so that every id is still unique.
 >           cid     = compID sg 
 
 
-> rewire :: CompID -> StructGraph -> StructGraph -> ([Edge], (Pins, Pins))
-> rewire cid sg_l sg_r
->     = (edgs ++ src_edges ++ snk_edges, (super_srcs, super_snks))
+> newCompID :: StructGraph -> CompID
+> newCompID sg = nextID compIDs
+>     where compIDs = compID sg : (next $ nodes sg)
+>           next []        = []
+>           next [innerSG] = compID innerSG : next (nodes innerSG)
+
+
+> fitEdges  :: (CompID, CompID) -> [Edge] -> [Edge]
+> fitEdges (old_cid, new_cid) = map (fitEdge (old_cid, new_cid))
+
+> fitEdge :: (CompID, CompID) -> Edge -> Edge
+> fitEdge (o, n) (MkEdge (Just c, p) s) = MkEdge (if o == c then Just n else Just c, p) s
+> fitEdge (o, n) (MkEdge s (Just c, p)) = MkEdge s (if o == c then Just n else Just c, p)
+> fitEdge _      _                      = error $ "3: " ++ "this should't happen"
+
+> mkPins :: Int -> Pins
+> mkPins 0 = []
+> mkPins n = [0..n-1]
+
+> nextID :: [CompID] -> CompID
+> nextID []    = 0
+> nextID [cid] = cid + 1
+> nextID cids  = nextID [foldl max 0 cids]
+
+
+> maxCompID :: StructGraph -> CompID
+> maxCompID sg = compID sg `max` (foldl max 0 $ map maxCompID (nodes sg))
+
+> alterCompIDs :: Int -> StructGraph -> StructGraph
+> alterCompIDs i sg 
+>     = sg { compID = compID sg + i
+>          , nodes  = map (alterCompIDs i) $ nodes sg
+>          , edges  = map (\ (MkEdge (ci,pi) (co,po)) 
+>                         -> (MkEdge (maybe ci (Just.(+i)) $ ci ,pi) 
+>                                    (maybe co (Just.(+i)) $ co ,po))
+>                         ) $ edges sg
+>          }
+
+
+> onlyInnerEdges :: [Edge] -> [Edge]
+> onlyInnerEdges es = es'
+>     where es' = filter notIO $ es
+>           notIO :: Edge -> Bool
+>           notIO (MkEdge (Nothing, _) _) = False
+>           notIO (MkEdge _ (Nothing, _)) = False
+>           notIO _                       = True
+
+> rewire :: StructGraph -> StructGraph -> ([Edge], (Pins, Pins))
+> rewire sg_l sg_r
+>     = (src_edges ++ edgs ++ snk_edges, (super_srcs, super_snks))
 >     where (edgs, (srcs_l', snks_r')) =  wire (Just $ compID sg_l) (Just $ compID sg_r) (sources sg_l) (sinks sg_r)
 >           super_srcs                 =  [0..(length.sinks   $ sg_l) + length snks_r' -1]
 >           super_snks                 =  [0..(length.sources $ sg_r) + length srcs_l' -1]
@@ -90,58 +166,6 @@ The component id's are updated so that every id is still unique.
 >           points_r = map ((,) (cid_r)) pins_r
 >           edges    = map (uncurry MkEdge) $ zip points_l points_r
 >           cnt      = length edges
-
-
-
-> unifyCompID :: (StructGraph, CompID) -> (StructGraph, CompID)
-> unifyCompID (sg, cid) 
->     = ( sg { compID = cid
->            , nodes  = sub_sg'
->            , edges  = new_edges
->            }
->       , cid_next
->       )
->     where (sub_sg', cid_next) = unifyCompIDs (nodes sg, cid+1)
->           old_cid             = compID sg
->           new_edges           = map (fitEdge (compID sg, cid)) $ edges sg
-
-
-> unifyCompIDs :: ([StructGraph], CompID) -> ([StructGraph], CompID)
-> unifyCompIDs ([],     cid) = ([], cid)
-> unifyCompIDs (sg:sgs, cid) = (sg' : sgs', cid'')
->     where (sg',  cid')  = unifyCompID  (sg, cid)
->           (sgs', cid'') = unifyCompIDs (sgs, cid')
-
-
-> newCompID :: StructGraph -> CompID
-> newCompID sg = nextID compIDs
->     where compIDs = compID sg : (next $ nodes sg)
->           next []        = []
->           next [innerSG] = compID innerSG : next (nodes innerSG)
-
-
-> fitEdges  :: ([Edge], (CompID, CompID)) -> [Edge]
-> fitEdges (edges, (old_cid, new_cid)) 
->     = map (fitEdge (old_cid, new_cid)) edges
-
-> fitEdge :: (CompID, CompID) -> Edge -> Edge
-> fitEdge (o, n) (MkEdge (Just c, p) s) = error $ show (o,n) ++ "1: " ++ (show $ MkEdge (if o == c then Just n else Just c, p) s)
-> fitEdge (o, n) (MkEdge s (Just c, p)) = error $ show (o,n) ++ "2: " ++ (show $ MkEdge s (if o == c then Just n else Just c, p))
-> fitEdge _      _                      = error $ "3: " ++ "this should't happen"
-
-> mkPins :: Int -> Pins
-> mkPins 0 = []
-> mkPins n = [0..n-1]
-
-> nextID :: [CompID] -> CompID
-> nextID []    = 0
-> nextID [cid] = cid + 1
-> nextID cids  = nextID [foldl max 0 cids]
-
-  allCompIDs :: StructGraph -> [CompID]
-  allCompIDs g | length.nodes $ g >  2 = compID g : (map allCompIDs) $ nodes g
-               | length.nodes $ g == 1 = compID g : allCompIDs $ head.nodes $ g
-               | otherwise             = compID g : []
 
 
 > fromOrToComps :: Edge -> [CompID] -> Bool
@@ -215,3 +239,16 @@ The component id's are updated so that every id is still unique.
 
 > drop_second :: (Arrow a) => a (b, b') b
 > drop_second =  arr (\(x, y) -> x)
+
+
+
+
+> emptyGraph :: StructGraph
+> emptyGraph = MkSG { name    = ""
+>                   , compID  = 0
+>                   , nodes   = []
+>                   , edges   = []
+>                   , sinks   = []
+>                   , sources = []
+>                   }
+

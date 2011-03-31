@@ -2,8 +2,12 @@
 > where
 
 > import Data.Maybe ( isNothing
+>                   , isJust
 >                   , fromJust
 >                   )
+> import Data.List ( nub 
+>                  , (\\)
+>                  )
 > import Prelude hiding (break)
 
 
@@ -102,8 +106,8 @@ therefore the Edge datatypes also needs to be an instance of Show.
 >             prtConnection (Nothing,  pid) = "(_," ++ show pid ++ ")"
 
 > instance Show (StructGraph) where
-> --  show = toVHDL
->     show = toSimpleList
+>     show = toVHDL
+> --  show = toSimpleList
 
 
 In a VHDL-Sorce file, there are two main sections, that we need to specify 
@@ -127,22 +131,45 @@ TODO: Add the signal-definition and the port-map-definitions
 >      = concat $ map break
 >      [ ""
 >      , vhdl_header
->      , vhdl_entity g (map fst namedSuperSinks, map fst namedSuperSources)
+>      , vhdl_entity g namedGraphPins
 >      , "ARCHITECTURE"
->      , vhdl_components g (namedSubSinks, namedSubSources)
->      , vhdl_signals g namedEdges
->      , vhdl_portmaps g ( ( (namedSubSinks   ++ namedSuperSinks)
->                          , (namedSubSources ++ namedSuperSources)
->                          )
->                        , namedEdges
->                        )
+>      , vhdl_components g namedGraphPins
+>      , vhdl_signals g namedEdges'
+>      , vhdl_portmaps g namedGraphPins namedEdges'
+> --   , vhdl_portmaps g ( ( (namedSubSinks   ++ namedSuperSinks)
+> --                       , (namedSubSources ++ namedSuperSources)
+>  --                      )
+>   --                   , namedEdges
+>    --                  )
 >      ]
 >      where namedSuperSinks   = namePins sinks   nameExI g
 >            namedSuperSources = namePins sources nameExO g
 >            namedEdges        = nameEdges        nameSig g
 >            namedSubSinks     = concat $ map (namePins sinks   nameInI) $ nodes g
 >            namedSubSources   = concat $ map (namePins sources nameInO) $ nodes g
+>            namedEdges'       = nameEdges' nameSig g
+>            namedGraphPins    = nameGraphPins g
 
+> nameEdges' :: String -> StructGraph -> [([AnchorPoint], String)]
+> nameEdges' pre g 
+>     = map (\(i, e) -> (sourceInfo e : sinkInfo e : [], pre ++ show i)) $ zip [0..] relevantEdges
+>     where relevantEdges = filter (\(MkEdge (ci,_) (co,_)) -> isJust ci && isJust co) $ edges g 
+
+> nameGraphPins :: StructGraph -> [(CompID, ([(PinID, String)], [(PinID, String)]))]
+> nameGraphPins g = nameSuperPins g : (map nameSubPins $ nodes g)
+
+> nameSuperPins :: StructGraph -> (CompID, ([(PinID, String)], [(PinID, String)]))
+> nameSuperPins g = (compID g, (namedSinks, namedSources))
+>     where namedSinks   = namePins' sinks   nameExI g 
+>           namedSources = namePins' sources nameExO g
+
+> nameSubPins :: StructGraph -> (CompID, ([(PinID, String)], [(PinID, String)]))
+> nameSubPins g = (compID g, (namedSinks, namedSources))
+>     where namedSinks   = namePins' sinks   nameInI g 
+>           namedSources = namePins' sources nameInO g
+
+> namePins' :: (StructGraph -> Pins) -> String -> StructGraph -> [(PinID, String)]
+> namePins' f pre g = map (\x -> (x, pre ++ show x)) $ f g 
 
 The VHDL-Header is just some boilerplate-code where library's are imported
 
@@ -153,20 +180,20 @@ The VHDL-Header is just some boilerplate-code where library's are imported
 >      , "USE ieee.std_logic_1164.all;"
 >      ]
 
-
 A VHDL-Entity defines an "interface" to a hardware component. It consists of
 a name and of some port-definitions (like what wires go inside and come back out)
 
-> vhdl_entity :: StructGraph -> ([String], [String]) -> String
-> vhdl_entity g (snks, srcs)
+> vhdl_entity :: StructGraph -> [(CompID, ([(PinID, String)], [(PinID, String)]))] -> String
+> vhdl_entity g namedGraph
 >      = concat $ map break
 >      [ "ENTITY " ++ name g ++ " IS"
 >      , "PORT (" 
->      , (seperate_with "\n" $ map (\x -> x ++ " IN  std_logic;") snks)
->      , (seperate_with "\n" $ map (\x -> x ++ " OUT std_logic;") srcs)
+>      , (seperate_with "\n" $ map (\x -> x ++ " IN  std_logic;") $ map snd snks)
+>      , (seperate_with "\n" $ map (\x -> x ++ " OUT std_logic;") $ map snd srcs)
 >      , ");"
 >      , "END " ++ name g ++ ";"
 >      ]
+>      where (_, (snks, srcs)) = head $ filter ((== compID g).fst) namedGraph 
 
 
 The VHDL-Component definitions describe the basic interface to the components
@@ -174,57 +201,147 @@ that are used inside this new definition. We therefore pick the components
 of which these new component consists. We call this components the level 1 
 components, because we descent only one step down in the graph. 
 
-> vhdl_components :: StructGraph -> ([(String, AnchorPoint)], [(String, AnchorPoint)]) -> String
-> vhdl_components g  (namedSnks, namedSrcs)
+> vhdl_components :: StructGraph -> [(CompID, ([(PinID, String)], [(PinID, String)]))] -> String
+> vhdl_components g namedGraph
 >      = concat $ map f (nodes g)
 >     where f g' = concat $ map break
->                [ ""
->                , "COMPONENT " ++ name g' ++ "Comp"
+>                [ "COMPONENT " ++ name g' ++ "Comp"
 >                , "PORT ("
->                , (seperate_with "\n" $ map (\x -> x ++ " IN  std_logic;") $ map fst compSnks)
->                , (seperate_with "\n" $ map (\x -> x ++ " OUT std_logic;") $ map fst compSrcs)
+>                , (seperate_with "\n" $ map (\x -> x ++ " IN  std_logic;") $ map snd snks)
+>                , (seperate_with "\n" $ map (\x -> x ++ " OUT std_logic;") $ map snd srcs)
 >                , ");"
 >                ] 
->               where compSnks = filter (isAtComp $ compID g') namedSnks
->                     compSrcs = filter (isAtComp $ compID g') namedSrcs
+>               where (_, (snks, srcs)) = head $ filter ((== compID g').fst) namedGraph
 
 
 The VHDL-Signals is the list of inner wires, that are used inside the new component.
 
-> vhdl_signals :: StructGraph -> [(String, Edge)] -> String
+> vhdl_signals :: StructGraph -> [([AnchorPoint], String)] -> String
 > vhdl_signals _ [] = ""
 > vhdl_signals g namedEdges
 >      = "SIGNAL " ++ seperate_with ", " signals ++ ": std_logic" 
->      where signals = map fst namedEdges
+>      where signals = map snd namedEdges
 
 
-> vhdl_portmaps :: StructGraph -> (NamedIOs, NamedSigs) ->  String
-> vhdl_portmaps g names@((namedSnks, namedSrcs), namedSigs)
+> vhdl_portmaps :: StructGraph -> [(CompID, ([(PinID, String)], [(PinID, String)]))] -> [([AnchorPoint], String)] -> String
+> vhdl_portmaps g namedGraphPins namedEdges' 
 >      = concat $ map break
 >      [ "BEGIN"
->      , concat $ map (flip vhdl_portmap names) $ nodes g 
+>      , concat $ map (vhdl_portmap g namedGraphPins namedEdges') $ nodes g
 >      , "END"
 >      ]
->      where nodes_level1 = nodes g
 
-> vhdl_portmap :: StructGraph -> (NamedIOs, NamedSigs) -> String
-> vhdl_portmap g names@((namedSnks, namedSrcs), namedSigs)
+> vhdl_portmap :: StructGraph -> [(CompID, ([(PinID, String)], [(PinID, String)]))] -> [([AnchorPoint], String)] -> StructGraph -> String
+> vhdl_portmap superG namedGraphPins namedEdges' g
 >      = concat $ map break
 >      [ (name g) ++ "Inst: " ++ (name g) ++ "Comp"
 >      , "PORT MAP ("
->      ++ (seperate_with ", " $ (map (\(_, (x, y)) -> x ++ " <= " ++ y)) $ snk_sig_combi ++ src_sig_combi)
+>      ++ (seperate_with ", " [signaling, incoming, outgoing])
 >      ++ ");"
 >      ]
->      where relevantSnks  = filter (isAtComp       $ compID g) namedSnks
->            relevantSrcs  = filter (isAtComp       $ compID g) namedSrcs
->            relevantSigs  = filter (isFromOrToComp $ compID g) namedSigs
->            compIOs       = map (\x -> (compID g, x)) $ (sinks g ++ sources g)
->            snk_sig_combi = concat $ [[ (a_snk, (s_snk, s_sig)) 
->                              | (s_snk, a_snk)                  <- relevantSnks, a_snk == a2_sig]
->                              | (s_sig, (MkEdge a1_sig a2_sig)) <- relevantSigs]
->            src_sig_combi = concat $ [[ (a_src, (s_src, s_sig)) 
->                              | (s_src, a_src)                  <- relevantSrcs, a_src == a1_sig]
->                              | (s_sig, (MkEdge a1_sig a2_sig)) <- relevantSigs]
+>      where relevantEdges = filter (isFromOrToComp' $ compID g) $ edges superG
+>            edge2inside   = filter (fromOutside') $ relevantEdges
+>            edge2outside  = filter (toOutside')   $ relevantEdges
+>            pin2signal    = relevantEdges \\ (edge2outside ++ edge2inside)
+>            incoming      = seperate_with ", " $ map (edge2PortMap' namedGraphPins namedEdges' (compID g)) $ edge2inside
+>            outgoing      = seperate_with ", " $ map (edge2PortMap' namedGraphPins namedEdges' (compID g)) $ edge2outside
+>            signaling     = seperate_with ", " $ map (edge2PortMap' namedGraphPins namedEdges' (compID g)) $ pin2signal
+
+
+> edge2PortMap' :: [(CompID, ([(PinID, String)], [(PinID, String)]))] -> [([AnchorPoint], String)] -> CompID -> Edge -> String
+
+From the inner component to the outside
+ : PORT MAP (a0 => out0, a1 => out1);
+              +--------+
+              |  pi = [0] -> 
+              |ci = 0  | 
+              |  pi = [1] -> 
+              +--------+
+
+> edge2PortMap' namedGraphPins _ _ (MkEdge (Just ci, pi) (Nothing, po))
+>     = pinName ++ " => " ++ outName
+>     where pinNames = concat $ map snd $ map snd $ filter (\(cid, _) -> cid == ci) $ namedGraphPins
+>           pinName  = head $ map snd $ filter (\(pid, _) -> pid == pi) $ pinNames
+>           outName  = head $ map snd $ filter (\(pid, _) -> pid == po) $ snd $ snd $ head $ namedGraphPins 
+
+
+From the outside to the inner component
+ : PORT MAP (e0 => in0, e1 => in1);
+                +--------+
+            -> [0] = po  |
+                |co = 0  |
+            -> [1] = po  |
+                +--------+
+
+> edge2PortMap' namedGraphPins _ _ (MkEdge (Nothing, pi) (Just co, po))
+>     = pinName ++ " => " ++ incName
+>     where pinNames = concat $ map fst $ map snd $ filter (\(cid, _) -> cid == co) $ namedGraphPins
+>           pinName  = head $ map snd $ filter (\(pid, _) -> pid == po) $ pinNames
+>           incName  = head $ map snd $ filter (\(pid, _) -> pid == pi) $ fst $ snd $ head $ namedGraphPins
+
+
+From the inner component to an inner signal 
+ : PORT MAP (a0 => i0, a0 => i1);
+  +--------+                        +--------+
+  |  pi = [0] ->  -----i0------ -> [0] = po  |
+  |ci = 0  |                        |co = 1  |  
+  |  pi = [1] ->  ------i1----- -> [1] = po  |
+  +--------+                        +--------+
+
+> edge2PortMap' namedGraphPins namedEdges ownID (MkEdge ie@(Just ci, pi) oe@(Just co, po))
+>  | ownID == ci = iPinName ++ " => " ++ iSigName
+>  | ownID == co = oPinName ++ " => " ++ oSigName
+>      where iPinNames = concat $ map snd $ map snd $ filter (\(cid, _) -> cid == ci) $ namedGraphPins
+>            iPinName  = head $ map snd $ filter (\(pid, _) -> pid == pi) $ iPinNames
+>            iSigName  = head $ map snd $ filter (\(aps, _) -> ie `elem` aps) $ namedEdges
+>            oPinNames = concat $ map fst $ map snd $ filter (\(cid, _) -> cid == co) $ namedGraphPins
+>            oPinName  = head $ map snd $ filter (\(pid, _) -> pid == po) $ oPinNames
+>            oSigName  = head $ map snd $ filter (\(aps, _) -> oe `elem` aps) $ namedEdges
+
+> isFromOrToComp' :: CompID -> Edge -> Bool
+> isFromOrToComp' cid (MkEdge (Nothing, pi) (Just co, po)) = cid == co
+> isFromOrToComp' cid (MkEdge (Just ci, pi) (Nothing, po)) =  cid == ci
+> isFromOrToComp' cid (MkEdge (Just ci, pi) (Just co, po)) =  cid == co 
+>                                                          || cid == ci
+
+> fromOutside' :: Edge -> Bool
+> fromOutside' (MkEdge (Nothing, _) _) = True
+> fromOutside' otherwise               = False
+
+> toOutside' :: Edge -> Bool
+> toOutside' (MkEdge _ (Nothing, _)) = True
+> toOutside' otherwise               = False
+
+> isFromComp' :: CompID -> Edge -> Bool 
+> isFromComp' cid (MkEdge (Just ci, _) _) = cid == ci
+> isFromComp' _   _                       = False
+
+> isToComp' :: CompID -> Edge -> Bool 
+> isToComp' cid (MkEdge _ (Just co, _)) = cid == co
+> isToComp' _   _                       = False
+
+
+ vhdl_portmap :: StructGraph -> (NamedIOs, NamedSigs) -> String
+ vhdl_portmap g names@((namedSnks, namedSrcs), namedSigs)
+      = concat $ map break
+      [ (name g) ++ "Inst: " ++ (name g) ++ "Comp"
+      , "PORT MAP ("
+      ++ (seperate_with ", " $ (map (\(_, (x, y)) -> x ++ " => " ++ y)) $ snk_sig_combi ++ src_sig_combi)
+      ++ ");"
+      ]
+     where f :: Edge -> String
+           f (MkEdge (Just ci, pi) (Just co, po)) = 
+
+      where relevantSnks  = filter (isAtComp       $ compID g) namedSnks
+            relevantSrcs  = filter (isAtComp       $ compID g) namedSrcs
+            relevantSigs  = filter (isFromOrToComp $ compID g) namedSigs
+            compIOs       = map (\x -> (compID g, x)) $ (sinks g ++ sources g)
+            snk_sig_combi = concat $ [[ (a_snk, (s_snk, s_sig)) 
+                              | (s_snk, a_snk)                  <- relevantSnks, a_snk == a2_sig]
+                              | (s_sig, (MkEdge a1_sig a2_sig)) <- relevantSigs]
+            src_sig_combi = concat $ [[ (a_src, (s_src, s_sig)) 
+                              | (s_src, a_src)                  <- relevantSrcs, a_src == a1_sig]
+                              | (s_sig, (MkEdge a1_sig a2_sig)) <- relevantSigs]
 
 
 
@@ -257,6 +374,10 @@ to do this once more.
 > seperate_with sep (x:[]) = x
 > seperate_with sep xs     = foldl1 (\x y -> x ++ sep ++ y) xs
 
+
+> isIOPort :: (String, AnchorPoint) -> Bool
+> isIOPort (_, (Nothing, _)) = True
+> isIOPort otherwise         = False
 
 > isAtComp :: CompID -> (String, AnchorPoint) -> Bool
 > isAtComp cid (_, (Just cid', _)) 
