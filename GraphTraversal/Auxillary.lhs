@@ -25,7 +25,7 @@ right one.
 The component id's are updated so that every id is still unique. 
 
 > connect :: StructGraph -> StructGraph -> StructGraph
-> connect left_ right_ = MkSG { name    = (name left) ++ ">>>" ++ (name right)
+> connect left_ right_ = MkSG { name    = (name left) ++ "_CONN_" ++ (name right)
 >                             , compID  = 0
 >                             , nodes   = left' : right' : []
 >                             , edges   = new_es
@@ -40,7 +40,7 @@ The component id's are updated so that every id is still unique.
 
 
 > combine :: StructGraph -> StructGraph -> StructGraph
-> combine up down_ = MkSG { name    = (name up') ++ "***" ++ (name down') 
+> combine up down_ = MkSG { name    = (name up') ++ "_COMB_" ++ (name down') 
 >                        , compID  = 0
 >                        , nodes   = up' : down' : []
 >                        , edges   = es'

@@ -202,7 +202,7 @@ components, because we descent only one step down in the graph.
 
 > vhdl_components :: StructGraph -> [(CompID, ([(PinID, String)], [(PinID, String)]))] -> String
 > vhdl_components g namedGraph
->      = concat $ map f (nodes g)
+>      = concat $ nub $ map f (nodes g)
 >     where f g' = concat $ map break
 >                [ "COMPONENT " ++ name g' ++ "Comp"
 >                , "PORT ("
@@ -234,7 +234,7 @@ The VHDL-Signals is the list of inner wires, that are used inside the new compon
 > vhdl_portmap :: StructGraph -> [(CompID, ([(PinID, String)], [(PinID, String)]))] -> [([AnchorPoint], String)] -> StructGraph -> String
 > vhdl_portmap superG namedGraphPins namedEdges' g
 >      = concat $ map break
->      [ (name g) ++ "Inst: " ++ (name g) ++ "Comp"
+>      [ (name g) ++ "Inst" ++ (show$compID g) ++ ": " ++ (name g) ++ "Comp"
 >      , "PORT MAP ("
 >      ++ (seperate_with ", " $ filter ((>0).length) [incoming, signaling, outgoing])
 >      ++ ");"
