@@ -2,7 +2,7 @@ This Module defines an Algebraic Data Type that represents a Transit-Structure f
 Pins. The Structure holds a list of components with their in- and out pins and the 
 naming of those pins
 
-> module PinTransit ()
+> module GraphTraversal.PinTransit ()
 > where 
 
 > import GraphTraversal.Core
@@ -74,18 +74,22 @@ Needed:
 
 
 TODO: is fst the right function to get the in-names ??? 
+
 > getInPinNames :: [CompName] -> CompID -> InNames
 > getInPinNames = getPinNames fst
 
+
+
 TODO: is snd the right function to get the in-names ??? 
+
 > getOutPinNames :: [CompName] -> CompID -> OutNames
 > getOutPinNames = getPinNames snd
 
-> getPinNames :: ((a,a) -> a) -> [CompName] -> CompID -> [(PinID, String)]
+> getPinNames :: (([NamedPin], [NamedPin]) -> [NamedPin]) -> [CompName] -> CompID -> [(PinID, String)]
 > getPinNames f cname cid
 >     = concat
 >     $ map f
->     $ map snd
+>     $ map snd 
 >     $ filter (\(x, _) -> x == cid)
 >     $ cname
 
@@ -99,11 +103,16 @@ TODO: is snd the right function to get the in-names ???
 > getPinName :: ([CompName] -> CompID -> [NamedPin]) -> [CompName] -> CompID -> PinID -> NamedPin
 > getPinName f cname cid pid 
 >     = head 
->     $ map snd
 >     $ filter (\(x, _) -> x == pid)
 >     $ f cname cid
 
 
-btw, ich zitier mal die wikipedia: "Datenkapselung bezeichnet [..] das Verbergen von Implementierungsdetails."
-und ich denke darauf zielt die Aussage ab, dass Datenkapselung verhindert, zu verstehen, was eigentlich gemacht
-wird, und damit optimierungs-chansen unterbindet ... 
+The namePins function takes a function that extracts a list of PinIDs out of an StructGraph.
+(This could be the sinks or the sources functions) 
+It also takes a StructGraph (suprise :)) and a String, that is prepended to the actual PinName.
+This functions returns a list, where every element is a tuple of the actual named pin (a string)
+and a part, that identifies the name.
+
+> namePins :: (StructGraph -> Pins) -> String -> StructGraph -> [NamedPin]
+> namePins f pre g
+>     = map (\x -> (x, pre ++ (show x))) $ f g 

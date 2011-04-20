@@ -16,5 +16,6 @@ module GraphTraversal
 where
 
 import GraphTraversal.Traversal
+import GraphTraversal.Show
 import GraphTraversal.Core
 import GraphTraversal.Auxillary

@@ -12,6 +12,7 @@
 > import Data.List (union, groupBy, (\\))
 
 > import GraphTraversal.Core
+> import GraphTraversal.Show
 
 
 The structured graph is the datatype, that represents the state inside our 
