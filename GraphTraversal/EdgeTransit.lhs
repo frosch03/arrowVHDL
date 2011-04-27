@@ -27,7 +27,7 @@ Note, that the list of NamedEdges is not explicitly declared.
 
 Functions that work over the named edge list type are:
 
-* generateNamedEdge
+* generateNamedEdges
   A function that takes Structured Graph 
   and produces a list of named edges
 
@@ -53,8 +53,8 @@ Needed:
 > pre = "i"
 
 
-> generateNamedEdge :: StructGraph -> [NamedEdge]
-> generateNamedEdge g 
+> generateNamedEdges :: StructGraph -> [NamedEdge]
+> generateNamedEdges g 
 >     = map (\(i, e) -> (sourceInfo e : sinkInfo e : [], pre ++ show i))
 >     $ zip [0..] relevantEdges
 >     where relevantEdges = filter (\  (MkEdge (ci,_) (co,_))

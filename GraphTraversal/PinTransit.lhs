@@ -33,7 +33,7 @@ represented as a list of CompNames, although these list is not explicitly named.
 
 Functions that work over the named component list type are:
 
-* generateCompName 
+* generateNamedComps
   A function that takes a Structured Graph 
   and produces a named component list
 
@@ -61,8 +61,8 @@ Needed:
 [ ] 
 
 
-> generateCompName :: StructGraph -> [CompName]
-> generateCompName g = generateSuperNames g : (map generateSubNames $ nodes g)
+> generateNamedComps :: StructGraph -> [CompName]
+> generateNamedComps g = generateSuperNames g : (map generateSubNames $ nodes g)
 >     where generateSuperNames g = ( compID g, ( namePins sinks   nameExI g
 >                                              , namePins sources nameExO g
 >                                              )

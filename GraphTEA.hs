@@ -114,6 +114,20 @@ aFlip
 --                    , sources = [ (Nothing, 0) ]
 --                    }
 
+aShiftL4 :: (Arrow a) => TraversalArrow a Int Int
+aShiftL4 
+    = augment_f_SG
+        (flip shiftL 4)
+        emptyGraph { name    = "SHIFTL4"
+                   , sinks   = mkPins 1
+                   , sources = mkPins 1
+                   }
+
+aShiftL4addKey' :: (Arrow a) => TraversalArrow a (ValChunk, KeyChunk) Int
+aShiftL4addKey' 
+    =   first aShiftL4
+    >>> aAdd
+
 aShiftL4addKey :: (Arrow a) => TraversalArrow a (ValChunk, KeyChunk) Int
 aShiftL4addKey 
     =   (   first (   aId &&& aConst 4
