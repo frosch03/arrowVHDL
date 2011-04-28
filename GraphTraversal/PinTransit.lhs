@@ -2,7 +2,7 @@ This Module defines an Algebraic Data Type that represents a Transit-Structure f
 Pins. The Structure holds a list of components with their in- and out pins and the 
 naming of those pins
 
-> module GraphTraversal.PinTransit ()
+> module GraphTraversal.PinTransit 
 > where 
 
 > import GraphTraversal.Core
@@ -24,11 +24,11 @@ First of all it is defined, what a named pin looks like
 
 Then the component is connected with the named pins
 
-> type CompName = (CompID, (InNames, OutNames))
+> type NamedComp = (CompID, (InNames, OutNames))
 
 
 Recall that usually there are more then one component in a Graph :-) which is 
-represented as a list of CompNames, although these list is not explicitly named.
+represented as a list of NamedComps, although these list is not explicitly named.
 
 
 Functions that work over the named component list type are:
@@ -61,7 +61,7 @@ Needed:
 [ ] 
 
 
-> generateNamedComps :: StructGraph -> [CompName]
+> generateNamedComps :: StructGraph -> [NamedComp]
 > generateNamedComps g = generateSuperNames g : (map generateSubNames $ nodes g)
 >     where generateSuperNames g = ( compID g, ( namePins sinks   nameExI g
 >                                              , namePins sources nameExO g
@@ -75,17 +75,17 @@ Needed:
 
 TODO: is fst the right function to get the in-names ??? 
 
-> getInPinNames :: [CompName] -> CompID -> InNames
+> getInPinNames :: [NamedComp] -> CompID -> InNames
 > getInPinNames = getPinNames fst
 
 
 
 TODO: is snd the right function to get the in-names ??? 
 
-> getOutPinNames :: [CompName] -> CompID -> OutNames
+> getOutPinNames :: [NamedComp] -> CompID -> OutNames
 > getOutPinNames = getPinNames snd
 
-> getPinNames :: (([NamedPin], [NamedPin]) -> [NamedPin]) -> [CompName] -> CompID -> [(PinID, String)]
+> getPinNames :: (([NamedPin], [NamedPin]) -> [NamedPin]) -> [NamedComp] -> CompID -> [(PinID, String)]
 > getPinNames f cname cid
 >     = concat
 >     $ map f
@@ -94,13 +94,13 @@ TODO: is snd the right function to get the in-names ???
 >     $ cname
 
 
-> getInPinName :: [CompName] -> CompID -> PinID -> NamedPin
+> getInPinName :: [NamedComp] -> CompID -> PinID -> NamedPin
 > getInPinName = getPinName getInPinNames
 
-> getOutPinName :: [CompName] -> CompID -> PinID -> NamedPin
+> getOutPinName :: [NamedComp] -> CompID -> PinID -> NamedPin
 > getOutPinName = getPinName getOutPinNames
 
-> getPinName :: ([CompName] -> CompID -> [NamedPin]) -> [CompName] -> CompID -> PinID -> NamedPin
+> getPinName :: ([NamedComp] -> CompID -> [NamedPin]) -> [NamedComp] -> CompID -> PinID -> NamedPin
 > getPinName f cname cid pid 
 >     = head 
 >     $ filter (\(x, _) -> x == pid)

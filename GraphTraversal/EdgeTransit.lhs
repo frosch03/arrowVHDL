@@ -2,7 +2,7 @@ This module defines an Algebraic Data Type of a transit structure for edges.
 It holds a tuple of a list of anchor points with their according name. The 
 anchor points define the start and end point of an edge.
 
-> module GraphTraversal.EdgeTransit ()
+> module GraphTraversal.EdgeTransit 
 > where
 
 > import Data.Maybe ( isJust )
@@ -50,7 +50,7 @@ Needed:
 [ ]
 
 > pre :: String
-> pre = "i"
+> pre = nameSig
 
 
 > generateNamedEdges :: StructGraph -> [NamedEdge]
@@ -64,9 +64,12 @@ Needed:
 > getAllEdgeNames :: [NamedEdge] -> [String]
 > getAllEdgeNames = map snd
 
-> getEdgeName :: AnchorPoint -> [NamedEdge] -> String
-> getEdgeName ap nedgs
+> getNamedEdge :: [NamedEdge] -> AnchorPoint -> NamedEdge
+> getNamedEdge nedgs ap
 >     = head
->     $ map snd
 >     $ filter (\(aps, _) -> ap `elem` aps)
 >     $ nedgs
+
+> getEdgeName :: [NamedEdge] -> AnchorPoint -> String
+> getEdgeName nedgs ap 
+>     = snd $ getNamedEdge nedgs ap

@@ -136,6 +136,7 @@ aShiftL4addKey
         >>> aAdd
         )
 
+
 aShiftR5addKey :: (Arrow a) => TraversalArrow a (ValChunk, KeyChunk) Int
 aShiftR5addKey 
     =   (   first (   aId &&& aConst 5
