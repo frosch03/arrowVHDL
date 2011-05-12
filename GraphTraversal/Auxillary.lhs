@@ -25,34 +25,28 @@ left graph become the sinks of the new graph and so are the sources of the
 right one. 
 The component id's are updated so that every id is still unique. 
 
-> connect :: StructGraph -> StructGraph -> StructGraph
-> connect left_ right_ = MkSG { name    = (name left) ++ "_conn_" ++ (name right)
->                             , compID  = 0
->                             , nodes   = left' : right' : []
->                             , edges   = new_es
->                             , sinks   = srcs 
->                             , sources = snks
->                             }
->     where left                   = alterCompIDs 1                   left_
->           right                  = alterCompIDs (maxCompID left +1) right_
->           left'                  = left  { edges = onlyInnerEdges $ edges left }
->           right'                 = right { edges = onlyInnerEdges $ edges right }
->           (new_es, (srcs, snks)) = seqRewire left right
+> conn :: ((StructGraph -> StructGraph -> ([Edge], (Pins, Pins))), String) 
+>      -> StructGraph -> StructGraph -> StructGraph
+> conn (f, s) sg_f sg_g = MkSG { name    = (name sg_f') ++ s ++ (name sg_g')
+>                              , compID  = 0
+>                              , nodes   = sg_f'': sg_g'' : []
+>                              , edges   = es
+>                              , sinks   = srcs 
+>                              , sources = snks
+>                              }
+>     where sg_f'              = alterCompIDs 1                    sg_f
+>           sg_g'              = alterCompIDs (maxCompID sg_f' +1) sg_g
+>           (es, (srcs, snks)) = f sg_f' sg_g'
+>           sg_f''             = sg_f' { edges = onlyInnerEdges $ edges sg_f'}
+>           sg_g''             = sg_g' { edges = onlyInnerEdges $ edges sg_g' }
 
+
+> connect :: StructGraph -> StructGraph -> StructGraph
+> connect = conn (seqRewire, "_conn_")
 
 > combine :: StructGraph -> StructGraph -> StructGraph
-> combine up_ down_ = MkSG { name    = (name up') ++ "_comb_" ++ (name down') 
->                         , compID  = 0
->                         , nodes   = up' : down' : []
->                         , edges   = new_es
->                         , sinks   = snks
->                         , sources = srcs
->                         }
->     where up                     = alterCompIDs 1                 up_
->           down                   = alterCompIDs (maxCompID up +1) down_
->           up'                    = up   { edges = onlyInnerEdges $ edges up }
->           down'                  = down { edges = onlyInnerEdges $ edges down }
->           (new_es, (srcs, snks)) = parRewire up down
+> combine = conn (parRewire, "_comb_")
+
 
 
 
