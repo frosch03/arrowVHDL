@@ -4,6 +4,7 @@
 >     , mkPins
 >     , flatten
 >     , allCompIDs
+>     , allNodes
 >     )
 > where
 
@@ -165,35 +166,21 @@ The component id's are updated so that every id is still unique.
 >     =  op1 == ip2
 >     || op2 == ip1
 
-> mergeEdges :: [Edge] -> CompID -> [Edge]
-> mergeEdges es mcid = (es \\ tofrom) ++ (map mergeEdge2 $ groupBy samePin tofrom)
->     where tofrom = [ xs | xs <- es, xs `fromOrToComp` mcid ]
 
-           f :: ([Edge], [Edge]) -> ([Edge], [Edge])
-           f ([],    fines) = ([], fines)
-           f (oldes, fines) = (oldes \\ newes, newes ++ fines)
-               where newes = map mergeEdge $ groupBy samePin oldes
+> flatten = error $ show "blub"
+
+> allNodes :: StructGraph -> [StructGraph]
+> allNodes g = f g : (emptySubNodes ++ (concat $ map allNodes subNodes))
+>     where subNodes      = nodes g
+>           emptySubNodes = map f subNodes
+>           f n           = n { nodes = [] }
 
 
-> missingCIDs :: StructGraph -> StructGraph -> [CompID]
-> missingCIDs g1 g2 = [ missing | missing <- cs_super, not $ missing `elem` cs_sub]
->     where (cs_super, cs_sub) = if length cids1 > length cids2 
->                                   then (cids1, cids2) 
->                                   else (cids2, cids1)
->           cids1              = allCompIDs g1
->           cids2              = allCompIDs g2
 
-> flatten :: StructGraph -> StructGraph 
-> flatten g = g' { edges = es' }
->     where (gs, es) = flatten' (nodes g, edges g)
->           g'       = g { nodes = gs, edges = es }
->           es'      = foldl union [] $ map (mergeEdges es) $ (missingCIDs g g')
-
-> flatten' :: ([StructGraph], [Edge]) -> ([StructGraph], [Edge])
-> flatten' ([], e)  = ([], e)
-> flatten' ((g:gs), es) | (length.nodes) g > 1 = flatten' (nodes g { edges = [] }, es `union` edges g)
-> flatten' ((g:gs), es) | otherwise            = (g : gs' , es `union` es')
->     where (gs', es') = flatten' (gs, es)
+ allEdges :: StructGraph -> [Edges]
+ allEdges g = x ++ (concat $ map allEdges subNodes)
+     where subNodes      = nodes g 
+           
 
 
 

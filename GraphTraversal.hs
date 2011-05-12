@@ -13,6 +13,7 @@ module GraphTraversal
     , mkPins
     , flatten
     , allCompIDs
+    , allNodes
     )
 where
 
