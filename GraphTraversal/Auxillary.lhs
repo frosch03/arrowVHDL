@@ -4,7 +4,9 @@
 >     , mkPins
 >     , flatten
 >     , allCompIDs
->     , allNodes
+>     , getAllNodes
+>     , getAtomicNodes
+>     , getAllEdges
 >     )
 > where
 
@@ -167,23 +169,6 @@ The component id's are updated so that every id is still unique.
 >     || op2 == ip1
 
 
-> flatten = error $ show "blub"
-
-> allNodes :: StructGraph -> [StructGraph]
-> allNodes g = f g : (emptySubNodes ++ (concat $ map allNodes subNodes))
->     where subNodes      = nodes g
->           emptySubNodes = map f subNodes
->           f n           = n { nodes = [] }
-
-
-
- allEdges :: StructGraph -> [Edges]
- allEdges g = x ++ (concat $ map allEdges subNodes)
-     where subNodes      = nodes g 
-           
-
-
-
 > drop_first  :: (Arrow a) => a (b, b') b'
 > drop_first  =  arr (\(x, y) -> y)
 
@@ -203,6 +188,27 @@ The component id's are updated so that every id is still unique.
 >                   }
 
  
+
+
+
+> flatten = error $ show "blub"
+
+> getNodes :: (StructGraph -> [StructGraph]) 
+>          -> StructGraph -> [StructGraph]
+> getNodes f g | ((==0).length.nodes) g = [g]
+> getNodes f g | otherwise              = (f g) ++ (concat $ map (getNodes f) $ nodes g)
+
+> getAllNodes :: StructGraph -> [StructGraph]
+> getAllNodes = getNodes (\n -> [n { nodes = [] }])
+
+> getAtomicNodes :: StructGraph -> [StructGraph]
+> getAtomicNodes = getNodes (\n -> [])
+
+> getAllEdges :: StructGraph -> [Edge]
+> getAllEdges g | ((==0).length.edges) g = []      ++ (concat $ map getAllEdges $ nodes g)
+> getAllEdges g | otherwise              = edges g ++ (concat $ map getAllEdges $ nodes g)
+
+
 
 
  unifyPinIDs :: ([AnchorPoint], PinID) -> [AnchorPoint]

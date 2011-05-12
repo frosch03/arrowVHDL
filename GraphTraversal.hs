@@ -13,7 +13,9 @@ module GraphTraversal
     , mkPins
     , flatten
     , allCompIDs
-    , allNodes
+    , getAllNodes
+    , getAtomicNodes
+    , getAllEdges
     )
 where
 
