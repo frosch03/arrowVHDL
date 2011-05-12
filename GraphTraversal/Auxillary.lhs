@@ -27,16 +27,16 @@ The component id's are updated so that every id is still unique.
 
 > conn :: ((StructGraph -> StructGraph -> ([Edge], (Pins, Pins))), String) 
 >      -> StructGraph -> StructGraph -> StructGraph
-> conn (f, s) sg_f sg_g = MkSG { name    = (name sg_f') ++ s ++ (name sg_g')
->                              , compID  = 0
->                              , nodes   = sg_f'': sg_g'' : []
->                              , edges   = es
->                              , sinks   = srcs 
->                              , sources = snks
->                              }
+> conn (rewire, s) sg_f sg_g = MkSG { name    = (name sg_f') ++ s ++ (name sg_g')
+>                                   , compID  = 0
+>                                   , nodes   = sg_f'': sg_g'' : []
+>                                   , edges   = es
+>                                   , sinks   = srcs 
+>                                   , sources = snks
+>                                   }
 >     where sg_f'              = alterCompIDs 1                    sg_f
 >           sg_g'              = alterCompIDs (maxCompID sg_f' +1) sg_g
->           (es, (srcs, snks)) = f sg_f' sg_g'
+>           (es, (srcs, snks)) = rewire sg_f' sg_g'
 >           sg_f''             = sg_f' { edges = onlyInnerEdges $ edges sg_f'}
 >           sg_g''             = sg_g' { edges = onlyInnerEdges $ edges sg_g' }
 
@@ -50,34 +50,34 @@ The component id's are updated so that every id is still unique.
 
 
 
-> unifyPinIDs :: ([AnchorPoint], PinID) -> [AnchorPoint]
-> unifyPinIDs (aps, pid) = map (\(x, y) -> (x, y + pid)) aps
+ unifyPinIDs :: ([AnchorPoint], PinID) -> [AnchorPoint]
+ unifyPinIDs (aps, pid) = map (\(x, y) -> (x, y + pid)) aps
 
 
-> unifyCompID :: StructGraph -> StructGraph
-> unifyCompID sg = sg { compID = 0
->                     , nodes  = sg'
->                     , edges  = es' 
->                     }
->     where (sg', es', cid') = unifyCompIDs (nodes sg, edges sg, 1)
+ unifyCompID :: StructGraph -> StructGraph
+ unifyCompID sg = sg { compID = 0
+                     , nodes  = sg'
+                     , edges  = es' 
+                     }
+     where (sg', es', cid') = unifyCompIDs (nodes sg, edges sg, 1)
 
-> unifyCompID' :: (StructGraph, CompID) -> (StructGraph, CompID)
-> unifyCompID' (sg, cid) 
->     = ( sg { compID = cid
->            , nodes  = sub_sg'
->            , edges  = es'
->            }
->       , cid_next
->       )
->     where (sub_sg', es', cid_next) = unifyCompIDs (nodes sg, edges sg, cid+1)
+ unifyCompID' :: (StructGraph, CompID) -> (StructGraph, CompID)
+ unifyCompID' (sg, cid) 
+     = ( sg { compID = cid
+            , nodes  = sub_sg'
+            , edges  = es'
+            }
+       , cid_next
+       )
+     where (sub_sg', es', cid_next) = unifyCompIDs (nodes sg, edges sg, cid+1)
 
 
-> unifyCompIDs :: ([StructGraph], [Edge], CompID) -> ([StructGraph], [Edge], CompID)
-> unifyCompIDs ([],     es, cid) = ([],         es,   cid)
-> unifyCompIDs (sg:sgs, es, cid) = (sg' : sgs', es'', cid'')
->     where (sg',  cid')        = unifyCompID' (sg, cid)
->           es'                 = fitEdges (compID sg, cid) es
->           (sgs', es'', cid'') = unifyCompIDs (sgs, es', cid')
+ unifyCompIDs :: ([StructGraph], [Edge], CompID) -> ([StructGraph], [Edge], CompID)
+ unifyCompIDs ([],     es, cid) = ([],         es,   cid)
+ unifyCompIDs (sg:sgs, es, cid) = (sg' : sgs', es'', cid'')
+     where (sg',  cid')        = unifyCompID' (sg, cid)
+           es'                 = fitEdges (compID sg, cid) es
+           (sgs', es'', cid'') = unifyCompIDs (sgs, es', cid')
 
 
 
