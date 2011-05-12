@@ -50,37 +50,6 @@ The component id's are updated so that every id is still unique.
 
 
 
- unifyPinIDs :: ([AnchorPoint], PinID) -> [AnchorPoint]
- unifyPinIDs (aps, pid) = map (\(x, y) -> (x, y + pid)) aps
-
-
- unifyCompID :: StructGraph -> StructGraph
- unifyCompID sg = sg { compID = 0
-                     , nodes  = sg'
-                     , edges  = es' 
-                     }
-     where (sg', es', cid') = unifyCompIDs (nodes sg, edges sg, 1)
-
- unifyCompID' :: (StructGraph, CompID) -> (StructGraph, CompID)
- unifyCompID' (sg, cid) 
-     = ( sg { compID = cid
-            , nodes  = sub_sg'
-            , edges  = es'
-            }
-       , cid_next
-       )
-     where (sub_sg', es', cid_next) = unifyCompIDs (nodes sg, edges sg, cid+1)
-
-
- unifyCompIDs :: ([StructGraph], [Edge], CompID) -> ([StructGraph], [Edge], CompID)
- unifyCompIDs ([],     es, cid) = ([],         es,   cid)
- unifyCompIDs (sg:sgs, es, cid) = (sg' : sgs', es'', cid'')
-     where (sg',  cid')        = unifyCompID' (sg, cid)
-           es'                 = fitEdges (compID sg, cid) es
-           (sgs', es'', cid'') = unifyCompIDs (sgs, es', cid')
-
-
-
 > allCompIDs :: StructGraph -> [CompID]
 > allCompIDs sg 
 >     = if (length next_sg == 0) then cid : []
@@ -94,15 +63,6 @@ The component id's are updated so that every id is still unique.
 >     where compIDs = compID sg : (next $ nodes sg)
 >           next []        = []
 >           next [innerSG] = compID innerSG : next (nodes innerSG)
-
-
-> fitEdges  :: (CompID, CompID) -> [Edge] -> [Edge]
-> fitEdges (old_cid, new_cid) = map (fitEdge (old_cid, new_cid))
-
-> fitEdge :: (CompID, CompID) -> Edge -> Edge
-> fitEdge (o, n) (MkEdge (Just c, p) s) = MkEdge (if o == c then Just n else Just c, p) s
-> fitEdge (o, n) (MkEdge s (Just c, p)) = MkEdge s (if o == c then Just n else Just c, p)
-> fitEdge _      _                      = error $ "3: " ++ "this should't happen"
 
 > mkPins :: Int -> Pins
 > mkPins 0 = []
@@ -255,3 +215,46 @@ The component id's are updated so that every id is still unique.
 >                   , sources = []
 >                   }
 
+ 
+
+
+ unifyPinIDs :: ([AnchorPoint], PinID) -> [AnchorPoint]
+ unifyPinIDs (aps, pid) = map (\(x, y) -> (x, y + pid)) aps
+
+
+ unifyCompID :: StructGraph -> StructGraph
+ unifyCompID sg = sg { compID = 0
+                     , nodes  = sg'
+                     , edges  = es' 
+                     }
+     where (sg', es', cid') = unifyCompIDs (nodes sg, edges sg, 1)
+
+ unifyCompID' :: (StructGraph, CompID) -> (StructGraph, CompID)
+ unifyCompID' (sg, cid) 
+     = ( sg { compID = cid
+            , nodes  = sub_sg'
+            , edges  = es'
+            }
+       , cid_next
+       )
+     where (sub_sg', es', cid_next) = unifyCompIDs (nodes sg, edges sg, cid+1)
+
+
+ unifyCompIDs :: ([StructGraph], [Edge], CompID) -> ([StructGraph], [Edge], CompID)
+ unifyCompIDs ([],     es, cid) = ([],         es,   cid)
+ unifyCompIDs (sg:sgs, es, cid) = (sg' : sgs', es'', cid'')
+     where (sg',  cid')        = unifyCompID' (sg, cid)
+           es'                 = fitEdges (compID sg, cid) es
+           (sgs', es'', cid'') = unifyCompIDs (sgs, es', cid')
+
+
+
+
+
+ fitEdges  :: (CompID, CompID) -> [Edge] -> [Edge]
+ fitEdges (old_cid, new_cid) = map (fitEdge (old_cid, new_cid))
+
+ fitEdge :: (CompID, CompID) -> Edge -> Edge
+ fitEdge (o, n) (MkEdge (Just c, p) s) = MkEdge (if o == c then Just n else Just c, p) s
+ fitEdge (o, n) (MkEdge s (Just c, p)) = MkEdge s (if o == c then Just n else Just c, p)
+ fitEdge _      _                      = error $ "3: " ++ "this should't happen"
