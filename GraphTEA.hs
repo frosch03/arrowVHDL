@@ -138,7 +138,10 @@ aShiftL4addKey
 
 aShiftL4addKeyClean :: (Arrow a) => TraversalArrow a (ValChunk, KeyChunk) Int
 aShiftL4addKeyClean 
-    = ( (       (   aId &&& aConst 4
+    = ( (       (   aDup
+                >>> (   aId 
+                    *** aConst 4
+                    )
                 >>> aShiftL
                 )
             *** aId
