@@ -32,7 +32,7 @@ The component id's are updated so that every id is still unique.
 >      -> StructGraph -> StructGraph -> StructGraph
 > conn (rewire, s) sg_f sg_g = MkSG { name    = (name sg_f') ++ s ++ (name sg_g')
 >                                   , compID  = 0
->                                   , nodes   = sg_f'': sg_g'' : []
+>                                   , nodes   = sg_f': sg_g' : []
 >                                   , edges   = es
 >                                   , sinks   = srcs 
 >                                   , sources = snks
@@ -40,8 +40,12 @@ The component id's are updated so that every id is still unique.
 >     where sg_f'              = alterCompIDs 1                    sg_f
 >           sg_g'              = alterCompIDs (maxCompID sg_f' +1) sg_g
 >           (es, (srcs, snks)) = rewire sg_f' sg_g'
->           sg_f''             = sg_f' { edges = onlyInnerEdges $ edges sg_f'}
->           sg_g''             = sg_g' { edges = onlyInnerEdges $ edges sg_g' }
+
+TODO: sg_f' (with edges from outside) vs. sg_f'' (only the inner edges)
+I'm not sure right now, if the edges from the outside are needed.
+therefore at the moment, the new nodes are generated from sg_f' and sg_g' 
+           sg_f''             = sg_f' { edges = onlyInnerEdges $ edges sg_f'}
+           sg_g''             = sg_g' { edges = onlyInnerEdges $ edges sg_g' }
 
 
 > connect :: StructGraph -> StructGraph -> StructGraph
@@ -49,7 +53,6 @@ The component id's are updated so that every id is still unique.
 
 > combine :: StructGraph -> StructGraph -> StructGraph
 > combine = conn (parRewire, "_comb_")
-
 
 
 
@@ -68,7 +71,7 @@ The component id's are updated so that every id is still unique.
 >           next [innerSG] = compID innerSG : next (nodes innerSG)
 
 > mkPins :: Int -> Pins
-> mkPins 0 = []
+> mkPins 0 = error $ show "It is not possible to generate a component with 0 pins"
 > mkPins n = [0..n-1]
 
 > nextID :: [CompID] -> CompID
