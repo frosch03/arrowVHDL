@@ -34,7 +34,7 @@ aConst x
     = augment_f_SG
         (\_ -> x)
         emptyGraph { name    = "CONST_" ++ (show x)
-                   , sinks   = mkPins 0
+                   , sinks   = mkPins 1 -- a sink is needed for the rewire-function to work properly (TODO: is this ok?)
                    , sources = mkPins 1
                    }
 
@@ -135,6 +135,16 @@ aShiftL4addKey
                   )
         >>> aAdd
         )
+
+aShiftL4addKeyClean :: (Arrow a) => TraversalArrow a (ValChunk, KeyChunk) Int
+aShiftL4addKeyClean 
+    = ( (       (   aId &&& aConst 4
+                >>> aShiftL
+                )
+            *** aId
+        )
+        >>> aAdd
+      )
 
 
 aShiftR5addKey :: (Arrow a) => TraversalArrow a (ValChunk, KeyChunk) Int
@@ -335,3 +345,25 @@ aG2
         (\x -> x)
         g2 
 
+
+aDup :: (Arrow a) => TraversalArrow a b (b, b)
+aDup
+    = augment_f_SG 
+        (\(x) -> (x, x)) 
+        emptyGraph { name    = "DUP"
+                   , sinks   = mkPins 1
+                   , sources = mkPins 2
+                   }
+
+aShiftL4addKey_ :: (Arrow a) => TraversalArrow a (ValChunk, KeyChunk) Int
+aShiftL4addKey_ 
+    =     (   (   aId &&& aConst 4
+              >>> aShiftL
+              )
+          *** aId
+          )
+      >>>
+      aAdd
+
+
+-- (aShiftL4 *** aId ) >>> aAdd

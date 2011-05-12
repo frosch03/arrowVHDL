@@ -17,7 +17,7 @@
 
 The structured graph is the datatype, that represents the state inside our 
 traversal Arrow. While we want to make the TraversalArrow an element of 
-Category a function to connect two of these graphs together is needed. 
+Category a function to connect two of these graphs together is needed.e
 
 This connect function generates a new graph out of the two input graphs.
 A new name is generated from the names of both inputs, the sinks of the 
@@ -26,7 +26,7 @@ right one.
 The component id's are updated so that every id is still unique. 
 
 > connect :: StructGraph -> StructGraph -> StructGraph
-> connect left_ right_ = MkSG { name    = (name left) ++ "_CONN_" ++ (name right)
+> connect left_ right_ = MkSG { name    = (name left) ++ "_conn_" ++ (name right)
 >                             , compID  = 0
 >                             , nodes   = left' : right' : []
 >                             , edges   = new_es
@@ -41,14 +41,15 @@ The component id's are updated so that every id is still unique.
 
 
 > combine :: StructGraph -> StructGraph -> StructGraph
-> combine up down_ = MkSG { name    = (name up') ++ "_COMB_" ++ (name down') 
->                        , compID  = 0
->                        , nodes   = up' : down' : []
->                        , edges   = es'
->                        , sinks   = super_snks
->                        , sources = super_srcs
->                        }
->     where down                   = alterCompIDs (maxCompID up) down_
+> combine up_ down_ = MkSG { name    = (name up') ++ "_comb_" ++ (name down') 
+>                         , compID  = 0
+>                         , nodes   = up' : down' : []
+>                         , edges   = es'
+>                         , sinks   = super_snks
+>                         , sources = super_srcs
+>                         }
+>     where up                     = alterCompIDs 1              up_
+>           down                   = alterCompIDs (maxCompID up) down_
 >           ([up', down'], es', _) = unifyCompIDs $ ([up, down], edges up ++ edges down, 1)
 >           newCompID    =  nextID $ (allCompIDs up') ++ (allCompIDs down')
 >           super_snks   =  [0..(length.sources $ up') + (length.sources $ down')-1]
@@ -173,13 +174,13 @@ The component id's are updated so that every id is still unique.
 > fromOrToComps e cs = foldl (&&) True $ map (fromOrToComp e) cs
 
 > fromOrToComp :: Edge -> CompID -> Bool
-> fromOrToComp edg cid 
->     =  fromComp edg cid
->     || toComp   edg cid
+> fromOrToComp edg@(MkEdge (Just fromID,_) _) cid = fromComp edg cid
+> fromOrToComp edg@(MkEdge _ (Just fromID,_)) cid = toComp   edg cid
 
 > fromComp, toComp :: Edge -> CompID -> Bool
 > fromComp (MkEdge (Just fromID,_) _)        cid = cid == fromID
 > toComp   (MkEdge _          (Just toID,_)) cid = cid == toID
+> toComp edg cid = error $ show $ edg
 
 > fromComps, toComps :: Edge -> [CompID] -> Bool
 > fromComps e cs = foldl (&&) True $ map (fromComp e) cs
@@ -205,7 +206,7 @@ The component id's are updated so that every id is still unique.
 
 > mergeEdges :: [Edge] -> CompID -> [Edge]
 > mergeEdges es mcid = (es \\ tofrom) ++ (map mergeEdge2 $ groupBy samePin tofrom)
->     where tofrom = [ xs | xs <- es, xs `toComp` mcid || xs `fromComp` mcid ]
+>     where tofrom = [ xs | xs <- es, xs `fromOrToComp` mcid ]
 
            f :: ([Edge], [Edge]) -> ([Edge], [Edge])
            f ([],    fines) = ([], fines)

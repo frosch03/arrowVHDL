@@ -75,15 +75,21 @@ Needed:
 
 TODO: is fst the right function to get the in-names ??? 
 
-> getInPinNames :: [NamedComp] -> CompID -> InNames
-> getInPinNames = getPinNames fst
+> getNamedInPins :: [NamedComp] -> CompID -> InNames
+> getNamedInPins = getPinNames fst
+
+> getInPinNames :: [NamedComp] -> CompID -> [String]
+> getInPinNames cname cid = map snd $ getNamedInPins cname cid
 
 
 
 TODO: is snd the right function to get the in-names ??? 
 
-> getOutPinNames :: [NamedComp] -> CompID -> OutNames
-> getOutPinNames = getPinNames snd
+> getNamedOutPins :: [NamedComp] -> CompID -> OutNames
+> getNamedOutPins = getPinNames snd
+
+> getOutPinNames :: [NamedComp] -> CompID -> [String]
+> getOutPinNames cname cid = map snd $ getNamedOutPins cname cid
 
 > getPinNames :: (([NamedPin], [NamedPin]) -> [NamedPin]) -> [NamedComp] -> CompID -> [(PinID, String)]
 > getPinNames f cname cid
@@ -94,11 +100,19 @@ TODO: is snd the right function to get the in-names ???
 >     $ cname
 
 
-> getInPinName :: [NamedComp] -> CompID -> PinID -> NamedPin
-> getInPinName = getPinName getInPinNames
+> getNamedInPin :: [NamedComp] -> CompID -> PinID -> NamedPin
+> getNamedInPin = getPinName getNamedInPins
 
-> getOutPinName :: [NamedComp] -> CompID -> PinID -> NamedPin
-> getOutPinName = getPinName getOutPinNames
+> getNamedOutPin :: [NamedComp] -> CompID -> PinID -> NamedPin
+> getNamedOutPin = getPinName getNamedOutPins
+
+
+> getInPinName :: [NamedComp] -> CompID -> PinID -> String
+> getInPinName cname cid pid = snd $ getNamedInPin cname cid pid
+
+> getOutPinName :: [NamedComp] -> CompID -> PinID -> String
+> getOutPinName cname cid pid = snd $ getNamedOutPin cname cid pid
+
 
 > getPinName :: ([NamedComp] -> CompID -> [NamedPin]) -> [NamedComp] -> CompID -> PinID -> NamedPin
 > getPinName f cname cid pid 

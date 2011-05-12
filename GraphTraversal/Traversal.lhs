@@ -3,6 +3,7 @@
 > module GraphTraversal.Traversal 
 >     ( runTraversal
 >     , runTraversal_
+>     , rt
 >     , TraversalArrow (..)
 >     , augment_aA_aSG
 >     , augment_aA_SG
@@ -66,6 +67,9 @@
 >     first (TR f) = TR $ proc ((x, y), sg) -> do
 >                             (x', sg_f) <- f -< (x, sg)
 >                             returnA         -< ((x', y), sg_f `combine` throughGraph)
+>     second (TR g) = TR $ proc ((x, y), sg) -> do
+>                              (y', sg_g) <- g -< (y, sg)
+>                              returnA         -< ((x, y'), sg_g `combine` throughGraph)
 >     (TR f) &&& (TR g) = TR $ proc (x, sg) -> do 
 >                             (x', sg_f) <- f -< (x,   sg)
 >                             (y', sg_g) <- g -< (x,   sg)
@@ -92,6 +96,7 @@ the correct combinator for the two StructGraph's)
 > runTraversal (TR f) = f
 
 > runTraversal_ f x = runTraversal f (x, emptyGraph)
+> rt = runTraversal_
 
 
 > augment_aA_aSG :: (Arrow a) => (a b c) -> (a () StructGraph) -> TraversalArrow a b c

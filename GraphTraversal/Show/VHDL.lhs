@@ -93,8 +93,8 @@ a name and of some port-definitions (like what wires go inside and come back out
 >      = concat $ map break
 >      [ "ENTITY " ++ name g ++ " IS"
 >      , "PORT (" 
->      , (seperate_with "\n" $ map (\x -> x ++ " : IN  std_logic;") $ map snd snks)
->      , (seperate_with "\n" $ map (\x -> x ++ " : OUT std_logic ") $ map snd srcs)
+>      , (sepBy "\n" $ map (\x -> x ++ " : IN  std_logic;") $ snks)
+>      , (sepBy "\n" $ map (\x -> x ++ " : OUT std_logic ") $ srcs)
 >      , ");"
 >      , "END " ++ name g ++ ";"
 >      ]
@@ -115,15 +115,16 @@ components, because we descent only one step down in the graph.
 > vhdl_components g namedComps
 >      = concat $ nub $ map f (nodes g)
 >     where f g' = concat $ map break
->                [ "COMPONENT " ++ name g' ++ "Comp"
+>                [ ""
+>                , "COMPONENT " ++ name g' ++ "Comp"
 >                , "PORT ("
->                , (seperate_with "\n" $ map (\x -> x ++ " : IN  std_logic;") $ map snd snks)
->                , (seperate_with "\n" $ map (\x -> x ++ " : OUT std_logic ") $ map snd srcs)
+>                , (sepBy "\n" $ map (\x -> x ++ " : IN  std_logic;") $ snks)
+>                , (sepBy "\n" $ map (\x -> x ++ " : OUT std_logic ") $ srcs)
 >                , ");"
 >                , "END COMPONENT " ++ name g' ++ "Comp;"
 >                ] 
->                where snks = getInPinNames  namedComps (compID g)
->                      srcs = getOutPinNames namedComps (compID g)
+>                where snks = getInPinNames  namedComps (compID g')
+>                      srcs = getOutPinNames namedComps (compID g')
 
 
 The VHDL-Signals is the list of inner wires, that are used inside the new component.
@@ -131,7 +132,7 @@ The VHDL-Signals is the list of inner wires, that are used inside the new compon
 > vhdl_signals :: StructGraph -> [([AnchorPoint], String)] -> String
 > vhdl_signals _ [] = ""
 > vhdl_signals g namedEdges
->      = "SIGNAL " ++ seperate_with ", " signals ++ ": std_logic;" 
+>      = "SIGNAL " ++ sepBy ", " signals ++ ": std_logic;" 
 >      where signals = map snd namedEdges
 
 
@@ -148,19 +149,19 @@ The VHDL-Signals is the list of inner wires, that are used inside the new compon
 >      = concat $ map break
 >      [ (name g) ++ "Inst" ++ (show$compID g) ++ ": " ++ (name g) ++ "Comp"
 >      , "PORT MAP ("
->      ++ (seperate_with ", " $ filter ((>0).length) [incoming, signaling, outgoing])
+>      ++ (sepBy ", " $ filter ((>0).length) [incoming, signaling, outgoing])
 >      ++ ");"
 >      ]
 >      where relevantEdges = filter (isFromOrToComp' $ compID g) $ edges superG
 >            edge2inside   = filter (fromOutside') $ relevantEdges
 >            edge2outside  = filter (toOutside')   $ relevantEdges
 >            pin2signal    = relevantEdges \\ (edge2outside ++ edge2inside)
->            incoming      = seperate_with ", " $ map (edge2PortMap' namedComps namedEdges' (compID g)) $ edge2inside
->            outgoing      = seperate_with ", " $ map (edge2PortMap' namedComps namedEdges' (compID g)) $ edge2outside
->            signaling     = seperate_with ", " $ map (edge2PortMap' namedComps namedEdges' (compID g)) $ pin2signal
+>            incoming      = sepBy ", " $ map (genPortMap namedComps namedEdges' (compID g)) $ edge2inside
+>            outgoing      = sepBy ", " $ map (genPortMap namedComps namedEdges' (compID g)) $ edge2outside
+>            signaling     = sepBy ", " $ map (genPortMap namedComps namedEdges' (compID g)) $ pin2signal
 
 
-> edge2PortMap' :: [NamedComp] -> [NamedEdge] -> CompID -> Edge -> String
+> genPortMap :: [NamedComp] -> [NamedEdge] -> CompID -> Edge -> String
 
 From the inner component to the outside
  : PORT MAP (a0 => out0, a1 => out1);
@@ -170,10 +171,10 @@ From the inner component to the outside
               |  pi = [1] -> 
               +--------+
 
-> edge2PortMap' namedComps _ _ (MkEdge (Just ci, pi) (Nothing, po))
+> genPortMap namedComps _ _ (MkEdge (Just ci, pi) (Nothing, po))
 >     = pinName ++ " => " ++ outName
->     where pinName  = snd $ getOutPinName namedComps ci       pi
->           outName  = snd $ getOutPinName namedComps superCid po
+>     where pinName  = getOutPinName namedComps ci       pi
+>           outName  = getOutPinName namedComps superCid po
 >           superCid = fst . head $ namedComps
 
 
@@ -185,10 +186,10 @@ From the outside to the inner component
             -> [1] = po  |
                 +--------+
 
-> edge2PortMap' namedComps _ _ (MkEdge (Nothing, pi) (Just co, po))
+> genPortMap namedComps _ _ (MkEdge (Nothing, pi) (Just co, po))
 >     = pinName ++ " => " ++ incName
->     where pinName  = snd $ getInPinName namedComps co       po
->           incName  = snd $ getInPinName namedComps superCid pi
+>     where pinName  = getInPinName namedComps co       po
+>           incName  = getInPinName namedComps superCid pi
 >           superCid = fst . head $ namedComps
 
 
@@ -200,18 +201,18 @@ From the inner component to an inner signal
   |  pi = [1] ->  ------i1----- -> [1] = po  |
   +--------+                        +--------+
 
-> edge2PortMap' namedComps namedEdges ownID (MkEdge ie@(Just ci, pi) oe@(Just co, po))
->  | ownID == ci = iPinName ++ " X> " ++ iSigName
->  | ownID == co = oPinName ++ " X> " ++ oSigName
->      where iPinName = snd $ getOutPinName  namedComps ci pi
->            oPinName = snd $ getInPinName namedComps co po
+> genPortMap namedComps namedEdges ownID (MkEdge ie@(Just ci, pi) oe@(Just co, po))
+>  | ownID == ci = iPinName ++ " => " ++ iSigName
+>  | ownID == co = oPinName ++ " => " ++ oSigName
+>      where iPinName = getOutPinName  namedComps ci pi
+>            oPinName = getInPinName namedComps co po
 >            iSigName = getEdgeName namedEdges ie 
 >            oSigName = getEdgeName namedEdges oe
 
 
 
 
-In the last edge2PortMap' function there are some irregularities
+In the last genPortMap function there are some irregularities
 
 TODO TODO TODO / why is it called iPin when the out-pin is gathered with the (map snd) bevore the concat???      
       where iPinNames = concat $ map snd $ map snd $ filter (\(cid, _) -> cid == ci) $ namedGraphPins
@@ -250,7 +251,7 @@ TODO TODO TODO / why is it called oPin when the in-pin is gathered with the (map
       = concat $ map break
       [ (name g) ++ "Inst: " ++ (name g) ++ "Comp"
       , "PORT MAP ("
-      ++ (seperate_with ", " $ (map (\(_, (x, y)) -> x ++ " => " ++ y)) $ snk_sig_combi ++ src_sig_combi)
+      ++ (sepBy ", " $ (map (\(_, (x, y)) -> x ++ " => " ++ y)) $ snk_sig_combi ++ src_sig_combi)
       ++ ");"
       ]
      where f :: Edge -> String
@@ -293,10 +294,10 @@ to do this once more.
 > --     = map (\(num, edge) -> (pre ++ (show num), edge)) $ zip [0..] (edges g)
 
 
-> seperate_with :: String -> [String] -> String
-> seperate_with sep []     = ""
-> seperate_with sep (x:[]) = x
-> seperate_with sep xs     = foldl1 (\x y -> x ++ sep ++ y) xs
+> sepBy :: String -> [String] -> String
+> sepBy sep []     = ""
+> sepBy sep (x:[]) = x
+> sepBy sep xs     = foldl1 (\x y -> x ++ sep ++ y) xs
 
 
 > isIOPort :: (String, AnchorPoint) -> Bool

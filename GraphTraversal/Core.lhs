@@ -65,8 +65,8 @@ a name and a component id.
 >          , sinks   :: Pins
 >          , sources :: Pins
 >          }
-
-   deriving (Show)
+ 
+    deriving (Show)
 
 Remember, a Sink is something that takes something  (INPUT)
 and a Source is something that produces something (OUTPUT)

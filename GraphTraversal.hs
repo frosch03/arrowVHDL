@@ -8,6 +8,7 @@ module GraphTraversal
     , augment_aTA_SG
     , runTraversal
     , runTraversal_
+    , rt
     , emptyGraph
     , mkPins
     , flatten

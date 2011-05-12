@@ -2,8 +2,8 @@
 > where
 
 > import GraphTraversal.Core
-> -- import GraphTraversal.Show.Simple
-> import GraphTraversal.Show.VHDL
+> import GraphTraversal.Show.Simple
+> -- import GraphTraversal.Show.VHDL
 
 
 To draw a StructGraph it is necessary to make StructGraph an instance of Show and 
