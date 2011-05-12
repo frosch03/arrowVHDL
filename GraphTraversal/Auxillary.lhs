@@ -37,29 +37,24 @@ The component id's are updated so that every id is still unique.
 >           right                  = alterCompIDs (maxCompID left +1) right_
 >           left'                  = left  { edges = onlyInnerEdges $ edges left }
 >           right'                 = right { edges = onlyInnerEdges $ edges right }
->           (new_es, (srcs, snks)) = rewire left right
+>           (new_es, (srcs, snks)) = seqRewire left right
 
 
 > combine :: StructGraph -> StructGraph -> StructGraph
 > combine up_ down_ = MkSG { name    = (name up') ++ "_comb_" ++ (name down') 
 >                         , compID  = 0
 >                         , nodes   = up' : down' : []
->                         , edges   = es'
->                         , sinks   = super_snks
->                         , sources = super_srcs
+>                         , edges   = new_es
+>                         , sinks   = snks
+>                         , sources = srcs
 >                         }
->     where up                     = alterCompIDs 1              up_
->           down                   = alterCompIDs (maxCompID up) down_
->           ([up', down'], es', _) = unifyCompIDs $ ([up, down], edges up ++ edges down, 1)
->           newCompID    =  nextID $ (allCompIDs up') ++ (allCompIDs down')
->           super_snks   =  [0..(length.sources $ up') + (length.sources $ down')-1]
->           super_srcs   =  [0..(length.sinks   $ up') + (length.sinks   $ down')-1]
->           edgs         =  let len_snks_up   = (length.sinks   $ up')
->                               len_srcs_down = (length.sources $ down')
->                           in (fst $ wire (Just $ newCompID)    (Just $ compID up')   (super_srcs)                  (sinks up'))
->                           ++ (fst $ wire (Just $ newCompID)    (Just $ compID down') (drop len_snks_up super_srcs) (sinks down'))
->                           ++ (fst $ wire (Just $ compID up')   (Just $ newCompID)    (sources down')               (super_snks))
->                           ++ (fst $ wire (Just $ compID down') (Just $ newCompID)    (sources down')               (drop len_srcs_down super_snks))
+>     where up                     = alterCompIDs 1                 up_
+>           down                   = alterCompIDs (maxCompID up +1) down_
+>           up'                    = up   { edges = onlyInnerEdges $ edges up }
+>           down'                  = down { edges = onlyInnerEdges $ edges down }
+>           (new_es, (srcs, snks)) = parRewire up down
+
+
 
 > unifyPinIDs :: ([AnchorPoint], PinID) -> [AnchorPoint]
 > unifyPinIDs (aps, pid) = map (\(x, y) -> (x, y + pid)) aps
@@ -147,8 +142,8 @@ The component id's are updated so that every id is still unique.
 >           notIO (MkEdge _ (Nothing, _)) = False
 >           notIO _                       = True
 
-> rewire :: StructGraph -> StructGraph -> ([Edge], (Pins, Pins))
-> rewire sg_l sg_r
+> seqRewire :: StructGraph -> StructGraph -> ([Edge], (Pins, Pins))
+> seqRewire sg_l sg_r
 >     = (src_edges ++ edgs ++ snk_edges, (super_srcs, super_snks))
 >     where (edgs, (srcs_l', snks_r')) =  wire (Just $ compID sg_l) (Just $ compID sg_r) (sources sg_l) (sinks sg_r)
 >           super_srcs                 =  [0..(length.sinks   $ sg_l) + length snks_r' -1]
@@ -159,6 +154,18 @@ The component id's are updated so that every id is still unique.
 >           snk_edges                  =  let len_srcs_r = (length.sources $ sg_r)
 >                                         in (fst $ wire (Just $ compID sg_r) Nothing (sources sg_r) (super_snks))
 >                                         ++ (fst $ wire (Just $ compID sg_l) Nothing (sources sg_l) (drop len_srcs_r super_snks))
+
+> parRewire :: StructGraph -> StructGraph -> ([Edge], (Pins, Pins))
+> parRewire sg_u sg_d
+>     = (src_edges ++ snk_edges, (super_srcs, super_snks))
+>     where super_srcs = [0..(length $ (sources sg_u) ++ (sources sg_d)) -1]
+>           super_snks = [0..(length $ (sinks sg_u)   ++ (sinks sg_d))   -1]
+>           src_edges  = let len_snks_u = (length.sinks $ sg_u) 
+>                        in (fst $ wire Nothing (Just $ compID sg_u) super_srcs                   (sinks sg_u))
+>                        ++ (fst $ wire Nothing (Just $ compID sg_d) (drop len_snks_u super_srcs) (sinks sg_d))
+>           snk_edges  = let len_srcs_d = (length.sources $ sg_d)
+>                        in (fst $ wire (Just $ compID sg_u) Nothing (sources sg_u) super_snks)
+>                        ++ (fst $ wire (Just $ compID sg_d) Nothing (sources sg_d) (drop len_srcs_d super_snks))
 
 
 > wire :: Maybe CompID -> Maybe CompID -> Pins -> Pins -> ([Edge], (Pins, Pins))
