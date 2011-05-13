@@ -16,6 +16,7 @@ module GraphTraversal
     , getAllNodes
     , getAtomicNodes
     , getAllEdges
+    , t
     )
 where
 

@@ -7,6 +7,7 @@
 >     , getAllNodes
 >     , getAtomicNodes
 >     , getAllEdges
+>     , t
 >     )
 > where
 
@@ -195,6 +196,21 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 
 
 > flatten = error $ show "blub"
+
+> normalizeEdge :: CompID -> Edge -> Edge
+> normalizeEdge cid (MkEdge (Nothing, fromPID) to) = MkEdge (Just cid, fromPID) to
+> normalizeEdge cid (MkEdge from (Nothing, toPID)) = MkEdge from (Just cid, toPID)
+> normalizeEdge cid e                              =  e
+
+> conflate :: StructGraph -> [Edge]
+> conflate g = edges g ++ (concat $ map conflate' (nodes g) )
+
+> conflate' :: StructGraph -> [Edge]
+> conflate' g | ((==0).length.nodes) g = map (normalizeEdge $ compID g) (edges g)
+> conflate' g | otherwise              = map (normalizeEdge $ compID g) (edges g) ++ (concat (map conflate' (nodes g)) )
+
+
+
 
 > getNodes :: (StructGraph -> [StructGraph]) 
 >          -> StructGraph -> [StructGraph]
