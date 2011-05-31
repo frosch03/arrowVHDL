@@ -195,25 +195,20 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 
 
 
-> flatten = error $ show "blub"
+> t = flatten
 
- flatten :: StructGraph -> StructGraph
- flatten g = 
-
-> t = flt
-
-> flt :: StructGraph -> StructGraph 
-> flt g = g' { nodes = ns ++ (concat $ map nodes subgraphs)
->            , edges = (((edges g) \\ delEs) ++ newEs ++ neutrals)  
->            }
->     where g'        = g { nodes = map flt (nodes g) } 
->           subgraphs = filter (not.null.nodes) $ nodes g' 
->           ns        = filter (    null.nodes) $ nodes g'
->           es        = map (xxx g') subgraphs
->           newEss    = map fst es
->           newEs     = concat $ map fst newEss
->           neutrals  = concat $ map snd newEss
->           delEs     = concat $ map snd es
+> flatten :: StructGraph -> StructGraph 
+> flatten g = g' { nodes = atomgraphs ++ (concat $ map nodes subgraphs)
+>                , edges = (((edges g) \\ delEs) ++ newEs ++ neutralEs)  
+>                }
+>     where g'         = g { nodes = map flatten (nodes g) } 
+>           subgraphs  = filter (not.null.nodes) $ nodes g' 
+>           atomgraphs = filter (    null.nodes) $ nodes g'
+>           allEs      = map (xxx g') subgraphs
+>           newEss     = map fst allEs
+>           newEs      = concat $ map fst newEss
+>           neutralEs  = concat $ map snd newEss
+>           delEs      = concat $ map snd allEs
 
 > xxx :: StructGraph -> StructGraph -> (([Edge], [Edge]), [Edge])
 > xxx superG subG = ( ( newIncs ++ newOuts
@@ -223,11 +218,11 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 >                   )
 >     where toSubG      = filter ((==Just (compID subG)).fst.sinkInfo) $ edges superG
 >           fromNothing = filter (isNothing.fst.sourceInfo)            $ edges subG
->           newIncs     = mergeIncomingEdges (toSubG, fromNothing)
+>           newIncs     = mergeEdges (toSubG, fromNothing)
 >
 >           toNothing   = filter (isNothing.fst.sinkInfo)                $ edges subG
 >           fromSubG    = filter ((==Just (compID subG)).fst.sourceInfo) $ edges superG
->           newOuts     = mergeOutgoingEdges (toNothing, fromSubG) 
+>           newOuts     = mergeEdges (toNothing, fromSubG) 
 >
 >           neutrals    = filter (\x -> (isJust.fst.sourceInfo $ x) 
 >                                    && (isJust.fst.sinkInfo   $ x) )  $ edges subG
@@ -246,6 +241,25 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 >    = (MkEdge (sourceInfo inner) (sinkInfo outer)) : (mergeOutgoingEdges (inners \\ [inner], outers \\ [outer]))
 >    where outer = head $ filter (isSrcPin (snkPin inner)) outers
 
+> mergeEdges :: ([Edge], [Edge]) -> [Edge]
+> mergeEdges (xs, ys) 
+>     = zipWith (\x y -> MkEdge (sourceInfo x) (sinkInfo y)) xs' ys'
+>     where xs' = sortBySnkPin xs
+>           ys' = sortBySrcPin ys
+
+
+> mergeIncEdges :: ([Edge], [Edge]) -> [Edge]
+> mergeIncEdges (outers, inners) 
+>     = zipWith (\outer inner -> MkEdge (sourceInfo outer) (sinkInfo inner)) outers' inners'
+>     where outers' = sortBySnkPin outers
+>           inners' = sortBySrcPin inners
+
+> mergeOutEdges :: ([Edge], [Edge]) -> [Edge]
+> mergeOutEdges (inners, outers) 
+>     = zipWith (\inner outer -> MkEdge (sourceInfo inner) (sinkInfo outer)) inners' outers'
+>     where inners' = sortBySnkPin inners
+>           outers' = sortBySrcPin outers
+
 
 > isSrcPin :: PinID -> Edge -> Bool
 > isSrcPin pid (MkEdge (_, pid') (_, _)) = pid == pid'
@@ -259,14 +273,18 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 > srcPin :: Edge -> PinID
 > srcPin (MkEdge (_, pid) (_, _)) = pid
 
-     = g { }
-     where subgraphs = filter (not.null.nodes) $ nodes g 
-           x         = map f subgraphs 
-           f :: StructGraph -> ([Edge], [Edge])
-           f g' = map f' sourceNodes
-                where sourceNodes = filter (isNothing.fst.sourceInfo) $ edges g'
-                      sinkNodes   = filter (isNothing.fst.sinkInfo)   $ edges g'
-                      f' (MkEdge (Nothing, pid1) (Just cid2, pid2))
+> sortByPin :: (Edge -> PinID) -> [Edge] -> [Edge]
+> sortByPin _ [] = []
+> sortByPin f (e:es) 
+>     =        (sortByPin f [x | x <- es, (f x <= f e)]) 
+>       ++ e : (sortByPin f [y | y <- es, (f y >  f e)])
+
+> sortBySrcPin :: [Edge] -> [Edge]
+> sortBySrcPin = sortByPin srcPin
+
+> sortBySnkPin :: [Edge] -> [Edge]
+> sortBySnkPin = sortByPin snkPin
+
 
 > superNode :: StructGraph -> CompID -> Maybe CompID
 > superNode g cid | ((==0).length.nodes) g              = Nothing

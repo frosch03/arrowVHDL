@@ -82,4 +82,3 @@ it goes to.
 >   deriving (Eq)
 
    deriving (Eq, Show)
-
