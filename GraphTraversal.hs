@@ -13,15 +13,6 @@ module GraphTraversal
     , mkPins
     , flatten
     , allCompIDs
-    , getAllNodes
-    , getAtomicNodes
-    , getAllEdges
-    , getEdgeTo
-    , getEdgeFrom
-    , conflate
-    , conflateEdge
-    , conflateEdges
-    , t
     )
 where
 
