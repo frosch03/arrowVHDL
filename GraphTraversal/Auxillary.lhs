@@ -7,6 +7,11 @@
 >     , getAllNodes
 >     , getAtomicNodes
 >     , getAllEdges
+>     , getEdgeTo
+>     , getEdgeFrom
+>     , conflate
+>     , conflateEdge
+>     , conflateEdges
 >     , t
 >     )
 > where
@@ -14,6 +19,9 @@
 > import Control.Arrow
 
 > import Data.List (union, groupBy, (\\))
+> import Data.Maybe 
+> import Data.Either
+> import Control.Monad (msum)
 
 > import GraphTraversal.Core
 > import GraphTraversal.Show
@@ -155,17 +163,6 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 > toComps   e cs = foldl (&&) True $ map (toComp e)   cs
 
 
-> mergeEdge :: Edge -> Edge -> Edge
-> mergeEdge (MkEdge from _) (MkEdge _ to) = MkEdge from to
-
-> mergeEdge2 :: [Edge] -> Edge
-> mergeEdge2 es |  length es > 2  || length es < 2    
->     = error ("How to merge other than 2 edges?" ++ (concat $ map show es))
-> mergeEdge2 [(MkEdge from1 to1), (MkEdge from2 to2)]  
->     = if from1 /= to2 
->           then MkEdge from1 to2
->           else MkEdge from2 to1
-
 > samePin :: Edge -> Edge -> Bool
 > samePin (MkEdge (_, ip1) (_, op1))
 >         (MkEdge (_, ip2) (_, op2))
@@ -191,37 +188,203 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 >                   , sources = []
 >                   }
 
+> mergeEdge :: Edge -> Edge -> Edge
+> mergeEdge (MkEdge from _) (MkEdge _ to) = MkEdge from to
+
  
 
 
 
 > flatten = error $ show "blub"
 
-> normalizeEdge :: CompID -> Edge -> Edge
-> normalizeEdge cid (MkEdge (Nothing, fromPID) to) = MkEdge (Just cid, fromPID) to
-> normalizeEdge cid (MkEdge from (Nothing, toPID)) = MkEdge from (Just cid, toPID)
-> normalizeEdge cid e                              =  e
+ flatten :: StructGraph -> StructGraph
+ flatten g = 
 
-> conflate :: StructGraph -> [Edge]
-> conflate g = edges g ++ (concat $ map conflate' (nodes g) )
+> t = flt
 
-> conflate' :: StructGraph -> [Edge]
-> conflate' g | ((==0).length.nodes) g = map (normalizeEdge $ compID g) (edges g)
-> conflate' g | otherwise              = map (normalizeEdge $ compID g) (edges g) ++ (concat (map conflate' (nodes g)) )
+> flt :: StructGraph -> StructGraph 
+> flt g = g' { nodes = ns ++ (concat $ map nodes subgraphs)
+>            , edges = (((edges g) \\ delEs) ++ newEs ++ neutrals)  
+>            }
+>     where g'        = g { nodes = map flt (nodes g) } 
+>           subgraphs = filter (not.null.nodes) $ nodes g' 
+>           ns        = filter (    null.nodes) $ nodes g'
+>           es        = map (xxx g') subgraphs
+>           newEss    = map fst es
+>           newEs     = concat $ map fst newEss
+>           neutrals  = concat $ map snd newEss
+>           delEs     = concat $ map snd es
+
+> xxx :: StructGraph -> StructGraph -> (([Edge], [Edge]), [Edge])
+> xxx superG subG = ( ( newIncs ++ newOuts
+>                     , neutrals
+>                     )
+>                   , toSubG  ++ fromSubG
+>                   )
+>     where toSubG      = filter ((==Just (compID subG)).fst.sinkInfo) $ edges superG
+>           fromNothing = filter (isNothing.fst.sourceInfo)            $ edges subG
+>           newIncs     = mergeIncomingEdges (toSubG, fromNothing)
+>
+>           toNothing   = filter (isNothing.fst.sinkInfo)                $ edges subG
+>           fromSubG    = filter ((==Just (compID subG)).fst.sourceInfo) $ edges superG
+>           newOuts     = mergeOutgoingEdges (toNothing, fromSubG) 
+>
+>           neutrals    = filter (\x -> (isJust.fst.sourceInfo $ x) 
+>                                    && (isJust.fst.sinkInfo   $ x) )  $ edges subG
+
+> mergeIncomingEdges :: ([Edge], [Edge]) -> [Edge]
+> mergeIncomingEdges (e1, e2) | length e2 < length e1 = error $ "to few outer edges"
+> mergeIncomingEdges (_, [])                          = []
+> mergeIncomingEdges (outers, inner:inners) 
+>    = (MkEdge (sourceInfo outer) (sinkInfo inner)) : (mergeIncomingEdges (outers \\ [outer], inners \\ [inner]))
+>    where outer = head $ filter (isSnkPin (srcPin inner)) outers
+
+> mergeOutgoingEdges :: ([Edge], [Edge]) -> [Edge]
+> mergeOutgoingEdges (e1, e2) | length e2 < length e1 = error $ "to few outer edges"
+> mergeOutgoingEdges (_, [])                          = []
+> mergeOutgoingEdges (inner:inners, outers) 
+>    = (MkEdge (sourceInfo inner) (sinkInfo outer)) : (mergeOutgoingEdges (inners \\ [inner], outers \\ [outer]))
+>    where outer = head $ filter (isSrcPin (snkPin inner)) outers
+
+
+> isSrcPin :: PinID -> Edge -> Bool
+> isSrcPin pid (MkEdge (_, pid') (_, _)) = pid == pid'
+
+> isSnkPin :: PinID -> Edge -> Bool
+> isSnkPin pid (MkEdge (_, _) (_, pid')) = pid == pid'
+
+> snkPin :: Edge -> PinID
+> snkPin (MkEdge (_, _) (_, pid)) = pid
+
+> srcPin :: Edge -> PinID
+> srcPin (MkEdge (_, pid) (_, _)) = pid
+
+     = g { }
+     where subgraphs = filter (not.null.nodes) $ nodes g 
+           x         = map f subgraphs 
+           f :: StructGraph -> ([Edge], [Edge])
+           f g' = map f' sourceNodes
+                where sourceNodes = filter (isNothing.fst.sourceInfo) $ edges g'
+                      sinkNodes   = filter (isNothing.fst.sinkInfo)   $ edges g'
+                      f' (MkEdge (Nothing, pid1) (Just cid2, pid2))
+
+> superNode :: StructGraph -> CompID -> Maybe CompID
+> superNode g cid | ((==0).length.nodes) g              = Nothing
+> superNode g cid | (elem cid) ((map compID) (nodes g)) = Just $ compID g
+> superNode g cid | otherwise                           = msum $ map (\x -> superNode x cid) $ nodes g 
+
+> atomicNodes :: StructGraph -> [CompID]
+> atomicNodes g | ((==0).length.nodes) g = [compID g]
+> atomicNodes g | otherwise              = concat $ map atomicNodes (nodes g)
+
+> deletableNodes :: StructGraph -> [CompID]
+> deletableNodes g = allCompIDs g \\ (compID g : atomicNodes g)
+
+
+> toFollow :: StructGraph -> [Edge]
+> toFollow g = startEs ++ fromAtomEs
+>     where allEs       = (fst.conflate $ g) ++ (snd.conflate $ g)
+>           without x y = not $ y `elem` x
+>           delAble     = deletableNodes g
+>           startEs     = filter                (isNothing.fst.sourceInfo)  allEs
+>           fromAtomEs  = filter (without delAble.fromJust.fst.sourceInfo) (allEs \\ startEs) 
+
+> conflateEdges :: [Edge] -> ([Edge], [Edge]) -> [Edge]
+> conflateEdges e0s (esL, esR) = map (\x -> conflateEdge x (esL)) e0s
+
+> conflateEdge :: Edge -> [Edge] -> Edge
+> conflateEdge e0 (e:es) | e `isNextEdgeOf` e0 = conflateEdge (mergeEdge e0 e) es
+> conflateEdge e0 (e:es) | otherwise           = conflateEdge e0 es
+> conflateEdge e0 []                           = e0 
+
+> isNextEdgeOf :: Edge -> Edge -> Bool
+> isNextEdgeOf (MkEdge (Just iCid, iPid) _) (MkEdge _ (Just oCid, oPid))
+>     = oCid == iCid && oPid == iPid
+> isNextEdgeOf (MkEdge (Nothing, _) _) _ = False
+> isNextEdgeOf _ (MkEdge _ (Nothing, _)) = False
+
+> isPrevEdgeOf :: Edge -> Edge -> Bool
+> isPrevEdgeOf (MkEdge _ (Just oCid, oPid)) (MkEdge (Just iCid, iPid) _)
+>     = oCid == iCid && oPid == iPid
+> isPrevEdgeOf (MkEdge _ (Nothing, _)) _ = False
+> isPrevEdgeOf _ (MkEdge (Nothing, _) _) = False
+
+> toFollowFrom :: StructGraph -> [Edge]
+> toFollowFrom g = endEs ++ toAtomEs 
+>     where allEs       = (fst.conflate $ g) ++ (snd.conflate $ g) 
+>           endEs       = filter (isNothing.fst.sinkInfo) allEs
+>           without x y = not $ y `elem` x 
+>           delAble     = deletableNodes g 
+>           toAtomEs    = filter (without delAble.fromJust.fst.sinkInfo) (allEs \\ endEs) 
 
 
 
 
-> getNodes :: (StructGraph -> [StructGraph]) 
->          -> StructGraph -> [StructGraph]
-> getNodes f g | ((==0).length.nodes) g = [g]
-> getNodes f g | otherwise              = (f g) ++ (concat $ map (getNodes f) $ nodes g)
+
+
+> connFromAtom :: StructGraph -> (CompID, PinID) -> SourceAnchor
+> connFromAtom g (cid, pid) | ((==0).length.nodes) g = (Just cid, pid)
+> connFromAtom g (cid, pid) | otherwise 
+>     = connFromAtom g' (cid', pid') 
+>     where g1 = getGraph g cid
+>           _  = if (isOutPin g1 pid) 
+>                   then fromJust . getMaybePin sources g $ pid
+>                   else error $ show "There is no such Anchor"
+> 
+>           (g', (cid', pid')) = getNextHop g (cid, pid)
+
+> getNextHop :: StructGraph -> (CompID, PinID) -> (StructGraph, (CompID, PinID))
+> getNextHop g (cid, pid) = (getGraph g nextCid, (nextCid, nextPid))
+>     where (MkEdge (Just nextCid, nextPid) _) = head $ filter (\(MkEdge _ (Just tCid, tPid)) 
+>                                                              -> tCid == cid && tPid == pid) $ getAllEdges g
+
+
+> isOutPin :: StructGraph -> PinID -> Bool
+> isOutPin g pid = if isNothing (getMaybePin sources g pid) 
+>                     then False
+>                     else True
+
+> isInPin :: StructGraph -> PinID -> Bool
+> isInPin g pid = if isNothing (getMaybePin sinks g pid)
+>                    then False
+>                    else True
+
+
+
+> getMaybePin :: (StructGraph -> Pins)
+>             -> StructGraph -> PinID -> Maybe PinID
+> getMaybePin f g pid = listToMaybe . filter (==pid) $ f g 
+
+
+
+
+
+> getGraph :: StructGraph -> CompID -> StructGraph 
+> getGraph g cid 
+>     = fromMaybe (error $ show "Sorry, there is no such Graph") 
+>                 (getMaybeGraph g cid)
+                                     
+> getMaybeGraph :: StructGraph -> CompID -> Maybe StructGraph
+> getMaybeGraph g cid 
+>     = listToMaybe . filter (\n -> compID n == cid) $ getAllGraphs g 
+
+> getGraphs :: (StructGraph -> [StructGraph]) 
+>           -> (StructGraph -> [StructGraph])
+>           -> StructGraph -> [StructGraph]
+> getGraphs f f' g | ((==0).length.nodes) g = (f' g)
+> getGraphs f f' g | otherwise              = (f  g) ++ (concat $ map (getGraphs f f') $ nodes g)
+
+> getAllGraphs :: StructGraph -> [StructGraph]
+> getAllGraphs = getGraphs (:[]) (:[])
 
 > getAllNodes :: StructGraph -> [StructGraph]
-> getAllNodes = getNodes (\n -> [n { nodes = [] }])
+> getAllNodes = getGraphs (\n -> [n { nodes = [] }]) (:[])
 
 > getAtomicNodes :: StructGraph -> [StructGraph]
-> getAtomicNodes = getNodes (\n -> [])
+> getAtomicNodes = getGraphs (\n -> []) (:[])
+
+
+
 
 > getAllEdges :: StructGraph -> [Edge]
 > getAllEdges g | ((==0).length.edges) g = []      ++ (concat $ map getAllEdges $ nodes g)
@@ -229,44 +392,36 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 
 
 
+> conflate :: StructGraph -> ([Edge], [Edge])
+> conflate g = (leftEs ++ left_ ++ rest_, rightEs ++ right_)
+>     where left_   = filter (isNothing.fst.sourceInfo) $ edges g 
+>           right_  = filter (isNothing.fst.sinkInfo)   $ edges g
+>           rest_   = (edges g) \\ (left_ ++ right_)
+>           (leftEs, rightEs) = (partitionEithers . concat $ map conflate' (nodes g) )
 
- unifyPinIDs :: ([AnchorPoint], PinID) -> [AnchorPoint]
- unifyPinIDs (aps, pid) = map (\(x, y) -> (x, y + pid)) aps
+> conflate' :: StructGraph -> [Either Edge Edge]
+> conflate' g | ((==0).length.nodes) g = map (normalizeEdge $ compID g) (edges g)
+> conflate' g | otherwise              = map (normalizeEdge $ compID g) (edges g) ++ (concat (map conflate' (nodes g)))
 
-
- unifyCompID :: StructGraph -> StructGraph
- unifyCompID sg = sg { compID = 0
-                     , nodes  = sg'
-                     , edges  = es' 
-                     }
-     where (sg', es', cid') = unifyCompIDs (nodes sg, edges sg, 1)
-
- unifyCompID' :: (StructGraph, CompID) -> (StructGraph, CompID)
- unifyCompID' (sg, cid) 
-     = ( sg { compID = cid
-            , nodes  = sub_sg'
-            , edges  = es'
-            }
-       , cid_next
-       )
-     where (sub_sg', es', cid_next) = unifyCompIDs (nodes sg, edges sg, cid+1)
-
-
- unifyCompIDs :: ([StructGraph], [Edge], CompID) -> ([StructGraph], [Edge], CompID)
- unifyCompIDs ([],     es, cid) = ([],         es,   cid)
- unifyCompIDs (sg:sgs, es, cid) = (sg' : sgs', es'', cid'')
-     where (sg',  cid')        = unifyCompID' (sg, cid)
-           es'                 = fitEdges (compID sg, cid) es
-           (sgs', es'', cid'') = unifyCompIDs (sgs, es', cid')
+> normalizeEdge :: CompID -> Edge -> Either Edge Edge
+> normalizeEdge cid (MkEdge (Nothing, fromPID) to) = Left  $ MkEdge (Just cid, fromPID) to
+> normalizeEdge cid (MkEdge from (Nothing, toPID)) = Right $ MkEdge from (Just cid, toPID)
+> normalizeEdge cid e@(MkEdge (Just fCid, _) _) | fCid == cid = Left  e
+> normalizeEdge cid e@(MkEdge _ (Just tCid, _)) | tCid == cid = Right e
+> normalizeEdge cid e                                         = Left  e
 
 
 
 
+> getEdgeFrom :: StructGraph -> (CompID, PinID) -> Edge
+> getEdgeFrom g (cid, pid) 
+>     = head $ filter f $ snd $ conflate g
+>     where f (MkEdge (Just x, y)  _) = cid == x && pid == y 
+>           f (MkEdge (Nothing, _) _) = False
 
- fitEdges  :: (CompID, CompID) -> [Edge] -> [Edge]
- fitEdges (old_cid, new_cid) = map (fitEdge (old_cid, new_cid))
+> getEdgeTo :: StructGraph -> (CompID, PinID) -> Edge
+> getEdgeTo g (cid, pid) 
+>     = head $ filter f $ fst $ conflate g
+>     where f (MkEdge _ (Just x,  y)) = cid == x && pid == y
+>           f (MkEdge _ (Nothing, _)) = False
 
- fitEdge :: (CompID, CompID) -> Edge -> Edge
- fitEdge (o, n) (MkEdge (Just c, p) s) = MkEdge (if o == c then Just n else Just c, p) s
- fitEdge (o, n) (MkEdge s (Just c, p)) = MkEdge s (if o == c then Just n else Just c, p)
- fitEdge _      _                      = error $ "3: " ++ "this should't happen"

@@ -16,6 +16,11 @@ module GraphTraversal
     , getAllNodes
     , getAtomicNodes
     , getAllEdges
+    , getEdgeTo
+    , getEdgeFrom
+    , conflate
+    , conflateEdge
+    , conflateEdges
     , t
     )
 where
