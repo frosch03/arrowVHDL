@@ -4,7 +4,12 @@ module GraphTEA where
 import Control.Arrow
 import Data.Bits (xor, shiftL, shiftR)
 
-import GraphTraversal
+import GraphTraversal.Traversal
+import GraphTraversal.Show
+import GraphTraversal.Core
+import GraphTraversal.Auxillary
+
+t = mkPins
 
 -- runTraversal_ aId (5)
 -- runTraversal_ (aXor >>> aId) (1, 2)

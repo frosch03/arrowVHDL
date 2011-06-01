@@ -1,16 +1,6 @@
 > {-# LANGUAGE Arrows #-}
 > {-# OPTIONS_GHC -fglasgow-exts #-} 
 > module GraphTraversal.Traversal 
->     ( runTraversal
->     , runTraversal_
->     , rt
->     , TraversalArrow (..)
->     , augment_aA_aSG
->     , augment_aA_SG
->     , augment_f_SG
->     , augment_aTA_SG
->     , emptyGraph
->     )
 > where
 
 > import Prelude hiding (id, (.))

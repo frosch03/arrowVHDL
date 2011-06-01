@@ -1,10 +1,4 @@
 > module GraphTraversal.Auxillary 
->     ( connect
->     , combine
->     , mkPins
->     , flatten
->     , allCompIDs
->     )
 > where
 
 > import Control.Arrow
@@ -146,18 +140,6 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 
 
 
-> emptyGraph :: StructGraph
-> emptyGraph = MkSG { name    = ""
->                   , compID  = 0
->                   , nodes   = []
->                   , edges   = []
->                   , sinks   = []
->                   , sources = []
->                   }
-
-
-
-
 > flatten :: StructGraph -> StructGraph 
 > flatten g = g' { nodes = atomgraphs ++ (concat $ map nodes subgraphs)
 >                , edges = (((edges g) \\ delEs) ++ newEs ++ neutralEs)  
@@ -171,24 +153,25 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 >           neutralEs  = concat $ map snd newEss
 >           delEs      = concat $ map snd allEs
 
+
+
 > partitionEdges :: StructGraph -> StructGraph -> (([Edge], [Edge]), [Edge])
-> partitionEdges superG subG 
->     = ( ( newIncs ++ newOuts
->         , neutrals
->         )
->       , toSubG  ++ fromSubG
->       )
->     where toSubG      = filter ((==Just (compID subG)).fst.sinkInfo) $ edges superG
->           fromNothing = filter (isNothing.fst.sourceInfo)            $ edges subG
->           newIncs     = mergeEdges (toSubG, fromNothing)
+> partitionEdges superG subG  = ( ( newIncs ++ newOuts
+>                                 , neutrals
+>                                 )
+>                               , toSubG  ++ fromSubG
+>                               )
+>     where fromSubG    = filter ((==Just (compID subG)).fst.sourceInfo) $ edges superG
+>           toSubG      = filter ((==Just (compID subG)).fst.sinkInfo)   $ edges superG
 >
+>           fromNothing = filter (isNothing.fst.sourceInfo)              $ edges subG
 >           toNothing   = filter (isNothing.fst.sinkInfo)                $ edges subG
->           fromSubG    = filter ((==Just (compID subG)).fst.sourceInfo) $ edges superG
->           newOuts     = mergeEdges (toNothing, fromSubG) 
 >
 >           neutrals    = filter (\x -> (isJust.fst.sourceInfo $ x) 
->                                    && (isJust.fst.sinkInfo   $ x) )  $ edges subG
-
+>                                    && (isJust.fst.sinkInfo   $ x) )    $ edges subG
+>
+>           newIncs     = mergeEdges (toSubG, fromNothing)
+>           newOuts     = mergeEdges (toNothing, fromSubG) 
 
 
 
@@ -197,6 +180,8 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 >     = zipWith (\x y -> MkEdge (sourceInfo x) (sinkInfo y)) xs' ys'
 >     where xs' = sortBySnkPin xs
 >           ys' = sortBySrcPin ys
+
+
 
 > isSrcPin :: PinID -> Edge -> Bool
 > isSrcPin pid (MkEdge (_, pid') (_, _)) = pid == pid'
