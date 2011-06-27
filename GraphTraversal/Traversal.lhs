@@ -23,12 +23,20 @@
 >                   , sources = []
 >                   }
 
-> arrGraph = emptyGraph { name = " " }
+> arrGraph = emptyGraph { name    = "-ARR-" 
+>                       , sinks   = [0]
+>                       , sources = [0]
+>                       }
 
 > throughGraph = emptyGraph { name    = "(-)"
 >                           , sinks   = []
 >                           , sources = []
 >                           }
+
+> idGraph = emptyGraph { name    = "-ID-"
+>                      , sinks   = [0]
+>                      , sources = [0]
+>                      }
 
 > leftGraph = emptyGraph { name    = "(L)"
 >                        , sinks   = []
@@ -53,17 +61,17 @@
 
 
 > instance (Arrow a) => Arrow (TraversalArrow a) where
->     arr f        = TR (arr (\(x, _) -> (f x, arrGraph)))
+>     arr f        = TR (arr (\(x, sg) -> (f x, sg)))
 >     first (TR f) = TR $ proc ((x, y), sg) -> do
 >                             (x', sg_f) <- f -< (x, sg)
->                             returnA         -< ((x', y), sg_f `combine` throughGraph)
+>                             returnA         -< ((x', y), sg_f `combine` idGraph)
 >     second (TR g) = TR $ proc ((x, y), sg) -> do
->                              (y', sg_g) <- g -< (y, sg)
->                              returnA         -< ((x, y'), sg_g `combine` throughGraph)
+>                             (y', sg_g) <- g -< (y, sg)
+>                             returnA         -< ((x, y'), sg_g `combine` throughGraph)
 >     (TR f) &&& (TR g) = TR $ proc (x, sg) -> do 
 >                             (x', sg_f) <- f -< (x,   sg)
 >                             (y', sg_g) <- g -< (x,   sg)
->                             returnA         -< ((x', y'), sg_f `combine` sg_g)
+>                             returnA         -< ((x', y'), sg_f `dupCombine` sg_g)
 >     (TR f) *** (TR g) = TR $ proc ((x, y), sg) -> do 
 >                             (x', sg_f) <- f -< (x,   sg)
 >                             (y', sg_g) <- g -< (y,   sg)

@@ -9,8 +9,6 @@ import GraphTraversal.Show
 import GraphTraversal.Core
 import GraphTraversal.Auxillary
 
-t = mkPins
-
 -- runTraversal_ aId (5)
 -- runTraversal_ (aXor >>> aId) (1, 2)
 -- runTraversal_ (aXor >>> (aId &&& (aConst 4)) >>> aXor)  (1, 2)
@@ -373,5 +371,3 @@ aShiftL4addKey_
       >>>
       aAdd
 
-
--- (aShiftL4 *** aId ) >>> aAdd

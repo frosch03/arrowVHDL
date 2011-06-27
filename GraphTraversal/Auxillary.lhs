@@ -8,6 +8,8 @@
 > import Data.Either
 > import Control.Monad (msum)
 
+> import GHC.Exts (sortWith)
+
 > import GraphTraversal.Core
 > import GraphTraversal.Show
 
@@ -48,6 +50,8 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 > combine :: StructGraph -> StructGraph -> StructGraph
 > combine = conn (parRewire, "_comb_")
 
+> dupCombine :: StructGraph -> StructGraph -> StructGraph
+> dupCombine = conn (dupParRewire, "_dupComb_")
 
 
 > allCompIDs :: StructGraph -> [CompID]
@@ -98,7 +102,9 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 
 > seqRewire :: StructGraph -> StructGraph -> ([Edge], (Pins, Pins))
 > seqRewire sg_l sg_r
->     = (src_edges ++ edgs ++ snk_edges, (super_srcs, super_snks))
+>     = ( src_edges ++ edgs ++ snk_edges
+>       , (super_srcs, super_snks)
+>       )
 >     where (edgs, (srcs_l', snks_r')) =  wire (Just $ compID sg_l) (Just $ compID sg_r) (sources sg_l) (sinks sg_r)
 >           super_srcs                 =  [0..(length.sinks   $ sg_l) + length snks_r' -1]
 >           super_snks                 =  [0..(length.sources $ sg_r) + length srcs_l' -1]
@@ -111,15 +117,27 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 
 > parRewire :: StructGraph -> StructGraph -> ([Edge], (Pins, Pins))
 > parRewire sg_u sg_d
->     = (src_edges ++ snk_edges, (super_srcs, super_snks))
->     where super_srcs = [0..(length $ (sources sg_u) ++ (sources sg_d)) -1]
->           super_snks = [0..(length $ (sinks sg_u)   ++ (sinks sg_d))   -1]
->           src_edges  = let len_snks_u = (length.sinks $ sg_u) 
->                        in (fst $ wire Nothing (Just $ compID sg_u) super_srcs                   (sinks sg_u))
->                        ++ (fst $ wire Nothing (Just $ compID sg_d) (drop len_snks_u super_srcs) (sinks sg_d))
->           snk_edges  = let len_srcs_d = (length.sources $ sg_d)
->                        in (fst $ wire (Just $ compID sg_u) Nothing (sources sg_u) super_snks)
->                        ++ (fst $ wire (Just $ compID sg_d) Nothing (sources sg_d) (drop len_srcs_d super_snks))
+>     = ( goingIn_edges ++ goingOut_edges
+>       , (super_srcs, super_snks)
+>       )
+>     where super_srcs = [0..(length $ (sinks   sg_u) ++ (sinks   sg_d)) -1]
+>           super_snks = [0..(length $ (sources sg_u) ++ (sources sg_d)) -1]
+>           goingIn_edges  =  (wire_ Nothing (Just $ compID sg_u)                            (super_srcs) (sinks sg_u))
+>                          ++ (wire_ Nothing (Just $ compID sg_d) (drop (length.sinks $ sg_u) super_srcs) (sinks sg_d))
+>           goingOut_edges =  (wire_ (Just $ compID sg_u) Nothing (sources sg_u)                              (super_snks))
+>                          ++ (wire_ (Just $ compID sg_d) Nothing (sources sg_d) (drop (length.sources $ sg_u) super_snks))
+
+> dupParRewire :: StructGraph -> StructGraph -> ([Edge], (Pins, Pins))
+> dupParRewire sg_u sg_d
+>     = ( goingIn_edges ++ goingOut_edges
+>       , (super_srcs, super_snks)
+>       )
+>     where super_srcs = [0..(length.sinks $ sg_u) -1]
+>           super_snks = [0..(length $ (sources sg_u) ++ (sources sg_d)) -1]
+>           goingIn_edges  =  (wire_ Nothing (Just $ compID sg_u) super_srcs (sinks sg_u))
+>                          ++ (wire_ Nothing (Just $ compID sg_d) super_srcs (sinks sg_d))
+>           goingOut_edges =  (wire_ (Just $ compID sg_u) Nothing (sources sg_u)                              (super_snks))
+>                          ++ (wire_ (Just $ compID sg_d) Nothing (sources sg_d) (drop (length.sources $ sg_u) super_snks))
 
 
 > wire :: Maybe CompID -> Maybe CompID -> Pins -> Pins -> ([Edge], (Pins, Pins))
@@ -129,6 +147,9 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 >           points_r = map ((,) (cid_r)) pins_r
 >           edges    = map (uncurry MkEdge) $ zip points_l points_r
 >           cnt      = length edges
+
+> wire_ :: Maybe CompID -> Maybe CompID -> Pins -> Pins -> [Edge]
+> wire_ cid_l cid_r pins_l pins_r = fst $ wire cid_l cid_r pins_l pins_r
 
 
 > drop_first  :: (Arrow a) => a (b, b') b'
@@ -155,32 +176,48 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 
 
 
+To generate the new edges, the edges are split into edges that
+    - come from a sub-graph 
+    - go to a sub-graph
+    - come from a super-graph
+    - go to a super-graph
+With their help the graph in between can be resolved and a new edge is generated
+that comes from a super-graph and connects with no indirection to the sub-graph.
+It is possible to have multiple edges that originate in an exclusiv pin of the
+super-graph. These edges are grouped and the according number of edges that point 
+to the intermediate pin, are generated with repeat.
+
 > partitionEdges :: StructGraph -> StructGraph -> (([Edge], [Edge]), [Edge])
 > partitionEdges superG subG  = ( ( newIncs ++ newOuts
 >                                 , neutrals
 >                                 )
 >                               , toSubG  ++ fromSubG
 >                               )
->     where fromSubG    = filter ((==Just (compID subG)).fst.sourceInfo) $ edges superG
->           toSubG      = filter ((==Just (compID subG)).fst.sinkInfo)   $ edges superG
+>     where fromSubG     = filter ((==Just (compID subG)).fst.sourceInfo) $ edges superG
+>           toSubG       = filter ((==Just (compID subG)).fst.sinkInfo)   $ edges superG
 >
->           fromNothing = filter (isNothing.fst.sourceInfo)              $ edges subG
->           toNothing   = filter (isNothing.fst.sinkInfo)                $ edges subG
+>           fromNothing  = filter (isNothing.fst.sourceInfo)              $ edges subG
+>           fromNothing' = groupBy (\x y -> (srcPin x) == (srcPin y)) $ sortWith srcPin fromNothing
+> 
+>           toNothing    = filter (isNothing.fst.sinkInfo)                $ edges subG
+>           toNothing'   = groupBy (\x y -> (snkPin x) == (snkPin y)) $ sortWith snkPin toNothing
 >
->           neutrals    = filter (\x -> (isJust.fst.sourceInfo $ x) 
->                                    && (isJust.fst.sinkInfo   $ x) )    $ edges subG
+>           neutrals     = filter (\x -> (isJust.fst.sourceInfo $ x) 
+>                                     && (isJust.fst.sinkInfo   $ x) )    $ edges subG
 >
->           newIncs     = mergeEdges (toSubG, fromNothing)
->           newOuts     = mergeEdges (toNothing, fromSubG) 
+>
+>           newIncs      = mergeEdges.unzip.concat.map (\(x, y) -> zip (repeat x) y) $ zip toSubG fromNothing' 
+> --        newIncs      = mergeEdges (toSubG, fromNothing)
+>           newOuts      = mergeEdges.unzip.concat.map (\(x, y) -> zip x (repeat y)) $ zip toNothing' fromSubG
+> --        newOuts      = mergeEdges (toNothing, fromSubG) 
 
 
 
 > mergeEdges :: ([Edge], [Edge]) -> [Edge]
 > mergeEdges (xs, ys) 
 >     = zipWith (\x y -> MkEdge (sourceInfo x) (sinkInfo y)) xs' ys'
->     where xs' = sortBySnkPin xs
->           ys' = sortBySrcPin ys
-
+>     where xs' = sortWith snkPin xs
+>           ys' = sortWith srcPin ys
 
 
 > isSrcPin :: PinID -> Edge -> Bool
@@ -194,15 +231,3 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 
 > srcPin :: Edge -> PinID
 > srcPin (MkEdge (_, pid) (_, _)) = pid
-
-> sortByPin :: (Edge -> PinID) -> [Edge] -> [Edge]
-> sortByPin _ [] = []
-> sortByPin f (e:es) 
->     =        (sortByPin f [x | x <- es, (f x <= f e)]) 
->       ++ e : (sortByPin f [y | y <- es, (f y >  f e)])
-
-> sortBySrcPin :: [Edge] -> [Edge]
-> sortBySrcPin = sortByPin srcPin
-
-> sortBySnkPin :: [Edge] -> [Edge]
-> sortBySnkPin = sortByPin snkPin
