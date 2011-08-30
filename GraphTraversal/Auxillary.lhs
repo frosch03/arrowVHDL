@@ -1,7 +1,7 @@
 > module GraphTraversal.Auxillary 
 > where
 
-> import Control.Arrow
+> -- import Control.Arrow hiding (Arrow)
 
 > import Data.List (union, groupBy, (\\))
 > import Data.Maybe 
@@ -23,9 +23,14 @@ A new name is generated from the names of both inputs, the sinks of the
 left graph become the sinks of the new graph and so are the sources of the 
 right one. 
 The component id's are updated so that every id is still unique. 
+If a connection between the empty graph and another graph is made, that 
+connection is only the remaining graph (which is represented by the first 
+two lines).
 
 > conn :: ((StructGraph -> StructGraph -> ([Edge], (Pins, Pins))), String) 
 >      -> StructGraph -> StructGraph -> StructGraph
+> conn _           sg NoSG   = sg
+> conn _           NoSG sg   = sg
 > conn (rewire, s) sg_f sg_g = MkSG { name    = (name sg_f') ++ s ++ (name sg_g')
 >                                   , compID  = 0
 >                                   , nodes   = sg_f': sg_g' : []
@@ -45,13 +50,13 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 
 
 > connect :: StructGraph -> StructGraph -> StructGraph
-> connect = conn (seqRewire, "_conn_")
+> connect = conn (seqRewire, ">>>")
 
 > combine :: StructGraph -> StructGraph -> StructGraph
-> combine = conn (parRewire, "_comb_")
+> combine = conn (parRewire, "&&&")
 
 > dupCombine :: StructGraph -> StructGraph -> StructGraph
-> dupCombine = conn (dupParRewire, "_dupComb_")
+> dupCombine = conn (dupParRewire, ">2>")
 
 
 > allCompIDs :: StructGraph -> [CompID]
@@ -152,11 +157,11 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 > wire_ cid_l cid_r pins_l pins_r = fst $ wire cid_l cid_r pins_l pins_r
 
 
-> drop_first  :: (Arrow a) => a (b, b') b'
-> drop_first  =  arr (\(x, y) -> y)
+drop_first  :: (Arrow a) => a (b, b') b'
+drop_first  =  arr (\(x, y) -> y)
 
-> drop_second :: (Arrow a) => a (b, b') b
-> drop_second =  arr (\(x, y) -> x)
+drop_second :: (Arrow a) => a (b, b') b
+drop_second =  arr (\(x, y) -> x)
 
 
 

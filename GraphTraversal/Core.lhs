@@ -56,6 +56,9 @@ Also a name is needed later on to identify the components.
 It turns out, that a Node actually could hold another StructGraph, that 
 defines sub structures. It also could hold no sub structure and has only 
 a name and a component id.
+Another constructor to be not forgotten is the empty graph, marked here
+with NoSG. It's uses are i.e. to start the computation with runTraversal
+where an empty graph has to be passed over to the computing arrow
 
 > data StructGraph
 >   = MkSG { name    :: String
@@ -65,6 +68,7 @@ a name and a component id.
 >          , sinks   :: Pins
 >          , sources :: Pins
 >          }
+>   | NoSG
  
     deriving (Show)
 
