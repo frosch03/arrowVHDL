@@ -27,15 +27,15 @@ If a connection between the empty graph and another graph is made, that
 connection is only the remaining graph (which is represented by the first 
 two lines).
 
-> conn :: ((StructGraph -> StructGraph -> ([Edge], (Pins, Pins))), String) 
->      -> StructGraph -> StructGraph -> StructGraph
+> conn :: ((Circuit -> Circuit -> ([Edge], (Pins, Pins))), String) 
+>      -> Circuit -> Circuit -> Circuit
 > conn _           sg NoSG   = sg
 > conn _           NoSG sg   = sg
 > conn (rewire, s) sg_f sg_g = conn' (rewire, s) sg_f sg_g
 
 
-> conn' :: ((StructGraph -> StructGraph -> ([Edge], (Pins, Pins))), String) 
->       -> StructGraph -> StructGraph -> StructGraph
+> conn' :: ((Circuit -> Circuit -> ([Edge], (Pins, Pins))), String) 
+>       -> Circuit -> Circuit -> Circuit
 > conn' (rewire, s) sg_f sg_g 
 >     = MkSG { name    = (name sg_f') ++ s ++ (name sg_g')
 >            , compID  = 0
@@ -49,17 +49,17 @@ two lines).
 >           (es, (srcs, snks)) = rewire sg_f' sg_g'
 
 
-> connect :: StructGraph -> StructGraph -> StructGraph
+> connect :: Circuit -> Circuit -> Circuit
 > connect = conn (seqRewire, ">>>")
 
-> combine :: StructGraph -> StructGraph -> StructGraph
+> combine :: Circuit -> Circuit -> Circuit
 > combine = conn (parRewire, "&&&")
 
-> dupCombine :: StructGraph -> StructGraph -> StructGraph
+> dupCombine :: Circuit -> Circuit -> Circuit
 > dupCombine = conn (dupParRewire, ">2>")
 
 
-> allCompIDs :: StructGraph -> [StructGraph]
+> allCompIDs :: Circuit -> [Circuit]
 > allCompIDs sg 
 >     = if (length next_sg == 0) then sg : []
 >                                else sg : (concat $ map allCompIDs next_sg)
@@ -67,7 +67,7 @@ two lines).
 >           cid     = compID sg 
 
 
-> newCompID :: StructGraph -> CompID
+> newCompID :: Circuit -> CompID
 > newCompID sg = nextID compIDs
 >     where compIDs = compID sg : (next $ nodes sg)
 >           next []        = []
@@ -83,10 +83,10 @@ two lines).
 > nextID cids  = nextID [foldl max 0 cids]
 
 
-> maxCompID :: StructGraph -> CompID
+> maxCompID :: Circuit -> CompID
 > maxCompID sg = compID sg `max` (foldl max 0 $ map maxCompID (nodes sg))
 
-> alterCompIDs :: Int -> StructGraph -> StructGraph
+> alterCompIDs :: Int -> Circuit -> Circuit
 > alterCompIDs i sg 
 >     = sg { compID = compID sg + i
 >          , nodes  = map (alterCompIDs i) $ nodes sg
@@ -105,7 +105,7 @@ two lines).
 >           notIO (MkEdge _ (Nothing, _)) = False
 >           notIO _                       = True
 
-> seqRewire :: StructGraph -> StructGraph -> ([Edge], (Pins, Pins))
+> seqRewire :: Circuit -> Circuit -> ([Edge], (Pins, Pins))
 > seqRewire sg_l sg_r
 >     = ( fromOuterToL ++ fromOuterToR ++ edgs ++ fromRToOuter ++ fromLToOuter
 >       , (super_srcs, super_snks)
@@ -118,7 +118,7 @@ two lines).
 >           ( fromRToOuter, (_, super_snks')) =  wire (Just $ compID sg_r) Nothing (sources sg_r) super_snks
 >           ( fromLToOuter, (_, _))           =  wire (Just $ compID sg_l) Nothing (drop (length fromRToOuter) $ sources sg_l) super_snks'
 
-> parRewire :: StructGraph -> StructGraph -> ([Edge], (Pins, Pins))
+> parRewire :: Circuit -> Circuit -> ([Edge], (Pins, Pins))
 > parRewire sg_u sg_d
 >     = ( goingIn_edges ++ goingOut_edges
 >       , (super_srcs, super_snks)
@@ -130,7 +130,7 @@ two lines).
 >           goingOut_edges =  (wire_ (Just $ compID sg_u) Nothing (sources sg_u)                              (super_snks))
 >                          ++ (wire_ (Just $ compID sg_d) Nothing (sources sg_d) (drop (length.sources $ sg_u) super_snks))
 
-> dupParRewire :: StructGraph -> StructGraph -> ([Edge], (Pins, Pins))
+> dupParRewire :: Circuit -> Circuit -> ([Edge], (Pins, Pins))
 > dupParRewire sg_u sg_d
 >     = ( goingIn_edges ++ goingOut_edges
 >       , (super_srcs, super_snks)
@@ -155,7 +155,7 @@ two lines).
 > wire_ cid_l cid_r pins_l pins_r = fst $ wire cid_l cid_r pins_l pins_r
 
 
-> old_flatten :: StructGraph -> StructGraph 
+> old_flatten :: Circuit -> Circuit 
 > old_flatten g = g' { nodes = atomgraphs ++ (concat $ map nodes subgraphs)
 >                , edges = (((edges g) \\ delEs) ++ newEs ++ neutralEs)  
 >                }
@@ -180,7 +180,7 @@ It is possible to have multiple edges that originate in an exclusiv pin of the
 super-graph. These edges are grouped and the according number of edges that point 
 to the intermediate pin, are generated with repeat.
 
-> partitionEdges :: StructGraph -> StructGraph -> (([Edge], [Edge]), [Edge])
+> partitionEdges :: Circuit -> Circuit -> (([Edge], [Edge]), [Edge])
 > partitionEdges superG subG  = ( ( newIncs ++ newOuts
 >                                 , neutrals
 >                                 )
@@ -259,13 +259,13 @@ to the intermediate pin, are generated with repeat.
 
 
 
-> isGenerated :: StructGraph -> Bool
+> isGenerated :: Circuit -> Bool
 > isGenerated s = ((== '|').head.name) s && ((== '|').head.reverse.name) s
 
-> isGeneric :: StructGraph -> Bool
+> isGeneric :: Circuit -> Bool
 > isGeneric s = isGenerated s && ((== "|b>c|").name) s
 
-> isID :: StructGraph -> Bool
+> isID :: Circuit -> Bool
 > isID = ((== "-ID-").name)
 > -- isID = ((isInfixOf "-ID-").name)
 
@@ -276,7 +276,7 @@ to the intermediate pin, are generated with repeat.
 >   where toIt   = filter ((== (Just cid)).fst.sinkInfo)   $ es
 >         fromIt = filter ((== (Just cid)).fst.sourceInfo) $ es
 
-> dropSG :: (StructGraph -> Bool) -> StructGraph -> StructGraph
+> dropSG :: (Circuit -> Bool) -> Circuit -> Circuit
 > dropSG f sg
 >   = sg { nodes = newNodes
 >        , edges = newEdges
@@ -287,19 +287,19 @@ to the intermediate pin, are generated with repeat.
 
 
 
-> dropGenerated :: StructGraph -> StructGraph
+> dropGenerated :: Circuit -> Circuit
 > dropGenerated = dropSG isGenerated
 
-> dropID :: StructGraph -> StructGraph
+> dropID :: Circuit -> Circuit
 > dropID = dropSG isID
 
 
 ---- Here is another try ----
 
-> allEdges :: StructGraph -> [Edge]
+> allEdges :: Circuit -> [Edge]
 > allEdges g = edges g ++ (concat $ map allEdges (nodes g))
 
-> completeEdges :: StructGraph -> StructGraph 
+> completeEdges :: Circuit -> Circuit 
 > completeEdges g 
 >     | length (nodes g) == 0
 >     = g 
@@ -323,60 +323,60 @@ to the intermediate pin, are generated with repeat.
 
 
 
-> getComp :: StructGraph -> CompID -> StructGraph
+> getComp :: Circuit -> CompID -> Circuit
 > getComp g cid = if length output == 1 
 >                   then head output
->                   else error "getComp: corrupted StructGraph"
+>                   else error "getComp: corrupted Circuit"
 >     where output = getComp' g cid
 
-> getComp' :: StructGraph -> CompID -> [StructGraph]
+> getComp' :: Circuit -> CompID -> [Circuit]
 > getComp' g cid 
 >     | compID g == cid 
 >     = [g]
 >     | otherwise       
 >     = concat $ map (flip getComp' cid) (nodes g)
 
-> isAtomic :: StructGraph -> Bool
+> isAtomic :: Circuit -> Bool
 > isAtomic g
 >     = if (length (nodes g) == 0) then True else False
 
 
 
-> superNode :: StructGraph -> CompID -> StructGraph
+> superNode :: Circuit -> CompID -> Circuit
 > superNode g cid 
 >    = if length output == 1
 >           then head output
->           else error "superNode: corrupted StructGraph"
+>           else error "superNode: corrupted Circuit"
 >    where output = superNode' g cid
 
-> superNode' :: StructGraph -> CompID -> [StructGraph]
+> superNode' :: Circuit -> CompID -> [Circuit]
 > superNode' g cid 
 >    | g `isSuperNodeOf` cid
 >    = [g]
 >    | otherwise
 >    = concat $ map (flip superNode' cid) $ nodes g
 
-> isSuperNodeOf :: StructGraph -> CompID -> Bool
+> isSuperNodeOf :: Circuit -> CompID -> Bool
 > isSuperNodeOf g cid 
 >     = if length (filter (== cid) subNodes) > 0
 >           then True
 >           else False
 >     where subNodes = map compID $ nodes g
 
- nextNodes :: StructGraph -> CompID -> [StructGraph]
+ nextNodes :: Circuit -> CompID -> [Circuit]
  nextNodes g cid 
      = nub $ map ((getComp g).snkComp) $ filter (isSrcComp cid) superEdges
      where superEdges = edges $ superNode (completeEdges g) cid
 
- nextNodes :: StructGraph -> CompID -> [StructGraph]
+ nextNodes :: Circuit -> CompID -> [Circuit]
  
 
-> fromComp :: StructGraph -> CompID -> [Edge]
+> fromComp :: Circuit -> CompID -> [Edge]
 > fromComp g cid
 >     = filter (\x -> (not.isFromOuter $ x) 
 >                  && (cid == (srcComp x) ) ) $ edges $ superNode g cid
 
-> nextAtomic :: StructGraph -> Edge -> (CompID, PinID)
+> nextAtomic :: Circuit -> Edge -> (CompID, PinID)
 > nextAtomic g e
 >     | isToOuter e && compID super == 0
 >     = (0, snkPin e)
@@ -394,7 +394,7 @@ to the intermediate pin, are generated with repeat.
 >           supersuper = superNode g (compID super)
 
 
-> flatten :: StructGraph -> StructGraph
+> flatten :: Circuit -> Circuit
 > flatten g 
 >     = g' { nodes = nub $ nodes g'
 >          , edges =       edges g' ++ enders
@@ -418,7 +418,7 @@ to the intermediate pin, are generated with repeat.
 >                                 } 
 
 
-> connectCID :: StructGraph -> StructGraph -> CompID -> (CompID, PinID) -> Edge
+> connectCID :: Circuit -> Circuit -> CompID -> (CompID, PinID) -> Edge
 > connectCID old_g g cidF (cidT,pidT)
 >     = MkEdge (Just cidF, nextFpin) (Just cidT, pidT)
 >     where nextFpin  = head $ drop cntEsFrom $ sources $ getComp old_g cidF

@@ -24,7 +24,7 @@
 
 First thing to do is to define a new data type, which is called TraversalArrow.
 
-> newtype TraversalArrow a b c = TR (a (b, StructGraph) (c, StructGraph))
+> newtype TraversalArrow a b c = TR (a (b, Circuit) (c, Circuit))
 
 
 Bevor the TraversalArrow becomes an instance of Arrow, it has to be an instance
@@ -61,7 +61,7 @@ is a type constraint to the `arr`-function
 This class and it's instances define the different type-variants that are possible
 
 > class ShowType b c where
->   showType :: (b -> c) -> StructGraph
+>   showType :: (b -> c) -> Circuit
 
 > instance ShowType (b, c) (c, b) where
 >   showType _ = emptyGraph { name = "|b,c>c,b|" 
@@ -172,7 +172,7 @@ instance (ArrowChoice a, Typeable a) => ArrowChoice (TraversalArrow a) where
               undistr (Left  (x, sg)) = (Left  x, sg `combine` leftGraph)
               undistr (Right (x, sg)) = (Right x, sg `combine` rightGraph)
 
-> runTraversal :: (Arrow a) => TraversalArrow a b c -> a (b, StructGraph) (c, StructGraph)
+> runTraversal :: (Arrow a) => TraversalArrow a b c -> a (b, Circuit) (c, Circuit)
 > runTraversal (TR f) = f
 
 
@@ -192,7 +192,7 @@ A usual process in the hardware development is the synthetisation of the actual
 hardware. Beside the syntethesis the simulation is also an important process while
 developing hardware. Both functionalities are defined in the following:
 
-synthesize :: (Arrow a) => TraversalArrow a b c -> b -> StructGraph
+synthesize :: (Arrow a) => TraversalArrow a b c -> b -> Circuit
 
 > synthesize f x = flatten $ snd $ runTraversal f (x, NoSG)
 
@@ -213,8 +213,8 @@ _kritische_pfad_analyse_ / ...
 
 
 > class Arrow a => (ArrowTraversal a) where
->   fetch :: a e  StructGraph
->   store :: a StructGraph ()
+>   fetch :: a e  Circuit
+>   store :: a Circuit ()
 
 > x :: Arrow a => TraversalArrow a b b 
 > x = arr id
@@ -229,7 +229,7 @@ _kritische_pfad_analyse_ / ...
 
 > insEmpty = insert emptyGraph { name = "eeeempty", sinks = mkPins 1, sources = mkPins 3 }
 
-> augment :: (Arrow a) => StructGraph -> TraversalArrow a b c -> TraversalArrow a b c
+> augment :: (Arrow a) => Circuit -> TraversalArrow a b c -> TraversalArrow a b c
 > augment sg (TR f) = TR $ f >>> arr (insert sg)
 
 > y :: Arrow a => TraversalArrow a b b

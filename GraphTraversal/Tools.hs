@@ -21,12 +21,12 @@ import GraphTraversal.Graph
 import GraphTraversal.Auxillary
 import GraphTraversal.Show.DOT
 
-type Node = StructGraph
+type Node = Circuit
 
 
 -- Demo Functions
 -----------------
-write x    = writeFile "/tmp/test.dot" (GraphTraversal.Show.DOT.showStructGraph x)
+write x    = writeFile "/tmp/test.dot" (GraphTraversal.Show.DOT.showCircuit x)
 genPicture = system "dot /tmp/test.dot -Tjpg -o /tmp/test.jpg"
 
 par1 :: Int
@@ -36,7 +36,7 @@ par2 :: (Int, Int)
 par2 = (0,0)
 
 
-toNode :: (String, Int, Int) -> StructGraph
+toNode :: (String, Int, Int) -> Circuit
 toNode (name, inPins, outPins)
     = emptyGraph { name    = name
                  , sinks   = [0..(inPins -1)]
@@ -44,17 +44,17 @@ toNode (name, inPins, outPins)
                  }
 
 
-filterByName :: StructGraph -> String -> StructGraph
+filterByName :: Circuit -> String -> Circuit
 filterByName s n 
     = if (name s == n) && (length (nodes s) < 1) 
         then NoSG
         else s { nodes = (map (flip filterByName n) $ nodes s) }
 
 
-atomic :: StructGraph -> Bool
+atomic :: Circuit -> Bool
 atomic s = length (nodes s) <= 0
 
-replace :: StructGraph -> (Node, Node) -> StructGraph
+replace :: Circuit -> (Node, Node) -> Circuit
 replace s ft@(from, to) 
     | not $ atomic s
     = s { nodes = map (flip replace $ ft) (nodes s) }
@@ -70,7 +70,7 @@ replace s ft@(from, to)
 
 -- mark / cut / trim
 
-rebuildIf :: (StructGraph -> Bool) ->  ([Edge], [Node]) -> Node -> ([Edge], [Node])
+rebuildIf :: (Circuit -> Bool) ->  ([Edge], [Node]) -> Node -> ([Edge], [Node])
 rebuildIf isIt (super_es, new_ns) NoSG = (super_es, new_ns)
 rebuildIf isIt (super_es, new_ns) n
     |  isIt n       && length (sinks n) == length (sources n)
@@ -88,7 +88,7 @@ rebuildIf isIt (super_es, new_ns) n
                       , edges = es
                       }
 
-bypass :: StructGraph -> Node -> StructGraph
+bypass :: Circuit -> Node -> Circuit
 bypass s item 
   = s { nodes = ns
       , edges = es

@@ -22,7 +22,7 @@ type Key   = (KeyChunk, KeyChunk, KeyChunk, KeyChunk)
 type KeyHalf = (KeyChunk, KeyChunk)
 type Value = (ValChunk, ValChunk)
 
-oneNodeGraph :: String -> StructGraph
+oneNodeGraph :: String -> Circuit
 oneNodeGraph s = emptyGraph { name = s }
 
 aId :: (Arrow a) => TraversalArrow a b b
@@ -189,7 +189,7 @@ aFeistelRound2
 
 
 
-g1 :: StructGraph
+g1 :: Circuit
 g1 = MkSG { name    = " G1 "
           , compID  = 0
           , nodes   = [ MkSG { name     = "G1_SUB1"
@@ -230,7 +230,7 @@ g1 = MkSG { name    = " G1 "
           , sources = [0]
           }
 
-g2 :: StructGraph
+g2 :: Circuit
 g2 = MkSG { name    = " G2 "
           , compID  = 0
           , nodes   = [ MkSG { name     = "G2_SUB1"

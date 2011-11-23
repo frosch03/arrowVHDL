@@ -18,7 +18,7 @@ type Key   = (KeyChunk, KeyChunk, KeyChunk, KeyChunk)
 type KeyHalf = (KeyChunk, KeyChunk)
 type Value = (ValChunk, ValChunk)
 
-oneNodeGraph :: String -> StructGraph
+oneNodeGraph :: String -> Circuit
 oneNodeGraph s = emptyGraph { name = s }
 
 aId :: (Arrow a) => TraversalArrow a b b

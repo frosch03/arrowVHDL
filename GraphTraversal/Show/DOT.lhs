@@ -1,5 +1,5 @@
 > module GraphTraversal.Show.DOT
-> ( showStructGraph
+> ( showCircuit
 > , showEdge
 > )
 > where
@@ -45,8 +45,8 @@ end of a string.
 > break =  flip (++) "\n"
 
 
-> showStructGraph :: StructGraph -> String
-> showStructGraph g 
+> showCircuit :: Circuit -> String
+> showCircuit g 
 >      = concat $ map break
 >      [ ""
 >      , "digraph G {"
@@ -68,7 +68,7 @@ end of a string.
 >      , "]"
 >      ] 
 
-> dot_outer_nodes :: StructGraph -> String
+> dot_outer_nodes :: Circuit -> String
 > dot_outer_nodes g
 >      = concat $ map break
 >      [ ""
@@ -83,7 +83,7 @@ end of a string.
 >      , "]"
 >      ]
 
-> dot_components :: StructGraph -> String
+> dot_components :: Circuit -> String
 > dot_components  g
 >      = concat $ nub $ map f (nodes g)
 >      where f g' = concat $ map break
@@ -113,6 +113,6 @@ end of a string.
 >            f s x = "<" ++ s ++ show x ++ "> (" ++ show x ++ ") | "
 
 
-> dot_connections :: StructGraph -> String
+> dot_connections :: Circuit -> String
 > dot_connections g 
 >      = concat $ map (\x -> showEdge x ++ "\n") (edges g)

@@ -4,7 +4,7 @@
 > import GraphTraversal.Core
 
 
-> emptyGraph :: StructGraph
+> emptyGraph :: Circuit
 > emptyGraph 
 >   = MkSG { name    = "..."
 >          , compID  = 0

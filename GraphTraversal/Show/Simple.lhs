@@ -1,13 +1,13 @@
 > module GraphTraversal.Show.Simple
-> ( showStructGraph
+> ( showCircuit
 > , showEdge
 > )
 > where
 
 > import GraphTraversal.Core
 
-> showStructGraph :: StructGraph -> String
-> showStructGraph g =  "\n"
+> showCircuit :: Circuit -> String
+> showCircuit g =  "\n"
 >             ++ (show.compID) g
 >             ++ "(" ++ (show.name) g ++ "): "
 >             ++ (prtInOuts.sinks) g ++ "] "
@@ -15,7 +15,7 @@
 >             ++ " [" ++ (prtInOuts.sources) g
 >             ++ (showNode.nodes) g
 >          where showNode [] = ""
->                showNode n  = concat $ map showStructGraph n
+>                showNode n  = concat $ map showCircuit n
 >                prtInOuts [] = "_"
 >                prtInOuts x  = foldl1 (\x y -> x ++ ',':y) $ map show x
 

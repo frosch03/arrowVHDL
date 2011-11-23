@@ -20,5 +20,5 @@ therefore the Edge datatypes also needs to be an instance of Show.
 >   show = showEdge
 
 
-> instance Show (StructGraph) where
->     show = showStructGraph
+> instance Show (Circuit) where
+>     show = showCircuit

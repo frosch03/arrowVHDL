@@ -60,10 +60,10 @@ Another constructor to be not forgotten is the empty graph, marked here
 with NoSG. It's uses are i.e. to start the computation with runTraversal
 where an empty graph has to be passed over to the computing arrow
 
-> data StructGraph
+> data Circuit
 >   = MkSG { name    :: String
 >          , compID  :: CompID
->          , nodes   :: [StructGraph]
+>          , nodes   :: [Circuit]
 >          , edges   :: [Edge]
 >          , sinks   :: Pins
 >          , sources :: Pins
