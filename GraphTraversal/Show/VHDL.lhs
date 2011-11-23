@@ -55,7 +55,7 @@ TODO: Add the signal-definition and the port-map-definitions
 >      where namedEdges = generateNamedEdges g
 >            namedComps = generateNamedComps g
 
-> nameEdges :: String -> StructGraph -> [([AnchorPoint], String)]
+> nameEdges :: String -> StructGraph -> [([Anchor], String)]
 > nameEdges pre g 
 >     = map (\(i, e) -> (sourceInfo e : sinkInfo e : [], pre ++ show i)) $ zip [0..] relevantEdges
 >     where relevantEdges = filter (\(MkEdge (ci,_) (co,_)) -> isJust ci && isJust co) $ edges g 
@@ -129,14 +129,14 @@ components, because we descent only one step down in the graph.
 
 The VHDL-Signals is the list of inner wires, that are used inside the new component.
 
-> vhdl_signals :: StructGraph -> [([AnchorPoint], String)] -> String
+> vhdl_signals :: StructGraph -> [([Anchor], String)] -> String
 > vhdl_signals _ [] = ""
 > vhdl_signals g namedEdges
 >      = "SIGNAL " ++ sepBy ", " signals ++ ": std_logic;" 
 >      where signals = map snd namedEdges
 
 
-> vhdl_portmaps :: StructGraph -> [NamedComp] -> [([AnchorPoint], String)] -> String
+> vhdl_portmaps :: StructGraph -> [NamedComp] -> [([Anchor], String)] -> String
 > vhdl_portmaps g namedComps namedEdges
 >      = concat $ map break
 >      [ "BEGIN"
@@ -144,7 +144,7 @@ The VHDL-Signals is the list of inner wires, that are used inside the new compon
 >      , "END;"
 >      ]
 
-> vhdl_portmap :: StructGraph -> [NamedComp] -> [([AnchorPoint], String)] -> StructGraph -> String
+> vhdl_portmap :: StructGraph -> [NamedComp] -> [([Anchor], String)] -> StructGraph -> String
 > vhdl_portmap superG namedComps namedEdges' g
 >      = concat $ map break
 >      [ (name g) ++ "Inst" ++ (show$compID g) ++ ": " ++ (name g) ++ "Comp"
@@ -277,7 +277,7 @@ It also takes a StructGraph (suprise :)) and a String, that is prepended to the 
 This functions returns a list, where every element is a tuple of the actual named pin (a string)
 and a part, that identifies the name.
 
-> namePins :: (StructGraph -> Pins) -> String -> StructGraph -> [(String, AnchorPoint)]
+> namePins :: (StructGraph -> Pins) -> String -> StructGraph -> [(String, Anchor)]
 > namePins f pre g
 >     = map (\x -> (pre ++ (show x), (Nothing, x))) $ f g
 > --  = map (\x -> (pre ++ (show x), (compID g, x))) $ f g
@@ -300,11 +300,11 @@ to do this once more.
 > sepBy sep xs     = foldl1 (\x y -> x ++ sep ++ y) xs
 
 
-> isIOPort :: (String, AnchorPoint) -> Bool
+> isIOPort :: (String, Anchor) -> Bool
 > isIOPort (_, (Nothing, _)) = True
 > isIOPort otherwise         = False
 
-> isAtComp :: CompID -> (String, AnchorPoint) -> Bool
+> isAtComp :: CompID -> (String, Anchor) -> Bool
 > isAtComp cid (_, (Just cid', _)) 
 >     = cid == cid'
 

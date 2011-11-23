@@ -114,6 +114,14 @@ aShiftL4addKey
     =   first aShiftL4
     >>> aAdd
 
+aShiftL4addKeyDo :: (Arrow a) => TraversalArrow a (ValChunk, KeyChunk) Int
+aShiftL4addKeyDo 
+    = proc (v, k) -> do
+        tmp  <- aShiftL4 -< v
+        tmp' <- aAdd     -< (tmp, k)
+        returnA          -< tmp'
+
+
 aShiftR5addKey :: (Arrow a) => TraversalArrow a (ValChunk, KeyChunk) Int
 aShiftR5addKey 
     =   first aShiftR5
@@ -144,18 +152,40 @@ aFeistelRound
             returnA                -< (erg0, erg1)
         )
 
--- test 
---     = proc ((p0, p1), (k0, k1)) -> do
---         tmp1 <- aShiftL4addKey -< (p1, k0)
---         tmp2 <- aAddMagic      -< (p1)
---         tmp3 <- aShiftR5addKey -< (p1, k1)
--- 
---         tmp4 <- aXor           -< (tmp1, tmp2)
---         tmp5 <- aXor           -< (tmp4, tmp3)
--- 
---         erg0 <- returnA        -< (p1)
---         erg1 <- aAdd           -< (p0, tmp5)
---         returnA                -< (erg0, erg1)
+-- By arrowp
+aFeistelRound2 :: (Arrow a) => TraversalArrow a ((ValChunk, ValChunk), (KeyChunk, KeyChunk)) (ValChunk, ValChunk)
+aFeistelRound2
+  = (( arr (\ ((p0, p1), (k0, k1)) -> ((k0, p1), (k1, p0, p1)))
+       >>>
+           (   first (   arr (\(k0, p1) -> (p1, k0)) 
+                     >>> aShiftL4addKey
+                     )
+           >>> arr (\(tmp1, (k1, p0, p1)) -> (p1, (k1, p0, p1, tmp1)))
+           )
+       >>>
+           (   first aAddMagic
+           >>> arr (\(tmp2, (k1, p0, p1, tmp1)) -> ((k1, p1), (p0, p1, tmp1, tmp2)))
+           )
+       >>> (   first (   arr (\(k1, p1) -> (p1, k1))
+                     >>> aShiftR5addKey
+                     )
+           >>> arr (\(tmp3, (p0, p1, tmp1, tmp2)) -> ((tmp1, tmp2), (p0, p1, tmp3)))
+           )
+       >>> (   first aXor
+           >>> arr (\(tmp4, (p0, p1, tmp3)) -> ((tmp3, tmp4), (p0, p1)))
+           )
+       >>> (   first (   arr (\(tmp3, tmp4) -> (tmp4, tmp3))
+                     >>> aXor
+                     )
+           >>> arr (\(tmp5, (p0, p1)) -> (p1, (p0, tmp5)))
+           )
+       >>> (   first returnA
+           >>> arr (\(erg0, (p0, tmp5)) -> ((p0, tmp5), erg0))
+           )
+       >>> (   first aAdd
+           >>> arr (\(erg1, erg0) -> (erg0, erg1))
+           )
+       ))
 
 
 

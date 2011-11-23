@@ -10,16 +10,16 @@ anchor points define the start and end point of an edge.
 > import GraphTraversal.Core
 
 
-+-----------------------------+
-|                             |
-|  [([AnchorPoint], String)]  |
-|                             |
-+-----------------------------+
++------------------------+
+|                        |
+|  [([Anchor], String)]  |
+|                        |
++------------------------+
 
 
 At first the transit structure is defined through this type definition.
 
-> type NamedEdge = ([AnchorPoint], String)
+> type NamedEdge = ([Anchor], String)
 
 
 Note, that the list of NamedEdges is not explicitly declared.
@@ -41,7 +41,7 @@ Functions that work over the named edge list type are:
 
 
 Needed:
-[ ] AnchorPoint
+[ ] Anchor
 [ ] Name (pre :: prefix for signals)
 [ ] StructGraph (edges)
 [ ] Edge (MkEdge, sourceInfo, sinkInfo)
@@ -64,12 +64,12 @@ Needed:
 > getAllEdgeNames :: [NamedEdge] -> [String]
 > getAllEdgeNames = map snd
 
-> getNamedEdge :: [NamedEdge] -> AnchorPoint -> NamedEdge
+> getNamedEdge :: [NamedEdge] -> Anchor -> NamedEdge
 > getNamedEdge nedgs ap
 >     = head
 >     $ filter (\(aps, _) -> ap `elem` aps)
 >     $ nedgs
 
-> getEdgeName :: [NamedEdge] -> AnchorPoint -> String
+> getEdgeName :: [NamedEdge] -> Anchor -> String
 > getEdgeName nedgs ap 
 >     = snd $ getNamedEdge nedgs ap

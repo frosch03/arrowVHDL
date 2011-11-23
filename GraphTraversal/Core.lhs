@@ -16,12 +16,12 @@ pins that a component holds (either the sink pins or the source pins).
 
 An edge is like a wire between two pins on different components. So it is
 identified by the component id and the pin id. This tupel is called an
-AnchorPoint, and for documentation reasons there are two different versions,
+Anchor, and for documentation reasons there are two different versions,
 the SinkAnchor and the SourceAnchor.
 
-> type AnchorPoint  = (Maybe CompID, PinID)
-> type SinkAnchor   = AnchorPoint
-> type SourceAnchor = AnchorPoint
+> type Anchor       = (Maybe CompID, PinID)
+> type SinkAnchor   = Anchor
+> type SourceAnchor = Anchor
 
 
 To translate the graph structure into a VHDL-sourcecode the anchors and the
@@ -30,7 +30,7 @@ the named pins and one for the named edges. For documentation there is also
 a input output tuple, that holds the lookup table for the sinks and the 
 sources.
 
-> type NamedPins = [(String, AnchorPoint)]
+> type NamedPins = [(String, Anchor)]
 > type NamedSigs = [(String, Edge)]
 > type NamedSnks = NamedPins
 > type NamedSrcs = NamedPins
@@ -69,8 +69,8 @@ where an empty graph has to be passed over to the computing arrow
 >          , sources :: Pins
 >          }
 >   | NoSG
- 
-    deriving (Show)
+>
+>   deriving (Eq)
 
 Remember, a Sink is something that takes something  (INPUT)
 and a Source is something that produces something (OUTPUT)

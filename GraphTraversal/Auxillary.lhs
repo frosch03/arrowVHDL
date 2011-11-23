@@ -3,7 +3,7 @@
 
 > -- import Control.Arrow hiding (Arrow)
 
-> import Data.List (union, groupBy, (\\))
+> import Data.List (union, groupBy, (\\), isInfixOf, nub)
 > import Data.Maybe 
 > import Data.Either
 > import Control.Monad (msum)
@@ -31,22 +31,22 @@ two lines).
 >      -> StructGraph -> StructGraph -> StructGraph
 > conn _           sg NoSG   = sg
 > conn _           NoSG sg   = sg
-> conn (rewire, s) sg_f sg_g = MkSG { name    = (name sg_f') ++ s ++ (name sg_g')
->                                   , compID  = 0
->                                   , nodes   = sg_f': sg_g' : []
->                                   , edges   = es
->                                   , sinks   = srcs 
->                                   , sources = snks
->                                   }
+> conn (rewire, s) sg_f sg_g = conn' (rewire, s) sg_f sg_g
+
+
+> conn' :: ((StructGraph -> StructGraph -> ([Edge], (Pins, Pins))), String) 
+>       -> StructGraph -> StructGraph -> StructGraph
+> conn' (rewire, s) sg_f sg_g 
+>     = MkSG { name    = (name sg_f') ++ s ++ (name sg_g')
+>            , compID  = 0
+>            , nodes   = sg_f': sg_g' : []
+>            , edges   = es
+>            , sinks   = srcs 
+>            , sources = snks
+>            }
 >     where sg_f'              = alterCompIDs 1                    sg_f
 >           sg_g'              = alterCompIDs (maxCompID sg_f' +1) sg_g
 >           (es, (srcs, snks)) = rewire sg_f' sg_g'
-
-TODO: sg_f' (with edges from outside) vs. sg_f'' (only the inner edges)
-I'm not sure right now, if the edges from the outside are needed.
-therefore at the moment, the new nodes are generated from sg_f' and sg_g' 
-           sg_f''             = sg_f' { edges = onlyInnerEdges $ edges sg_f'}
-           sg_g''             = sg_g' { edges = onlyInnerEdges $ edges sg_g' }
 
 
 > connect :: StructGraph -> StructGraph -> StructGraph
@@ -59,10 +59,10 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 > dupCombine = conn (dupParRewire, ">2>")
 
 
-> allCompIDs :: StructGraph -> [CompID]
+> allCompIDs :: StructGraph -> [StructGraph]
 > allCompIDs sg 
->     = if (length next_sg == 0) then cid : []
->                                else cid : (concat $ map allCompIDs next_sg)
+>     = if (length next_sg == 0) then sg : []
+>                                else sg : (concat $ map allCompIDs next_sg)
 >     where next_sg = nodes sg
 >           cid     = compID sg 
 
@@ -107,18 +107,16 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 
 > seqRewire :: StructGraph -> StructGraph -> ([Edge], (Pins, Pins))
 > seqRewire sg_l sg_r
->     = ( src_edges ++ edgs ++ snk_edges
+>     = ( fromOuterToL ++ fromOuterToR ++ edgs ++ fromRToOuter ++ fromLToOuter
 >       , (super_srcs, super_snks)
 >       )
 >     where (edgs, (srcs_l', snks_r')) =  wire (Just $ compID sg_l) (Just $ compID sg_r) (sources sg_l) (sinks sg_r)
 >           super_srcs                 =  [0..(length.sinks   $ sg_l) + length snks_r' -1]
 >           super_snks                 =  [0..(length.sources $ sg_r) + length srcs_l' -1]
->           src_edges                  =  let len_snks_l = (length.sinks $ sg_l)
->                                         in (fst $ wire Nothing (Just $ compID sg_l) super_srcs                   (sinks sg_l))
->                                         ++ (fst $ wire Nothing (Just $ compID sg_r) (drop len_snks_l super_srcs) (sinks sg_r))
->           snk_edges                  =  let len_srcs_r = (length.sources $ sg_r)
->                                         in (fst $ wire (Just $ compID sg_r) Nothing (sources sg_r) (super_snks))
->                                         ++ (fst $ wire (Just $ compID sg_l) Nothing (sources sg_l) (drop len_srcs_r super_snks))
+>           ( fromOuterToL, (super_srcs', _)) =  wire Nothing (Just $ compID sg_l) super_srcs  (sinks sg_l)
+>           ( fromOuterToR, (_          , _)) =  wire Nothing (Just $ compID sg_r) super_srcs' (drop (length fromOuterToL) $ sinks sg_r)
+>           ( fromRToOuter, (_, super_snks')) =  wire (Just $ compID sg_r) Nothing (sources sg_r) super_snks
+>           ( fromLToOuter, (_, _))           =  wire (Just $ compID sg_l) Nothing (drop (length fromRToOuter) $ sources sg_l) super_snks'
 
 > parRewire :: StructGraph -> StructGraph -> ([Edge], (Pins, Pins))
 > parRewire sg_u sg_d
@@ -157,20 +155,11 @@ therefore at the moment, the new nodes are generated from sg_f' and sg_g'
 > wire_ cid_l cid_r pins_l pins_r = fst $ wire cid_l cid_r pins_l pins_r
 
 
-drop_first  :: (Arrow a) => a (b, b') b'
-drop_first  =  arr (\(x, y) -> y)
-
-drop_second :: (Arrow a) => a (b, b') b
-drop_second =  arr (\(x, y) -> x)
-
-
-
-
-> flatten :: StructGraph -> StructGraph 
-> flatten g = g' { nodes = atomgraphs ++ (concat $ map nodes subgraphs)
+> old_flatten :: StructGraph -> StructGraph 
+> old_flatten g = g' { nodes = atomgraphs ++ (concat $ map nodes subgraphs)
 >                , edges = (((edges g) \\ delEs) ++ newEs ++ neutralEs)  
 >                }
->     where g'         = g { nodes = map flatten (nodes g) } 
+>     where g'         = g { nodes = map old_flatten (nodes g) } 
 >           subgraphs  = filter (not.null.nodes) $ nodes g' 
 >           atomgraphs = filter (    null.nodes) $ nodes g'
 >           allEs      = map (partitionEdges g') subgraphs
@@ -178,7 +167,6 @@ drop_second =  arr (\(x, y) -> x)
 >           newEs      = concat $ map fst newEss
 >           neutralEs  = concat $ map snd newEss
 >           delEs      = concat $ map snd allEs
-
 
 
 To generate the new edges, the edges are split into edges that
@@ -218,11 +206,21 @@ to the intermediate pin, are generated with repeat.
 
 
 
-> mergeEdges :: ([Edge], [Edge]) -> [Edge]
-> mergeEdges (xs, ys) 
+
+
+> old_mergeEdges :: ([Edge], [Edge]) -> [Edge]
+> old_mergeEdges (xs, ys) 
 >     = zipWith (\x y -> MkEdge (sourceInfo x) (sinkInfo y)) xs' ys'
 >     where xs' = sortWith snkPin xs
 >           ys' = sortWith srcPin ys
+
+> mergeEdges :: ([Edge], [Edge]) -> [Edge]
+> mergeEdges (xs, ys)
+>     = zipWith (\x y -> MkEdge (sourceInfo x) (sinkInfo y)) xs' ys'
+>     where x_snkPins = map snkPin xs
+>           y_srcPins = map srcPin ys
+>           xs'       = sortWith snkPin $ filter (\edg -> (snkPin edg) `elem` y_srcPins) xs
+>           ys'       = sortWith srcPin $ filter (\edg -> (srcPin edg) `elem` x_snkPins) ys
 
 
 > isSrcPin :: PinID -> Edge -> Bool
@@ -231,8 +229,197 @@ to the intermediate pin, are generated with repeat.
 > isSnkPin :: PinID -> Edge -> Bool
 > isSnkPin pid (MkEdge (_, _) (_, pid')) = pid == pid'
 
+> isSrcComp :: CompID -> Edge -> Bool
+> isSrcComp cid (MkEdge (Just cid', _) (_, _)) = cid == cid'
+> isSrcComp _ _ = False
+
+> isSnkComp :: CompID -> Edge -> Bool
+> isSnkComp cid (MkEdge (_, _) (Just cid', _)) = cid == cid'
+> isSnkComp _ _ = False
+
+> isToOuter :: Edge -> Bool
+> isToOuter (MkEdge (_, _) (Nothing, _)) = True
+> isToOuter _                            = False
+
+> isFromOuter :: Edge -> Bool
+> isFromOuter (MkEdge (Nothing, _) (_, _)) = True
+> isFromOuter _                            = False
+
 > snkPin :: Edge -> PinID
 > snkPin (MkEdge (_, _) (_, pid)) = pid
 
 > srcPin :: Edge -> PinID
 > srcPin (MkEdge (_, pid) (_, _)) = pid
+
+> snkComp :: Edge -> CompID
+> snkComp (MkEdge (_, _) (Just cid, _)) = cid
+
+> srcComp :: Edge -> CompID
+> srcComp (MkEdge (Just cid, _) (_, _)) = cid
+
+
+
+> isGenerated :: StructGraph -> Bool
+> isGenerated s = ((== '|').head.name) s && ((== '|').head.reverse.name) s
+
+> isGeneric :: StructGraph -> Bool
+> isGeneric s = isGenerated s && ((== "|b>c|").name) s
+
+> isID :: StructGraph -> Bool
+> isID = ((== "-ID-").name)
+> -- isID = ((isInfixOf "-ID-").name)
+
+
+> dropEdgesBordering :: CompID -> [Edge] -> [Edge]
+> dropEdgesBordering cid es
+>   = (es ++ mergeEdges (toIt, fromIt)) \\ (toIt ++ fromIt)
+>   where toIt   = filter ((== (Just cid)).fst.sinkInfo)   $ es
+>         fromIt = filter ((== (Just cid)).fst.sourceInfo) $ es
+
+> dropSG :: (StructGraph -> Bool) -> StructGraph -> StructGraph
+> dropSG f sg
+>   = sg { nodes = newNodes
+>        , edges = newEdges
+>        }
+>   where specific = filter f (nodes sg)
+>         newEdges = foldl (flip dropEdgesBordering) (edges sg) (map compID specific)
+>         newNodes = map (dropSG f) $ nodes sg \\ specific
+
+
+
+> dropGenerated :: StructGraph -> StructGraph
+> dropGenerated = dropSG isGenerated
+
+> dropID :: StructGraph -> StructGraph
+> dropID = dropSG isID
+
+
+---- Here is another try ----
+
+> allEdges :: StructGraph -> [Edge]
+> allEdges g = edges g ++ (concat $ map allEdges (nodes g))
+
+> completeEdges :: StructGraph -> StructGraph 
+> completeEdges g 
+>     | length (nodes g) == 0
+>     = g 
+>     | otherwise 
+>     = g { nodes = subNodes' }
+>     where subNodes  = nodes g
+>           subNodes' = map completeEdges $ map (\n -> n { edges = (map (fillEdgeInfoCompID (compID g)) (edges n)) } ) subNodes
+
+> fillEdgeInfoCompID :: CompID -> Edge -> Edge
+> fillEdgeInfoCompID cid (MkEdge (Nothing, srcPid) (snkInfo)) = (MkEdge (Just cid, srcPid) (snkInfo))
+> fillEdgeInfoCompID cid (MkEdge (srcInfo) (Nothing, snkPid)) = (MkEdge (srcInfo) (Just cid, snkPid))
+> fillEdgeInfoCompID _   e = e
+
+> fillSrcInfoCompID :: CompID -> Edge -> Edge
+> fillSrcInfoCompID cid (MkEdge (Nothing, srcPid) (snkCid, snkPid))
+>     = (MkEdge (Just cid, srcPid) (snkCid, snkPid))
+
+> fillSnkInfoCompID :: CompID -> Edge -> Edge
+> fillSnkInfoCompID cid (MkEdge (srcCid, srcPid) (Nothing, snkPid))
+>     = (MkEdge (srcCid, srcPid) (Just cid, snkPid))
+
+
+
+> getComp :: StructGraph -> CompID -> StructGraph
+> getComp g cid = if length output == 1 
+>                   then head output
+>                   else error "getComp: corrupted StructGraph"
+>     where output = getComp' g cid
+
+> getComp' :: StructGraph -> CompID -> [StructGraph]
+> getComp' g cid 
+>     | compID g == cid 
+>     = [g]
+>     | otherwise       
+>     = concat $ map (flip getComp' cid) (nodes g)
+
+> isAtomic :: StructGraph -> Bool
+> isAtomic g
+>     = if (length (nodes g) == 0) then True else False
+
+
+
+> superNode :: StructGraph -> CompID -> StructGraph
+> superNode g cid 
+>    = if length output == 1
+>           then head output
+>           else error "superNode: corrupted StructGraph"
+>    where output = superNode' g cid
+
+> superNode' :: StructGraph -> CompID -> [StructGraph]
+> superNode' g cid 
+>    | g `isSuperNodeOf` cid
+>    = [g]
+>    | otherwise
+>    = concat $ map (flip superNode' cid) $ nodes g
+
+> isSuperNodeOf :: StructGraph -> CompID -> Bool
+> isSuperNodeOf g cid 
+>     = if length (filter (== cid) subNodes) > 0
+>           then True
+>           else False
+>     where subNodes = map compID $ nodes g
+
+ nextNodes :: StructGraph -> CompID -> [StructGraph]
+ nextNodes g cid 
+     = nub $ map ((getComp g).snkComp) $ filter (isSrcComp cid) superEdges
+     where superEdges = edges $ superNode (completeEdges g) cid
+
+ nextNodes :: StructGraph -> CompID -> [StructGraph]
+ 
+
+> fromComp :: StructGraph -> CompID -> [Edge]
+> fromComp g cid
+>     = filter (\x -> (not.isFromOuter $ x) 
+>                  && (cid == (srcComp x) ) ) $ edges $ superNode g cid
+
+> nextAtomic :: StructGraph -> Edge -> (CompID, PinID)
+> nextAtomic g e
+>     | isToOuter e && compID super == 0
+>     = (0, snkPin e)
+>    
+>     | isToOuter e
+>     = nextAtomic g $ head $ filter (\x -> sourceInfo x == (Just $ compID super, snkPin e)) $ edges supersuper
+>
+>     | not.isAtomic $ sub 
+>     = nextAtomic g $ head $ filter (\x -> (isFromOuter x) && (snkPin e == srcPin x)) $ edges sub
+>
+>     | isAtomic sub
+>     = (snkComp e, snkPin e)
+>     where sub        = getComp   g (snkComp e)
+>           super      = superNode g (srcComp e)
+>           supersuper = superNode g (compID super)
+
+
+> flatten :: StructGraph -> StructGraph
+> flatten g 
+>     = g' { nodes = nub $ nodes g'
+>          , edges =       edges g' ++ enders
+>          }
+>     where g'            = foldl (f g) (g { nodes = [], edges = starters }) innerConns
+> 
+>           allAtomCIDs   = filter isAtomic $ allCompIDs g
+>           edgsFromAtom  = map (fromComp g . compID) allAtomCIDs
+>           nextCIDs      = map (map $ nextAtomic g) edgsFromAtom
+>           connections   = concat $ map (\(x, ys) -> concat $ map (\z -> [(compID x, z)]) ys) $ zip allAtomCIDs nextCIDs
+>
+>           starters      = zipWith (\(c, p)      i -> MkEdge (Nothing, i) (Just c,  p)) (map (nextAtomic g) fromOuterEs)                 ([0..])
+>           enders        = zipWith (\(c, (_, p)) i -> MkEdge (Just c,  p) (Nothing, i)) (filter (\x  -> (fst.snd) x == 0) $ connections) ([0..])
+> 
+>           innerConns    = filter (\x  -> (fst.snd) x /= 0) $ connections
+>           fromOuterEs   = filter (isFromOuter) $ edges g
+>
+>           f orig_g new_g (nextF, nextTo@(nextToC, nextToP)) 
+>                         = new_g { nodes = nub $ nodes new_g ++ (getComp g nextF) : [getComp g nextToC]
+>                                 , edges = nub $ edges new_g ++ [(connectCID orig_g new_g nextF nextTo)]
+>                                 } 
+
+
+> connectCID :: StructGraph -> StructGraph -> CompID -> (CompID, PinID) -> Edge
+> connectCID old_g g cidF (cidT,pidT)
+>     = MkEdge (Just cidF, nextFpin) (Just cidT, pidT)
+>     where nextFpin  = head $ drop cntEsFrom $ sources $ getComp old_g cidF
+>           cntEsFrom = length $ filter (\x -> (not.isFromOuter $ x) && (srcComp x == cidF)) $ edges g
