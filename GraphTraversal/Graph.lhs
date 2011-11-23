@@ -6,7 +6,7 @@
 
 > emptyGraph :: Circuit
 > emptyGraph 
->   = MkSG { name    = "..."
+>   = MkSG { label   = "..."
 >          , compID  = 0
 >          , nodes   = []
 >          , edges   = []
@@ -15,31 +15,31 @@
 >          }
 
 > arrGraph 
->   = emptyGraph { name    = "-ARR-" 
+>   = emptyGraph { label   = "-ARR-" 
 >                , sinks   = [0]
 >                , sources = [0]
 >                }
 
 > throughGraph 
->   = emptyGraph { name    = "(-)"
+>   = emptyGraph { label   = "(-)"
 >                , sinks   = [0]
 >                , sources = [0]
 >                }
 
 > idGraph 
->   = emptyGraph { name    = "-ID-"
+>   = emptyGraph { label   = "-ID-"
 >                , sinks   = [0]
 >                , sources = [0]
 >                }
 
 > leftGraph 
->   = emptyGraph { name    = "(L)"
+>   = emptyGraph { label   = "(L)"
 >                , sinks   = []
 >                , sources = []
 >                }
 
 > rightGraph 
->   = emptyGraph { name    = "(R)"
+>   = emptyGraph { label   = "(R)"
 >                , sinks   = []
 >                , sources = []
 >                }

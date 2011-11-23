@@ -91,19 +91,19 @@ a name and of some port-definitions (like what wires go inside and come back out
 > vhdl_entity :: Circuit -> [NamedComp] -> String
 > vhdl_entity g namedComps
 >      = concat $ map break
->      [ "ENTITY " ++ name g ++ " IS"
+>      [ "ENTITY " ++ label g ++ " IS"
 >      , "PORT (" 
 >      , (sepBy "\n" $ map (\x -> x ++ " : IN  std_logic;") $ snks)
 >      , (sepBy "\n" $ map (\x -> x ++ " : OUT std_logic ") $ srcs)
 >      , ");"
->      , "END " ++ name g ++ ";"
+>      , "END " ++ label g ++ ";"
 >      ]
 >      where snks = getInPinNames  namedComps (compID g)
 >            srcs = getOutPinNames namedComps (compID g)
 
 > vhdl_architecture :: Circuit -> String
 > vhdl_architecture g 
->     = "ARCHITECTURE " ++ (name g) ++ "Struct OF " ++ (name g) ++ " IS"
+>     = "ARCHITECTURE " ++ (label g) ++ "Struct OF " ++ (label g) ++ " IS"
 
 
 The VHDL-Component definitions describe the basic interface to the components
@@ -116,12 +116,12 @@ components, because we descent only one step down in the graph.
 >      = concat $ nub $ map f (nodes g)
 >     where f g' = concat $ map break
 >                [ ""
->                , "COMPONENT " ++ name g' ++ "Comp"
+>                , "COMPONENT " ++ label g' ++ "Comp"
 >                , "PORT ("
 >                , (sepBy "\n" $ map (\x -> x ++ " : IN  std_logic;") $ snks)
 >                , (sepBy "\n" $ map (\x -> x ++ " : OUT std_logic ") $ srcs)
 >                , ");"
->                , "END COMPONENT " ++ name g' ++ "Comp;"
+>                , "END COMPONENT " ++ label g' ++ "Comp;"
 >                ] 
 >                where snks = getInPinNames  namedComps (compID g')
 >                      srcs = getOutPinNames namedComps (compID g')
@@ -147,7 +147,7 @@ The VHDL-Signals is the list of inner wires, that are used inside the new compon
 > vhdl_portmap :: Circuit -> [NamedComp] -> [([Anchor], String)] -> Circuit -> String
 > vhdl_portmap superG namedComps namedEdges' g
 >      = concat $ map break
->      [ (name g) ++ "Inst" ++ (show$compID g) ++ ": " ++ (name g) ++ "Comp"
+>      [ (label g) ++ "Inst" ++ (show$compID g) ++ ": " ++ (label g) ++ "Comp"
 >      , "PORT MAP ("
 >      ++ (sepBy ", " $ filter ((>0).length) [incoming, signaling, outgoing])
 >      ++ ");"
@@ -249,7 +249,7 @@ TODO TODO TODO / why is it called oPin when the in-pin is gathered with the (map
  vhdl_portmap :: Circuit -> (NamedIOs, NamedSigs) -> String
  vhdl_portmap g names@((namedSnks, namedSrcs), namedSigs)
       = concat $ map break
-      [ (name g) ++ "Inst: " ++ (name g) ++ "Comp"
+      [ (label g) ++ "Inst: " ++ (label g) ++ "Comp"
       , "PORT MAP ("
       ++ (sepBy ", " $ (map (\(_, (x, y)) -> x ++ " => " ++ y)) $ snk_sig_combi ++ src_sig_combi)
       ++ ");"

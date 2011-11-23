@@ -89,7 +89,7 @@ end of a string.
 >      where f g' = concat $ map break
 >                 [ ""
 >                 , "compID" ++ show (compID g') ++ " ["
->                 , "    " ++ dot_label (sinks g') (map (\x -> if x == '>' then '-' else x) $ name g') (compID g') (sources g')
+>                 , "    " ++ dot_label (sinks g') (map (\x -> if x == '>' then '-' else x) $ label g') (compID g') (sources g')
 >                 , "    " ++ "shape = \"record\""
 >                 , "]"
 >                 ] 

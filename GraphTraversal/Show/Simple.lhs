@@ -9,7 +9,7 @@
 > showCircuit :: Circuit -> String
 > showCircuit g =  "\n"
 >             ++ (show.compID) g
->             ++ "(" ++ (show.name) g ++ "): "
+>             ++ "(" ++ (show.label) g ++ "): "
 >             ++ (prtInOuts.sinks) g ++ "] "
 >             ++ (showEdges.edges) g
 >             ++ " [" ++ (prtInOuts.sources) g

@@ -37,7 +37,7 @@ two lines).
 > conn' :: ((Circuit -> Circuit -> ([Edge], (Pins, Pins))), String) 
 >       -> Circuit -> Circuit -> Circuit
 > conn' (rewire, s) sg_f sg_g 
->     = MkSG { name    = (name sg_f') ++ s ++ (name sg_g')
+>     = MkSG { label   = (label sg_f') ++ s ++ (label sg_g')
 >            , compID  = 0
 >            , nodes   = sg_f': sg_g' : []
 >            , edges   = es
@@ -260,14 +260,14 @@ to the intermediate pin, are generated with repeat.
 
 
 > isGenerated :: Circuit -> Bool
-> isGenerated s = ((== '|').head.name) s && ((== '|').head.reverse.name) s
+> isGenerated s = ((== '|').head.label) s && ((== '|').head.reverse.label) s
 
 > isGeneric :: Circuit -> Bool
-> isGeneric s = isGenerated s && ((== "|b>c|").name) s
+> isGeneric s = isGenerated s && ((== "|b>c|").label) s
 
 > isID :: Circuit -> Bool
-> isID = ((== "-ID-").name)
-> -- isID = ((isInfixOf "-ID-").name)
+> isID = ((== "-ID-").label)
+> -- isID = ((isInfixOf "-ID-").label)
 
 
 > dropEdgesBordering :: CompID -> [Edge] -> [Edge]

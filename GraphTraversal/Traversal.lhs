@@ -22,17 +22,17 @@
 > infixr 3 &&&
 
 
-First thing to do is to define a new data type, which is called TraversalArrow.
+First thing to do is to define a new data type, which is called Grid (TraversalArrow)
 
-> newtype TraversalArrow a b c = TR (a (b, Circuit) (c, Circuit))
+> newtype Grid a b c = GR (a (b, Circuit) (c, Circuit))
 
 
-Bevor the TraversalArrow becomes an instance of Arrow, it has to be an instance
+Bevor the Grid (TraversalArrow) becomes an instance of Arrow, it has to be an instance
 of Category.
 
-> instance (Arrow a) => Category (TraversalArrow a) where
->     id              = TR id
->     (TR f) . (TR g) = TR $ proc (x, sg) -> do
+> instance (Arrow a) => Category (Grid a) where
+>     id              = GR id
+>     (GR f) . (GR g) = GR $ proc (x, sg) -> do
 >                               (x_g, sg_g) <- g -< (x, sg)
 >                               (x_f, sg_f) <- f -< (x_g, sg   `connect` sg_g)
 >                               returnA          -< (x_f, sg_g `connect` sg_f)
@@ -64,49 +64,49 @@ This class and it's instances define the different type-variants that are possib
 >   showType :: (b -> c) -> Circuit
 
 > instance ShowType (b, c) (c, b) where
->   showType _ = emptyGraph { name = "|b,c>c,b|" 
+>   showType _ = emptyGraph { label = "|b,c>c,b|" 
 >                           , sinks = mkPins 2
 >                           , sources = mkPins 2
 >                           }
   
 > instance ShowType b (b, b) where
->   showType _ = emptyGraph { name = "|b>b,b|"
+>   showType _ = emptyGraph { label = "|b>b,b|"
 >                           , sinks = mkPins 1
 >                           , sources = mkPins 2
 >                           }
   
 > instance ShowType (b, b) b where
->   showType _ = emptyGraph { name = "|b,b>b|"
+>   showType _ = emptyGraph { label = "|b,b>b|"
 >                           , sinks = mkPins 2
 >                           , sources = mkPins 1
 >                           }
   
  instance ShowType (b, c) (b', c') where
-   showType _ = emptyGraph { name = "b,c>b',c'"
+   showType _ = emptyGraph { label = "b,c>b',c'"
                            , sinks = mkPins 1
                            , sources = mkPins 1
                            }
   
 instance ShowType b b where
-  showType _ = emptyGraph { name = "|b>b|"
+  showType _ = emptyGraph { label = "|b>b|"
                           , sinks = mkPins 1
                           , sources = mkPins 1
                           }
   
  instance ShowType (b -> (c, d)) where
-   showType _ = emptyGraph { name = "b>c,d"
+   showType _ = emptyGraph { label = "b>c,d"
                            , sinks = mkPins 1
                            , sources = mkPins 1
                            }
 
  instance ShowType ((b, c) -> d) where
-   showType _ = emptyGraph { name = "b,c>d"
+   showType _ = emptyGraph { label = "b,c>d"
                            , sinks = mkPins 1
                            , sources = mkPins 1
                            }
   
 > instance ShowType b c where
->   showType _ = emptyGraph { name = "|b>c|"
+>   showType _ = emptyGraph { label = "|b>c|"
 >                           , sinks = mkPins 1
 >                           , sources = mkPins 1
 >                           }
@@ -123,24 +123,24 @@ instance ShowType b b where
 
 
 
-> instance (Arrow a) => Arrow (TraversalArrow a) where
+> instance (Arrow a) => Arrow (Grid a) where
 >     arr   f       
->       = TR $ arr (\(x, sg) -> (f x, showType f))
+>       = GR $ arr (\(x, sg) -> (f x, showType f))
 >
->     first  (TR f) 
->       = TR $   arr swapsnd 
+>     first  (GR f) 
+>       = GR $   arr swapsnd 
 >            >>> first f 
 >            >>> arr swapsnd 
 >            >>> second (arr (flip combine idGraph))
 >
->     second (TR f) 
->       = TR $   arr movebrc
+>     second (GR f) 
+>       = GR $   arr movebrc
 >            >>> second f 
 >            >>> arr backbrc
 >            >>> second (arr (combine idGraph))
 >
->     (TR f) &&& (TR g) 
->       = TR $   dup
+>     (GR f) &&& (GR g) 
+>       = GR $   dup
 >            >>> first  f
 >            >>> second g
 >            >>> dup
@@ -148,8 +148,8 @@ instance ShowType b b where
 >            >>> second (arr (\s -> dupCombine (snd.fst$s) (snd.snd$s)))
 >       where dup = arr (\x -> (x, x))
 >
->     (TR f) *** (TR g) 
->       = TR $   dup
+>     (GR f) *** (GR g) 
+>       = GR $   dup
 >            >>> first  (arr (\x -> (,) (fst.fst$x) (snd$x)))
 >            >>> second (arr (\x -> (,) (snd.fst$x) (snd$x)))
 >            >>> first  f
@@ -165,21 +165,21 @@ one, that processes every path and this one, that processes
 only a specific path. (btw, the combine-function here is still not 
 the correct combinator for the two StructGraph's)
 
-instance (ArrowChoice a, Typeable a) => ArrowChoice (TraversalArrow a) where
-    left (TR f) = TR $ arr distr >>> left f >>> arr undistr
+instance (ArrowChoice a, Typeable a) => ArrowChoice (Grid a) where
+    left (GR f) = GR $ arr distr >>> left f >>> arr undistr
         where distr   (Left  x, sg)   = Left  (x, sg) 
               distr   (Right x, sg)   = Right (x, sg) 
               undistr (Left  (x, sg)) = (Left  x, sg `combine` leftGraph)
               undistr (Right (x, sg)) = (Right x, sg `combine` rightGraph)
 
-> runTraversal :: (Arrow a) => TraversalArrow a b c -> a (b, Circuit) (c, Circuit)
-> runTraversal (TR f) = f
+> runGrid :: (Arrow a) => Grid a b c -> a (b, Circuit) (c, Circuit)
+> runGrid (GR f) = f
 
 
 Here the notation for an empty graph is used, to start the computation ... 
 
-> runTraversal_ f x = runTraversal f (x, NoSG)
-> rt = runTraversal_
+> runGrid_ f x = runGrid f (x, NoSG)
+> rt = runGrid_
 
 rt aAdd (1,1) 
 
@@ -192,13 +192,13 @@ A usual process in the hardware development is the synthetisation of the actual
 hardware. Beside the syntethesis the simulation is also an important process while
 developing hardware. Both functionalities are defined in the following:
 
-synthesize :: (Arrow a) => TraversalArrow a b c -> b -> Circuit
+synthesize :: (Arrow a) => Grid a b c -> b -> Circuit
 
-> synthesize f x = flatten $ snd $ runTraversal f (x, NoSG)
+> synthesize f x = flatten $ snd $ runGrid f (x, NoSG)
 
-simulate :: (Arrow a) => TraversalArrow a b c -> b -> c
+simulate :: (Arrow a) => Grid a b c -> b -> c
 
-> simulate f x = fst $ runTraversal f (x, NoSG)
+> simulate f x = fst $ runGrid f (x, NoSG)
 
 
 Ist synthesize mit unit () möglich? 
@@ -212,25 +212,25 @@ _kritische_pfad_analyse_ / ...
 >   first  f = (\(x, y) -> (f x, y)) -- f *** id -- this results in an endless loop ...
 
 
-> class Arrow a => (ArrowTraversal a) where
+> class Arrow a => (ArrowGrid a) where
 >   fetch :: a e  Circuit
 >   store :: a Circuit ()
 
-> x :: Arrow a => TraversalArrow a b b 
+> x :: Arrow a => Grid a b b 
 > x = arr id
 
-> instance Arrow a => (ArrowTraversal (TraversalArrow a)) where
->   fetch = TR $ arr (\(_, sg) -> (sg, sg))
->   store = TR $ arr (\(sg, _) -> ((), sg))
+> instance Arrow a => (ArrowGrid (Grid a)) where
+>   fetch = GR $ arr (\(_, sg) -> (sg, sg))
+>   store = GR $ arr (\(sg, _) -> ((), sg))
 
 
 > insert :: b -> (a, b) -> (a, b)
 > insert sg ~(x, _) = (x, sg)
 
-> insEmpty = insert emptyGraph { name = "eeeempty", sinks = mkPins 1, sources = mkPins 3 }
+> insEmpty = insert emptyGraph { label = "eeeempty", sinks = mkPins 1, sources = mkPins 3 }
 
-> augment :: (Arrow a) => Circuit -> TraversalArrow a b c -> TraversalArrow a b c
-> augment sg (TR f) = TR $ f >>> arr (insert sg)
+> augment :: (Arrow a) => Circuit -> Grid a b c -> Grid a b c
+> augment sg (GR f) = GR $ f >>> arr (insert sg)
 
-> y :: Arrow a => TraversalArrow a b b
+> y :: Arrow a => Grid a b b
 > y = augment emptyGraph  x

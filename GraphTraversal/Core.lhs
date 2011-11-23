@@ -61,7 +61,7 @@ with NoSG. It's uses are i.e. to start the computation with runTraversal
 where an empty graph has to be passed over to the computing arrow
 
 > data Circuit
->   = MkSG { name    :: String
+>   = MkSG { label   :: String
 >          , compID  :: CompID
 >          , nodes   :: [Circuit]
 >          , edges   :: [Edge]

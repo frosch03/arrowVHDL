@@ -36,9 +36,9 @@ par2 :: (Int, Int)
 par2 = (0,0)
 
 
-toNode :: (String, Int, Int) -> Circuit
-toNode (name, inPins, outPins)
-    = emptyGraph { name    = name
+toCircuit :: (String, Int, Int) -> Circuit
+toCircuit (name, inPins, outPins)
+    = emptyGraph { label   = name
                  , sinks   = [0..(inPins -1)]
                  , sources = [0..(outPins -1)]
                  }
@@ -46,7 +46,7 @@ toNode (name, inPins, outPins)
 
 filterByName :: Circuit -> String -> Circuit
 filterByName s n 
-    = if (name s == n) && (length (nodes s) < 1) 
+    = if (label s == n) && (length (nodes s) < 1) 
         then NoSG
         else s { nodes = (map (flip filterByName n) $ nodes s) }
 
@@ -54,12 +54,12 @@ filterByName s n
 atomic :: Circuit -> Bool
 atomic s = length (nodes s) <= 0
 
-replace :: Circuit -> (Node, Node) -> Circuit
+replace :: Circuit -> (Circuit, Circuit) -> Circuit
 replace s ft@(from, to) 
     | not $ atomic s
     = s { nodes = map (flip replace $ ft) (nodes s) }
     
-    |  name s             == name from
+    |  label s            == label from
     && length (sinks   s) == length (sinks   from)
     && length (sources s) == length (sources from)
     && length (sinks   s) == length (sinks   to)
@@ -70,7 +70,7 @@ replace s ft@(from, to)
 
 -- mark / cut / trim
 
-rebuildIf :: (Circuit -> Bool) ->  ([Edge], [Node]) -> Node -> ([Edge], [Node])
+rebuildIf :: (Circuit -> Bool) ->  ([Edge], [Circuit]) -> Circuit -> ([Edge], [Circuit])
 rebuildIf isIt (super_es, new_ns) NoSG = (super_es, new_ns)
 rebuildIf isIt (super_es, new_ns) n
     |  isIt n       && length (sinks n) == length (sources n)
@@ -88,12 +88,12 @@ rebuildIf isIt (super_es, new_ns) n
                       , edges = es
                       }
 
-bypass :: Circuit -> Node -> Circuit
+bypass :: Circuit -> Circuit -> Circuit
 bypass s item 
   = s { nodes = ns
       , edges = es
       }
-  where (es, ns) = foldl (rebuildIf (\x -> name x == name item)) (edges s, []) $ nodes s
+  where (es, ns) = foldl (rebuildIf (\x -> label x == label item)) (edges s, []) $ nodes s
 
 
 grepWires :: (Edge -> Anchor) -> [Edge] -> CompID -> [Edge]
