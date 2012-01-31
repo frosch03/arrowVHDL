@@ -1,4 +1,4 @@
-> module GraphTraversal.Core
+> module Grid.Core
 > where
 
 
@@ -71,6 +71,8 @@ where an empty graph has to be passed over to the computing arrow
 >   | NoSG
 >
 >   deriving (Eq)
+
+> type Netlist = Circuit
 
 Remember, a Sink is something that takes something  (INPUT)
 and a Source is something that produces something (OUTPUT)

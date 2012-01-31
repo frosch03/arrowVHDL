@@ -1,4 +1,4 @@
-module GraphTraversal.Tools
+module Grid.Tools
 where
 
 -- import Data.List (union, groupBy, (\\), isInfixOf)
@@ -15,18 +15,19 @@ import System.Cmd (system)
 
 import Data.List ((\\))
 
-import GraphTraversal.Core
-import GraphTraversal.Show
-import GraphTraversal.Graph
-import GraphTraversal.Auxillary
-import GraphTraversal.Show.DOT
+import Grid.Core
+import Grid.Show
+import Grid.Graph
+import Grid.Auxillary
+import Grid.Show.DOT
+import Grid.Workers (mergeEdges)
 
 type Node = Circuit
 
 
 -- Demo Functions
 -----------------
-write x    = writeFile "/tmp/test.dot" (GraphTraversal.Show.DOT.showCircuit x)
+write x    = writeFile "/tmp/test.dot" (Grid.Show.DOT.showCircuit x)
 genPicture = system "dot /tmp/test.dot -Tjpg -o /tmp/test.jpg"
 
 par1 :: Int
@@ -38,7 +39,7 @@ par2 = (0,0)
 
 toCircuit :: (String, Int, Int) -> Circuit
 toCircuit (name, inPins, outPins)
-    = emptyGraph { label   = name
+    = emptyCircuit { label   = name
                  , sinks   = [0..(inPins -1)]
                  , sources = [0..(outPins -1)]
                  }

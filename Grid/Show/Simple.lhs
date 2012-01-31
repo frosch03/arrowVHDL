@@ -1,10 +1,10 @@
-> module GraphTraversal.Show.Simple
+> module Grid.Show.Simple
 > ( showCircuit
 > , showEdge
 > )
 > where
 
-> import GraphTraversal.Core
+> import Grid.Core
 
 > showCircuit :: Circuit -> String
 > showCircuit g =  "\n"

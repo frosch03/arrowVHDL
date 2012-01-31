@@ -1,11 +1,11 @@
-> module GraphTraversal.Graph
+> module Grid.Graph
 > where
 
-> import GraphTraversal.Core
+> import Grid.Core
 
 
-> emptyGraph :: Circuit
-> emptyGraph 
+> emptyCircuit :: Circuit
+> emptyCircuit 
 >   = MkSG { label   = "..."
 >          , compID  = 0
 >          , nodes   = []
@@ -14,32 +14,32 @@
 >          , sources = []
 >          }
 
-> arrGraph 
->   = emptyGraph { label   = "-ARR-" 
+> arrCircuit 
+>   = emptyCircuit { label   = "-ARR-" 
 >                , sinks   = [0]
 >                , sources = [0]
 >                }
 
-> throughGraph 
->   = emptyGraph { label   = "(-)"
+> throughCircuit 
+>   = emptyCircuit { label   = "(-)"
 >                , sinks   = [0]
 >                , sources = [0]
 >                }
 
-> idGraph 
->   = emptyGraph { label   = "-ID-"
+> idCircuit 
+>   = emptyCircuit { label   = "-ID-"
 >                , sinks   = [0]
 >                , sources = [0]
 >                }
 
-> leftGraph 
->   = emptyGraph { label   = "(L)"
+> leftCircuit 
+>   = emptyCircuit { label   = "(L)"
 >                , sinks   = []
 >                , sources = []
 >                }
 
-> rightGraph 
->   = emptyGraph { label   = "(R)"
+> rightCircuit 
+>   = emptyCircuit { label   = "(R)"
 >                , sinks   = []
 >                , sources = []
 >                }

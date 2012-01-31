@@ -2,12 +2,12 @@ This module defines an Algebraic Data Type of a transit structure for edges.
 It holds a tuple of a list of anchor points with their according name. The 
 anchor points define the start and end point of an edge.
 
-> module GraphTraversal.EdgeTransit 
+> module Grid.EdgeTransit 
 > where
 
 > import Data.Maybe ( isJust )
 
-> import GraphTraversal.Core
+> import Grid.Core
 
 
 +------------------------+

@@ -7,16 +7,18 @@
 >              FlexibleInstances,
 >              RebindableSyntax #-}
 
-> module GraphTraversal.Traversal 
+> module Grid.Traversal 
 > where
 
 > import Prelude hiding (id, (.))
+> import qualified Prelude as Pr
 
-> import Control.Category
+> import Control.Category 
 
-> import GraphTraversal.Core
-> import GraphTraversal.Auxillary
-> import GraphTraversal.Graph
+> import Grid.Core
+> import Grid.Auxillary
+> import Grid.Graph
+> import Grid.Workers (flatten)
 
 > infixr 3 ***
 > infixr 3 &&&
@@ -36,6 +38,17 @@ of Category.
 >                               (x_g, sg_g) <- g -< (x, sg)
 >                               (x_f, sg_f) <- f -< (x_g, sg   `connect` sg_g)
 >                               returnA          -< (x_f, sg_g `connect` sg_f)
+
+TODO:
+TODO: better would be a solution similar to the following. This is because one could not 
+assume, that an a is alway an Arrow before we make it a Category ... Better would also be
+to make (b, Circuit) `a` (c, Circuit) an instance of Category, so we could use this
+attribute in the definition like ...
+     id              = GR $ \(x, sg) -> (Pr.id $ x, sg)
+     (GR f) . (GR g) = GR $ \(x, sg) ->
+                               let (x_g, sg_g) = g (x, sg)
+                                   (x_f, sg_f) = f (x_g, sg `connect` sg_g)
+                               in  (x_f, sg_g `connect` sg_f)
 
 We also need a definition of what an Arrow is, so here is the arrow-class.
 Note that this class is slightly different from the vanilla-arrow-class, as there 
@@ -64,49 +77,49 @@ This class and it's instances define the different type-variants that are possib
 >   showType :: (b -> c) -> Circuit
 
 > instance ShowType (b, c) (c, b) where
->   showType _ = emptyGraph { label = "|b,c>c,b|" 
+>   showType _ = emptyCircuit { label = "|b,c>c,b|" 
 >                           , sinks = mkPins 2
 >                           , sources = mkPins 2
 >                           }
   
 > instance ShowType b (b, b) where
->   showType _ = emptyGraph { label = "|b>b,b|"
+>   showType _ = emptyCircuit { label = "|b>b,b|"
 >                           , sinks = mkPins 1
 >                           , sources = mkPins 2
 >                           }
   
 > instance ShowType (b, b) b where
->   showType _ = emptyGraph { label = "|b,b>b|"
+>   showType _ = emptyCircuit { label = "|b,b>b|"
 >                           , sinks = mkPins 2
 >                           , sources = mkPins 1
 >                           }
   
  instance ShowType (b, c) (b', c') where
-   showType _ = emptyGraph { label = "b,c>b',c'"
+   showType _ = emptyCircuit { label = "b,c>b',c'"
                            , sinks = mkPins 1
                            , sources = mkPins 1
                            }
   
 instance ShowType b b where
-  showType _ = emptyGraph { label = "|b>b|"
+  showType _ = emptyCircuit { label = "|b>b|"
                           , sinks = mkPins 1
                           , sources = mkPins 1
                           }
   
  instance ShowType (b -> (c, d)) where
-   showType _ = emptyGraph { label = "b>c,d"
+   showType _ = emptyCircuit { label = "b>c,d"
                            , sinks = mkPins 1
                            , sources = mkPins 1
                            }
 
  instance ShowType ((b, c) -> d) where
-   showType _ = emptyGraph { label = "b,c>d"
+   showType _ = emptyCircuit { label = "b,c>d"
                            , sinks = mkPins 1
                            , sources = mkPins 1
                            }
   
 > instance ShowType b c where
->   showType _ = emptyGraph { label = "|b>c|"
+>   showType _ = emptyCircuit { label = "|b>c|"
 >                           , sinks = mkPins 1
 >                           , sources = mkPins 1
 >                           }
@@ -131,13 +144,13 @@ instance ShowType b b where
 >       = GR $   arr swapsnd 
 >            >>> first f 
 >            >>> arr swapsnd 
->            >>> second (arr (flip combine idGraph))
+>            >>> second (arr (flip combine idCircuit))
 >
 >     second (GR f) 
 >       = GR $   arr movebrc
 >            >>> second f 
 >            >>> arr backbrc
->            >>> second (arr (combine idGraph))
+>            >>> second (arr (combine idCircuit))
 >
 >     (GR f) &&& (GR g) 
 >       = GR $   dup
@@ -169,8 +182,18 @@ instance (ArrowChoice a, Typeable a) => ArrowChoice (Grid a) where
     left (GR f) = GR $ arr distr >>> left f >>> arr undistr
         where distr   (Left  x, sg)   = Left  (x, sg) 
               distr   (Right x, sg)   = Right (x, sg) 
-              undistr (Left  (x, sg)) = (Left  x, sg `combine` leftGraph)
-              undistr (Right (x, sg)) = (Right x, sg `combine` rightGraph)
+              undistr (Left  (x, sg)) = (Left  x, sg `combine` leftCircuit)
+              undistr (Right (x, sg)) = (Right x, sg `combine` rightCircuit)
+
+
+> class Arrow a => ArrowLoop a where
+>     loop :: a (b,d) (c,d) -> a b c
+
+> instance (ArrowLoop a) => ArrowLoop (Grid a) where
+>     loop (GR f) = GR (loop (arr swapsnd >>> f >>> arr swapsnd))
+
+> instance ArrowLoop (->) where
+>     loop f b = let (c,d) = f (b,d) in c
 
 > runGrid :: (Arrow a) => Grid a b c -> a (b, Circuit) (c, Circuit)
 > runGrid (GR f) = f
@@ -227,10 +250,10 @@ _kritische_pfad_analyse_ / ...
 > insert :: b -> (a, b) -> (a, b)
 > insert sg ~(x, _) = (x, sg)
 
-> insEmpty = insert emptyGraph { label = "eeeempty", sinks = mkPins 1, sources = mkPins 3 }
+> insEmpty = insert emptyCircuit { label = "eeeempty", sinks = mkPins 1, sources = mkPins 3 }
 
 > augment :: (Arrow a) => Circuit -> Grid a b c -> Grid a b c
 > augment sg (GR f) = GR $ f >>> arr (insert sg)
 
 > y :: Arrow a => Grid a b b
-> y = augment emptyGraph  x
+> y = augment emptyCircuit  x

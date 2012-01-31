@@ -2,10 +2,10 @@ This Module defines an Algebraic Data Type that represents a Transit-Structure f
 Pins. The Structure holds a list of components with their in- and out pins and the 
 naming of those pins
 
-> module GraphTraversal.PinTransit 
+> module Grid.PinTransit 
 > where 
 
-> import GraphTraversal.Core
+> import Grid.Core
 
 
 +---------------------------------------------------------+

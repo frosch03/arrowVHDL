@@ -1,4 +1,4 @@
-> module GraphTraversal.Show.VHDL
+> module Grid.Show.VHDL
 > ( showCircuit
 > , showEdge
 > )
@@ -11,10 +11,13 @@
 
 > import Prelude hiding ( break ) 
 
-> import GraphTraversal.Core
+> import Grid.Core
 
-> import GraphTraversal.PinTransit
-> import GraphTraversal.EdgeTransit
+> import Grid.PinTransit
+> import Grid.EdgeTransit
+> import Grid.Tests
+
+> import Grid.Show.Tools
 
 
 The showEdge function is only needed for the Show class. 
@@ -28,13 +31,6 @@ While VHDL-Code is generated, of this function is made no use ...
 
 In a VHDL-Sorce file, there are two main sections, that we need to specify 
 in order to get working VHDL-Source.
-
-First of all we need a function, that appends a newline character t the 
-end of a string. 
-
-> break :: String -> String
-> break =  flip (++) "\n"
-
 
 The function that starts the show-process is the toVHDL-function. Here we 
 define the basic structure of a VHDL-SourceCode with an header, the 
@@ -152,9 +148,9 @@ The VHDL-Signals is the list of inner wires, that are used inside the new compon
 >      ++ (sepBy ", " $ filter ((>0).length) [incoming, signaling, outgoing])
 >      ++ ");"
 >      ]
->      where relevantEdges = filter (isFromOrToComp' $ compID g) $ edges superG
->            edge2inside   = filter (fromOutside') $ relevantEdges
->            edge2outside  = filter (toOutside')   $ relevantEdges
+>      where relevantEdges = filter (isFromOrToComp $ compID g) $ edges superG
+>            edge2inside   = filter (isFromOutside) $ relevantEdges
+>            edge2outside  = filter (isToOutside)   $ relevantEdges
 >            pin2signal    = relevantEdges \\ (edge2outside ++ edge2inside)
 >            incoming      = sepBy ", " $ map (genPortMap namedComps namedEdges' (compID g)) $ edge2inside
 >            outgoing      = sepBy ", " $ map (genPortMap namedComps namedEdges' (compID g)) $ edge2outside
@@ -223,53 +219,6 @@ TODO TODO TODO / why is it called oPin when the in-pin is gathered with the (map
             iPinName  = head $ map snd $ filter (\(pid, _) -> pid == pi) $ iPinNames
             oPinName  = head $ map snd $ filter (\(pid, _) -> pid == po) $ oPinNames
 
-> isFromOrToComp' :: CompID -> Edge -> Bool
-> isFromOrToComp' cid (MkEdge (Nothing, pi) (Just co, po)) = cid == co
-> isFromOrToComp' cid (MkEdge (Just ci, pi) (Nothing, po)) =  cid == ci
-> isFromOrToComp' cid (MkEdge (Just ci, pi) (Just co, po)) =  cid == co 
->                                                          || cid == ci
-
-> fromOutside' :: Edge -> Bool
-> fromOutside' (MkEdge (Nothing, _) _) = True
-> fromOutside' otherwise               = False
-
-> toOutside' :: Edge -> Bool
-> toOutside' (MkEdge _ (Nothing, _)) = True
-> toOutside' otherwise               = False
-
-> isFromComp' :: CompID -> Edge -> Bool 
-> isFromComp' cid (MkEdge (Just ci, _) _) = cid == ci
-> isFromComp' _   _                       = False
-
-> isToComp' :: CompID -> Edge -> Bool 
-> isToComp' cid (MkEdge _ (Just co, _)) = cid == co
-> isToComp' _   _                       = False
-
-
- vhdl_portmap :: Circuit -> (NamedIOs, NamedSigs) -> String
- vhdl_portmap g names@((namedSnks, namedSrcs), namedSigs)
-      = concat $ map break
-      [ (label g) ++ "Inst: " ++ (label g) ++ "Comp"
-      , "PORT MAP ("
-      ++ (sepBy ", " $ (map (\(_, (x, y)) -> x ++ " => " ++ y)) $ snk_sig_combi ++ src_sig_combi)
-      ++ ");"
-      ]
-     where f :: Edge -> String
-           f (MkEdge (Just ci, pi) (Just co, po)) = 
-
-      where relevantSnks  = filter (isAtComp       $ compID g) namedSnks
-            relevantSrcs  = filter (isAtComp       $ compID g) namedSrcs
-            relevantSigs  = filter (isFromOrToComp $ compID g) namedSigs
-            compIOs       = map (\x -> (compID g, x)) $ (sinks g ++ sources g)
-            snk_sig_combi = concat $ [[ (a_snk, (s_snk, s_sig)) 
-                              | (s_snk, a_snk)                  <- relevantSnks, a_snk == a2_sig]
-                              | (s_sig, (MkEdge a1_sig a2_sig)) <- relevantSigs]
-            src_sig_combi = concat $ [[ (a_src, (s_src, s_sig)) 
-                              | (s_src, a_src)                  <- relevantSrcs, a_src == a1_sig]
-                              | (s_sig, (MkEdge a1_sig a2_sig)) <- relevantSigs]
-
-
-
 
 The namePins function takes a function that extracts a list of PinIDs out of an StructGraph.
 (This could be the sinks or the sources functions) 
@@ -298,18 +247,3 @@ to do this once more.
 > sepBy sep []     = ""
 > sepBy sep (x:[]) = x
 > sepBy sep xs     = foldl1 (\x y -> x ++ sep ++ y) xs
-
-
-> isIOPort :: (String, Anchor) -> Bool
-> isIOPort (_, (Nothing, _)) = True
-> isIOPort otherwise         = False
-
-> isAtComp :: CompID -> (String, Anchor) -> Bool
-> isAtComp cid (_, (Just cid', _)) 
->     = cid == cid'
-
-> isFromOrToComp :: CompID -> (String, Edge) -> Bool
-> isFromOrToComp cid (_, (MkEdge from to))
->     =  isAtComp cid ("", from)
->     || isAtComp cid ("", to)
-

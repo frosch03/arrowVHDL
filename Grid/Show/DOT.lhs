@@ -1,4 +1,4 @@
-> module GraphTraversal.Show.DOT
+> module Grid.Show.DOT
 > ( showCircuit
 > , showEdge
 > )
@@ -11,10 +11,12 @@
 
 > import Prelude hiding ( break ) 
 
-> import GraphTraversal.Core
+> import Grid.Core
 
-> import GraphTraversal.PinTransit
-> import GraphTraversal.EdgeTransit
+> import Grid.PinTransit
+> import Grid.EdgeTransit
+
+> import Grid.Show.Tools
 
 
 This function produces the edge-description as it is required by the 
@@ -36,13 +38,6 @@ dot language... something like this:
 >     ++ "compID" ++ show snk_cid ++ ':': "ip" ++ show snk_pid
 >     where (Just src_cid, src_pid) = sourceInfo e
 >           (Just snk_cid, snk_pid) = sinkInfo e 
-
-
-A function is needed, that appends a newline character to the 
-end of a string. 
-
-> break :: String -> String
-> break =  flip (++) "\n"
 
 
 > showCircuit :: Circuit -> String

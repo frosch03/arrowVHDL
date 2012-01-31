@@ -5,13 +5,13 @@ import Control.Category
 import Prelude hiding (id, (.))
 import Data.Bits (xor, shiftL, shiftR)
 
-import GraphTraversal.Traversal
-import GraphTraversal.Show
-import GraphTraversal.Core
-import GraphTraversal.Graph
-import GraphTraversal.Auxillary
+import Grid.Traversal
+import Grid.Show
+import Grid.Core
+import Grid.Graph
+import Grid.Auxillary
 
-import GraphTraversal.Tools
+import Grid.Tools
 
 import Defaults ( aId
                 , aConst
@@ -23,6 +23,69 @@ import Defaults ( aId
                 , aShiftR, aShiftR5, aShiftR5addKey
                 , aAddMagic
                 )
+import Control.Monad.Fix
+
+---------------
+-- TESTING TODO
+
+feedback2nd :: (Arrow a, ArrowLoop a) => a (b, d) (c, d) -> a b c
+feedback2nd a = loop a 
+
+-- feedback2ndVia :: (Arrow a) => a (b, d) (b', d) -> a d d -> a b b'
+-- (GR f) `feedback2ndVia` (GR g) = GR $ feedback2nd $ f >>> (aId *** g)
+
+xxx f g = (aId *** aId) >>> f >>> (aId *** g)
+
+
+-- a (Int, (Int, Int)) (Int, (Int, Int))
+--  (start,(n,  step)) (step,(n,   step))
+--                     end
+
+aColl :: (Arrow a, ArrowLoop a) => a Int Int
+aColl = proc start -> do
+            let n    = start
+            let step = 0
+            rec n' <- arr collNext -< n
+                let n    = n'
+                let step = step +1
+            returnA -< step
+
+aAdd1 :: (Arrow a) => a Int Int
+aAdd1 = arr (\x -> x +1)
+
+aSub1 :: (Arrow a) => a Int Int
+aSub1 = arr (\x -> x -1)
+
+aSub2 = aSub1 >>> aSub1
+
+
+sr = 44100 :: Int
+dt = 1 / (fromIntegral sr)
+
+aTet :: (ArrowLoop a) => a () Double
+aTet = proc () -> do
+    rec let e = 1 + i
+        i <- integral -< e
+    returnA -< e
+
+integral :: (ArrowLoop a) => a Double Double
+integral = proc x -> do
+    rec let i' = i + x * dt
+        i <- init 0 -< i'
+    returnA -< i
+
+-- aColl :: (Arrow a, ArrowLoop a) => a ((Int, Int), d) (Int, d) -> a (Int, Int) Int 
+-- aColl 
+--     = augment 
+--         emptyCircuit { label   = "Coll"
+--                      , sinks   = mkPins 2
+--                      , sources = mkPins 1
+--                      } 
+--     $ feedback2nd collatz
+
+-- TESTING TODO
+---------------
+
 
 -- Beispiel 0
 -------------

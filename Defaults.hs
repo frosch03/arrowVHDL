@@ -5,11 +5,11 @@ import Control.Category
 import Prelude hiding (id, (.))
 import Data.Bits (xor, shiftL, shiftR)
 
-import GraphTraversal.Traversal
-import GraphTraversal.Show
-import GraphTraversal.Core
-import GraphTraversal.Graph
-import GraphTraversal.Auxillary
+import Grid.Traversal
+import Grid.Show
+import Grid.Core
+import Grid.Graph
+import Grid.Auxillary
 
 
 type KeyChunk = Int
@@ -18,13 +18,13 @@ type Key   = (KeyChunk, KeyChunk, KeyChunk, KeyChunk)
 type KeyHalf = (KeyChunk, KeyChunk)
 type Value = (ValChunk, ValChunk)
 
-oneNodeGraph :: String -> Circuit
-oneNodeGraph s = emptyGraph { label = s }
+oneNodeCircuit :: String -> Circuit
+oneNodeCircuit s = emptyCircuit { label = s }
 
 aId :: (Arrow a) => Grid a b b
 aId 
     = augment 
-        emptyGraph { label   = "ID"
+        emptyCircuit { label   = "ID"
                    , sinks   = mkPins 1
                    , sources = mkPins 1
                    }
@@ -34,7 +34,7 @@ aId
 aConst :: (Arrow a, Show b) => b -> Grid a c b
 aConst x 
     = augment 
-        emptyGraph { label   = "CONST_" ++ (show x)
+        emptyCircuit { label   = "CONST_" ++ (show x)
                    , sinks   = mkPins 1 -- a sink is needed for the rewire-function to work properly (TODO: is this ok?)
                    , sources = mkPins 1
                    }
@@ -44,7 +44,7 @@ aConst x
 aXor :: (Arrow a) => Grid a (Int, Int) (Int)
 aXor 
     = augment 
-        emptyGraph { label   = "XOR"
+        emptyCircuit { label   = "XOR"
                    , sinks   = mkPins 2
                    , sources = mkPins 1
                    }
@@ -54,7 +54,7 @@ aXor
 aFst :: (Arrow a) => Grid a (Int, Int) (Int)
 aFst 
     = augment 
-        emptyGraph { label   = "FST"
+        emptyCircuit { label   = "FST"
                    , sinks   = mkPins 2
                    , sources = mkPins 1
                    }
@@ -64,7 +64,7 @@ aFst
 aSnd :: (Arrow a) => Grid a (Int, Int) (Int)
 aSnd 
     = augment 
-        emptyGraph { label   = "SND"
+        emptyCircuit { label   = "SND"
                    , sinks   = mkPins 2
                    , sources = mkPins 1
                    }
@@ -74,7 +74,7 @@ aSnd
 aShiftL :: (Arrow a) => Grid a (Int, Int) (Int)
 aShiftL 
     = augment
-        emptyGraph { label   = "SHIFTL"
+        emptyCircuit { label   = "SHIFTL"
                    , sinks   = mkPins 2
                    , sources = mkPins 1
                    }
@@ -83,7 +83,7 @@ aShiftL
 aShiftR :: (Arrow a) => Grid a (Int, Int) (Int)
 aShiftR 
     = augment
-        emptyGraph { label   = "SHIFTR"
+        emptyCircuit { label   = "SHIFTR"
                    , sinks   = mkPins 2
                    , sources = mkPins 1
                    }
@@ -92,7 +92,7 @@ aShiftR
 aAdd :: (Arrow a) => Grid a  (Int, Int) (Int)
 aAdd 
     = augment
-        emptyGraph { label   = "ADD"
+        emptyCircuit { label   = "ADD"
                    , sinks   = mkPins 2
                    , sources = mkPins 1
                    }
@@ -101,7 +101,7 @@ aAdd
 aFlip :: (Arrow a) => Grid a (b, c) (c, b)
 aFlip 
     = augment
-         emptyGraph { label   = "FLIP"
+         emptyCircuit { label   = "FLIP"
                     , sinks   = mkPins 2
                     , sources = mkPins 2
                     }
@@ -110,7 +110,7 @@ aFlip
 aSwapSnd :: (Arrow a) => Grid a ((b, c), d) ((b, d), c)
 aSwapSnd
     = augment
-         emptyGraph { label   = "SWPSND"
+         emptyCircuit { label   = "SWPSND"
                     , sinks   = mkPins 2
                     , sources = mkPins 2
                     }
@@ -119,7 +119,7 @@ aSwapSnd
 aShiftL4 :: (Arrow a) => Grid a Int Int
 aShiftL4 
     = augment
-        emptyGraph { label   = "SHIFTL4"
+        emptyCircuit { label   = "SHIFTL4"
                    , sinks   = mkPins 1
                    , sources = mkPins 1
                    }
@@ -128,7 +128,7 @@ aShiftL4
 aShiftR5 :: (Arrow a) => Grid a Int Int
 aShiftR5 
     = augment
-        emptyGraph { label   = "SHIFTR5"
+        emptyCircuit { label   = "SHIFTR5"
                    , sinks   = mkPins 1
                    , sources = mkPins 1
                    }
@@ -147,7 +147,7 @@ aShiftR5addKey
 aAddMagic :: (Arrow a) => Grid a ValChunk Int
 aAddMagic
     = augment 
-        emptyGraph { label   = "ADDMAGIC"
+        emptyCircuit { label   = "ADDMAGIC"
                    , sinks   = mkPins 1
                    , sources = mkPins 1
                    }
@@ -156,7 +156,7 @@ aAddMagic
 aDup :: (Arrow a) => Grid a b (b, b)
 aDup
     = augment
-        emptyGraph { label   = "DUP"
+        emptyCircuit { label   = "DUP"
                    , sinks   = mkPins 1
                    , sources = mkPins 2
                    }
