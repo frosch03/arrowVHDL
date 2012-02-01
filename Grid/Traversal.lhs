@@ -210,6 +210,9 @@ it an Arrow.
 --- 
 Not sure if the following still makes any sense 
 
+I think this could be the way to generate the netlist, and only the netlist,
+on the other hand, an instance of arrow loop for stream would be for simulation
+
 > class Arrow a => ArrowLoop a where
 >     loop :: a (b,d) (c,d) -> a b c
 
