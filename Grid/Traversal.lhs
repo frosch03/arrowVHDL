@@ -14,6 +14,7 @@
 > import qualified Prelude as Pr
 
 > import Control.Category 
+> -- import Control.Monad.Fix (mfix)
 
 > import Grid.Core
 > import Grid.Auxillary
@@ -186,14 +187,59 @@ instance (ArrowChoice a, Typeable a) => ArrowChoice (Grid a) where
               undistr (Right (x, sg)) = (Right x, sg `combine` rightCircuit)
 
 
+For getting loops done and measurements in the circuit, there are streaming-functions
+needed. Therefore a stream-function datatype is defined with name `Stream` and with 
+typeconstructur `SF`. This Datatype consists of a function, that takes a list of a's to 
+a list of b's.
+
+> newtype Stream b c = SF { runStream :: ([b] -> [c]) }
+
+
+The next step is to make this stream a `Category` and after that make 
+it an Arrow.
+
+> instance Category Stream where
+>     id              = SF (id)
+>     (SF f) . (SF g) = SF (f . g) 
+
+> instance Arrow Stream where
+>     arr          = SF . map 
+>     first (SF f) = SF $ (uncurry zip) . (\(bs, cs) -> (f bs, cs)) . unzip 
+
+
+--- 
+Not sure if the following still makes any sense 
+
 > class Arrow a => ArrowLoop a where
 >     loop :: a (b,d) (c,d) -> a b c
 
 > instance (ArrowLoop a) => ArrowLoop (Grid a) where
 >     loop (GR f) = GR (loop (arr swapsnd >>> f >>> arr swapsnd))
 
-> instance ArrowLoop (->) where
->     loop f b = let (c,d) = f (b,d) in c
+
+--- 
+
+However, with a stream function a loop is alway's possible, so the next
+step is to make Stream a member of ArrowLoop
+
+> instance ArrowLoop Stream where
+>     loop (SF f) = SF $ \bs -> 
+>         let (cs, ds) = unzip (f (zip bs (stream ds))) in cs
+>      where stream ~(x:xs) = x:stream xs
+
+
+And with the ArrowLoop instance, it is straigt forward, to lift the Stream 
+into the ArrowCircuit instance. This is the one, that holds a delay component
+and first of all, the class definition is given here.
+
+> class ArrowLoop a => ArrowCircuit a where
+>     delay :: b -> a b b
+
+> instance ArrowCircuit Stream where
+>     delay x = SF (x:)
+
+
+
 
 > runGrid :: (Arrow a) => Grid a b c -> a (b, Circuit) (c, Circuit)
 > runGrid (GR f) = f

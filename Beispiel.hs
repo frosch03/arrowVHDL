@@ -59,21 +59,6 @@ aSub1 = arr (\x -> x -1)
 aSub2 = aSub1 >>> aSub1
 
 
-sr = 44100 :: Int
-dt = 1 / (fromIntegral sr)
-
-aTet :: (ArrowLoop a) => a () Double
-aTet = proc () -> do
-    rec let e = 1 + i
-        i <- integral -< e
-    returnA -< e
-
-integral :: (ArrowLoop a) => a Double Double
-integral = proc x -> do
-    rec let i' = i + x * dt
-        i <- init 0 -< i'
-    returnA -< i
-
 -- aColl :: (Arrow a, ArrowLoop a) => a ((Int, Int), d) (Int, d) -> a (Int, Int) Int 
 -- aColl 
 --     = augment 
@@ -170,3 +155,10 @@ aShiftR5_AddKey
 
 netlist_ShiftR5_AddKey 
     = synthesize aShiftR5_AddKey par2
+
+
+counter :: (ArrowCircuit a) => a Int Int
+counter = proc reset -> do 
+            rec output <- (arr (+1)) -< reset
+                next   <- delay 0    -< output
+            returnA -< output
