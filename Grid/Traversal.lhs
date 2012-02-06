@@ -24,8 +24,64 @@
 > infixr 3 ***
 > infixr 3 &&&
 
+First of all, here are the Arrow class definitions. These are obeyed by the instance
+definition for a few data types.
 
-First thing to do is to define a new data type, which is called Grid (TraversalArrow)
+
+So here is the ShowType class, that is needed to evaluate the type of a function that 
+is passed to the `arr` function  ... 
+
+> class ShowType b c where
+>   showType :: (b -> c) -> Circuit
+
+
+One must define what an Arrow is, so here is the arrow-class.  Note that this class 
+is slightly different from the vanilla-arrow-class, as there is a type constraint 
+to the `arr`-function, where the given function needs to be of known types ... 
+
+> class (Category a) => Arrow a where
+>   arr    :: (ShowType b c) => (b -> c) -> a b c
+>   first  :: a b c -> a (b, d) (c, d)
+>   second :: a b c -> a (d, b) (d, c)
+>   second f = arr swap >>> first f >>> arr swap
+>            where swap :: (b, c) -> (c, b)
+>                  swap   ~(x, y)  = (y, x)
+>   (***)  :: a b c -> a b' c' -> a (b, b') (c, c')
+>   f *** g = first f >>> second g
+>   (&&&)  :: a b c -> a b c'  -> a b (c, c')
+>   f &&& g = arr (\b -> (b, b)) >>> f *** g
+
+
+Not exactly a class definition, but this is the right place to define the basic
+returnA Arrow
+
+> returnA :: (Arrow a) => a b b
+> returnA = arr id
+
+
+> class (Arrow a) => ArrowLoop a where
+>     loop :: a (b,d) (c,d) -> a b c
+
+
+> instance (ArrowLoop a) => ArrowLoop (Grid a) where
+>     loop (GR f) = GR (loop (arr swapsnd >>> f >>> arr swapsnd))
+
+
+> class (ArrowLoop a) => ArrowCircuit a where
+>     delay :: b -> a b b
+
+
+
+
+> class Arrow a => (ArrowGrid a) where
+>   fetch :: a e  Circuit
+>   store :: a Circuit ()
+
+
+
+
+After all classes are defined, the first thing to do is to define a new data type, 
+which is called a Grid (TraversalArrow) 
 
 > newtype Grid a b c = GR (a (b, Circuit) (c, Circuit))
 
@@ -51,31 +107,10 @@ attribute in the definition like ...
                                    (x_f, sg_f) = f (x_g, sg `connect` sg_g)
                                in  (x_f, sg_g `connect` sg_f)
 
-We also need a definition of what an Arrow is, so here is the arrow-class.
-Note that this class is slightly different from the vanilla-arrow-class, as there 
-is a type constraint to the `arr`-function 
-
-> class (Category a) => Arrow a where
->   arr    :: (ShowType b c) => (b -> c) -> a b c
->   first  :: a b c -> a (b, d) (c, d)
->   second :: a b c -> a (d, b) (d, c)
->   second f = arr swap >>> first f >>> arr swap
->            where swap :: (b, c) -> (c, b)
->                  swap   ~(x, y)  = (y, x)
->   (***)  :: a b c -> a b' c' -> a (b, b') (c, c')
->   f *** g = first f >>> second g
->   (&&&)  :: a b c -> a b c'  -> a b (c, c')
->   f &&& g = arr (\b -> (b, b)) >>> f *** g
-
-> returnA :: (Arrow a) => a b b
-> returnA = arr id
 
 
 
-This class and it's instances define the different type-variants that are possible
-
-> class ShowType b c where
->   showType :: (b -> c) -> Circuit
+This instances define the different type-variants that are possible
 
 > instance ShowType (b, c) (c, b) where
 >   showType _ = emptyCircuit { label = "|b,c>c,b|" 
@@ -126,16 +161,7 @@ instance ShowType b b where
 >                           }
 
 
-> movebrc :: ((a, b), c) -> (a, (b, c))
-> movebrc ~(~(x, y), sg) = (x, (y, sg))
-
-> backbrc :: (a, (b, c)) -> ((a, b), c)
-> backbrc ~(x, ~(y, sg)) = ((x, y), sg)
-
-> swapsnd :: ((a, b), c) -> ((a, c), b)
-> swapsnd ~(~(x, y), sg) = ((x, sg), y)
-
-
+Here is the implementation for what makes something of type Grid an arrow
 
 > instance (Arrow a) => Arrow (Grid a) where
 >     arr   f       
@@ -174,17 +200,22 @@ instance ShowType b b where
 >       where dup = arr (\x -> (x, x))
 
 
-We need here two versions of ArrowChoice,
-one, that processes every path and this one, that processes 
-only a specific path. (btw, the combine-function here is still not 
-the correct combinator for the two StructGraph's)
+And also the application (->) instance of Arrow is given here, so that 
+results could be simulated.
 
-instance (ArrowChoice a, Typeable a) => ArrowChoice (Grid a) where
-    left (GR f) = GR $ arr distr >>> left f >>> arr undistr
-        where distr   (Left  x, sg)   = Left  (x, sg) 
-              distr   (Right x, sg)   = Right (x, sg) 
-              undistr (Left  (x, sg)) = (Left  x, sg `combine` leftCircuit)
-              undistr (Right (x, sg)) = (Right x, sg `combine` rightCircuit)
+> instance Arrow (->) where
+>   arr f    = f
+>   first  f = (\(x, y) -> (f x, y)) -- f *** id -- this results in an endless loop ...
+
+
+It is not known, if the following has any relevance for this software, anyhow the code 
+shown here:
+
+> instance Arrow a => (ArrowGrid (Grid a)) where
+>   fetch = GR $ arr (\(_, sg) -> (sg, sg))
+>   store = GR $ arr (\(sg, _) -> ((), sg))
+
+
 
 
 For getting loops done and measurements in the circuit, there are streaming-functions
@@ -207,21 +238,6 @@ it an Arrow.
 >     first (SF f) = SF $ (uncurry zip) . (\(bs, cs) -> (f bs, cs)) . unzip 
 
 
---- 
-Not sure if the following still makes any sense 
-
-I think this could be the way to generate the netlist, and only the netlist,
-on the other hand, an instance of arrow loop for stream would be for simulation
-
-> class Arrow a => ArrowLoop a where
->     loop :: a (b,d) (c,d) -> a b c
-
-> instance (ArrowLoop a) => ArrowLoop (Grid a) where
->     loop (GR f) = GR (loop (arr swapsnd >>> f >>> arr swapsnd))
-
-
---- 
-
 However, with a stream function a loop is alway's possible, so the next
 step is to make Stream a member of ArrowLoop
 
@@ -235,13 +251,13 @@ And with the ArrowLoop instance, it is straigt forward, to lift the Stream
 into the ArrowCircuit instance. This is the one, that holds a delay component
 and first of all, the class definition is given here.
 
-> class ArrowLoop a => ArrowCircuit a where
->     delay :: b -> a b b
-
 > instance ArrowCircuit Stream where
 >     delay x = SF (x:)
 
 
+
+
+Last but not least, there are some functions needed, to run the Arrows
 
 
 > runGrid :: (Arrow a) => Grid a b c -> a (b, Circuit) (c, Circuit)
@@ -254,19 +270,22 @@ Here the notation for an empty graph is used, to start the computation ...
 > rt = runGrid_
 
 rt aAdd (1,1) 
-
 (2, 
   ... ... 
 )
+
+
 
 
 A usual process in the hardware development is the synthetisation of the actual 
 hardware. Beside the syntethesis the simulation is also an important process while
 developing hardware. Both functionalities are defined in the following:
 
+
 synthesize :: (Arrow a) => Grid a b c -> b -> Circuit
 
 > synthesize f x = flatten $ snd $ runGrid f (x, NoSG)
+
 
 simulate :: (Arrow a) => Grid a b c -> b -> c
 
@@ -279,22 +298,9 @@ Frage nach simulate / synthesize => right ...
 _kritische_pfad_analyse_ / ... 
 
 
-> instance Arrow (->) where
->   arr f    = f
->   first  f = (\(x, y) -> (f x, y)) -- f *** id -- this results in an endless loop ...
 
-
-> class Arrow a => (ArrowGrid a) where
->   fetch :: a e  Circuit
->   store :: a Circuit ()
-
-> x :: Arrow a => Grid a b b 
-> x = arr id
-
-> instance Arrow a => (ArrowGrid (Grid a)) where
->   fetch = GR $ arr (\(_, sg) -> (sg, sg))
->   store = GR $ arr (\(sg, _) -> ((), sg))
-
+The last part of this file holds some auxilliary functions that are needed here 
+and there 
 
 > insert :: b -> (a, b) -> (a, b)
 > insert sg ~(x, _) = (x, sg)
@@ -304,5 +310,12 @@ _kritische_pfad_analyse_ / ...
 > augment :: (Arrow a) => Circuit -> Grid a b c -> Grid a b c
 > augment sg (GR f) = GR $ f >>> arr (insert sg)
 
-> y :: Arrow a => Grid a b b
-> y = augment emptyCircuit  x
+
+> movebrc :: ((a, b), c) -> (a, (b, c))
+> movebrc ~(~(x, y), sg) = (x, (y, sg))
+
+> backbrc :: (a, (b, c)) -> ((a, b), c)
+> backbrc ~(x, ~(y, sg)) = ((x, y), sg)
+
+> swapsnd :: ((a, b), c) -> ((a, c), b)
+> swapsnd ~(~(x, y), sg) = ((x, sg), y)

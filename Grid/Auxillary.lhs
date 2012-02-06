@@ -17,6 +17,8 @@
 > import Grid.Sensors
 > import Grid.Workers
 
+> import Grid.Graph (emptyCircuit)
+
 
 The structured graph is the datatype, that represents the state inside our 
 traversal Arrow. While we want to make the TraversalArrow an element of 
@@ -42,6 +44,36 @@ TODO combine = frame???
 
 > dupCombine :: Circuit -> Circuit -> Circuit
 > dupCombine = splice (dupParRewire, ">2>")
+
+
+> loopAdjoin :: Circuit -> Circuit
+> loopAdjoin sg
+>     | (length.sinks $ sg) /= 1 
+>     = error "only 1sink components can loop"
+>
+>     | (length.sources $ sg) /= 1 
+>     = error "only 1source components can loop"
+>
+>     | otherwise 
+>     = sgWrap
+>     where nextSnk = 1 + (last.sinks   $ sg)
+>           nextSrc = 1 + (last.sources $ sg)
+>           nextCID = newCompID sg
+>           sgLoop  = sg { sinks   = (sinks sg)   ++ [nextSnk]
+>                        , sources = (sources sg) ++ [nextSrc]
+>                        , edges   = (edges sg) ++ [MkEdge (Just $ compID sg, nextSrc) (Just $ compID sg, nextSnk)]
+>                        }
+>           sgWrap  = emptyCircuit 
+>                        { label   = "0o." ++ label sg ++ ".o0" 
+>                        , compID  = nextCID
+>                        , nodes   = [sgLoop]
+>                        , edges   = [ MkEdge (Nothing, 0)          (Just $ compID sg, 0)
+>                                    , MkEdge (Just $ compID sg, 0) (Nothing,   0)
+>                                    ] 
+>                        , sinks   = [0]
+>                        , sources = [0]
+>                        }
+
 
 
 > newCompID :: Circuit -> CompID
