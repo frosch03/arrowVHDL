@@ -217,6 +217,15 @@ Here is the implementation for what makes something of type Grid an arrow
 >       where dup = arr (\x -> (x, x))
 
 
+In the next step the definition for Grid and the Arrow Choice class is given ...
+
+> instance (Arrow a) => ArrowChoice (Grid a) where
+>     left  f = f      +++ arr id
+>     right g = arr id +++ g 
+>     f +++ g = (Left . f) ||| (Right . g)
+>     f ||| g = either
+
+
 And also the application (->) instance of Arrow is given here, so that 
 results could be simulated.
 
