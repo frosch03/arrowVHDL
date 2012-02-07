@@ -71,6 +71,23 @@ returnA Arrow
 >     delay :: b -> a b b
 
 
+> class (Arrow a) => ArrowChoice a where
+>     left  :: a b c -> a (Either b d) (Either c d) 
+>     right :: a b c -> a (Either d b) (Either d c) 
+>     (+++) :: a b c -> a b' c' -> a (Either b b') (Either c c')
+>     (|||) :: a b d -> a c  d  -> a (Either b c ) d
+>     
+>     right f = arr mirror >>> left f >>> arr mirror
+>         where mirror :: Either x y -> Either y x
+>               mirror (Left x)  = (Right x)
+>               mirror (Right x) = (Left x)
+>     
+>     f +++ g = left f  >>> right g
+>     
+>     f ||| g = f +++ g >>> arr untag
+>         where untag (Left x)  = x
+>               untag (Right x) = x
+
 
 
 > class Arrow a => (ArrowGrid a) where
@@ -273,6 +290,18 @@ rt aAdd (1,1)
 (2, 
   ... ... 
 )
+
+
+
+
+newtype Grid a b c = GR (a (b, Circuit) (c, Circuit))
+runGrid   :: (Arrow a) => Grid a b c -> a (b, Circuit) (c, Circuit)
+newtype Stream b c = SF { runStream :: ([b] -> [c]) }
+runStream :: 
+
+Also a run function for the Stream-Type is needed, so here we go
+
+runStream :: (Arrow a) => Stream b c -> a (
 
 
 
