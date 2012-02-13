@@ -113,6 +113,12 @@ of Category.
 >                               (x_f, sg_f) <- f -< (x_g, sg   `connect` sg_g)
 >                               returnA          -< (x_f, sg_g `connect` sg_f)
 
+     (GR f) . (GR g) = GR $ (\(x, sg) -> 
+                             let (x_g, sg_g) = g (x, sg)
+                                 (x_f, sg_f) = f (x_g, sg   `connect` sg_g)
+                             in  returnA         (x_f, sg_g `connect` sg_f)
+                            )
+
 TODO:
 TODO: better would be a solution similar to the following. This is because one could not 
 assume, that an a is alway an Arrow before we make it a Category ... Better would also be
@@ -219,11 +225,11 @@ Here is the implementation for what makes something of type Grid an arrow
 
 In the next step the definition for Grid and the Arrow Choice class is given ...
 
-> instance (Arrow a) => ArrowChoice (Grid a) where
->     left  f = f      +++ arr id
->     right g = arr id +++ g 
->     f +++ g = (Left . f) ||| (Right . g)
->     f ||| g = either
+ instance (Arrow a) => ArrowChoice (Grid a) where
+     left  f = f      +++ arr id
+     right g = arr id +++ g 
+     f +++ g = (Left . f) ||| (Right . g)
+     f ||| g = either
 
 
 And also the application (->) instance of Arrow is given here, so that 
