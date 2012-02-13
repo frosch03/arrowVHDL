@@ -63,10 +63,6 @@ returnA Arrow
 >     loop :: a (b,d) (c,d) -> a b c
 
 
-> instance (ArrowLoop a) => ArrowLoop (Grid a) where
->     loop (GR f) = GR (loop (arr swapsnd >>> f >>> arr swapsnd))
-
-
 > class (ArrowLoop a) => ArrowCircuit a where
 >     delay :: b -> a b b
 
@@ -93,42 +89,6 @@ returnA Arrow
 > class Arrow a => (ArrowGrid a) where
 >   fetch :: a e  Circuit
 >   store :: a Circuit ()
-
-
-
-
-After all classes are defined, the first thing to do is to define a new data type, 
-which is called a Grid (TraversalArrow) 
-
-> newtype Grid a b c = GR (a (b, Circuit) (c, Circuit))
-
-
-Bevor the Grid (TraversalArrow) becomes an instance of Arrow, it has to be an instance
-of Category.
-
-> instance (Arrow a) => Category (Grid a) where
->     id              = GR id
->     (GR f) . (GR g) = GR $ proc (x, sg) -> do
->                               (x_g, sg_g) <- g -< (x, sg)
->                               (x_f, sg_f) <- f -< (x_g, sg   `connect` sg_g)
->                               returnA          -< (x_f, sg_g `connect` sg_f)
-
-     (GR f) . (GR g) = GR $ (\(x, sg) -> 
-                             let (x_g, sg_g) = g (x, sg)
-                                 (x_f, sg_f) = f (x_g, sg   `connect` sg_g)
-                             in  returnA         (x_f, sg_g `connect` sg_f)
-                            )
-
-TODO:
-TODO: better would be a solution similar to the following. This is because one could not 
-assume, that an a is alway an Arrow before we make it a Category ... Better would also be
-to make (b, Circuit) `a` (c, Circuit) an instance of Category, so we could use this
-attribute in the definition like ...
-     id              = GR $ \(x, sg) -> (Pr.id $ x, sg)
-     (GR f) . (GR g) = GR $ \(x, sg) ->
-                               let (x_g, sg_g) = g (x, sg)
-                                   (x_f, sg_f) = f (x_g, sg `connect` sg_g)
-                               in  (x_f, sg_g `connect` sg_f)
 
 
 
@@ -183,6 +143,35 @@ instance ShowType b b where
 >                           , sources = mkPins 1
 >                           }
 
+---------------------------------------------------------------------------------------------------
+
+
+
+-----+====+-----
+     |Grid|
+-----+====+-----
+
+After all classes are defined, the first thing to do is to define a new data type, 
+which is called a Grid (TraversalArrow) 
+
+> newtype Grid a b c = GR (a (b, Circuit) (c, Circuit))
+
+
+Bevor the Grid (TraversalArrow) becomes an instance of Arrow, it has to be an instance
+of Category.
+
+> instance (Arrow a) => Category (Grid a) where
+>     id              = GR id
+>     (GR f) . (GR g) = GR $ proc (x, sg) -> do
+>                               (x_g, sg_g) <- g -< (x, sg)
+>                               (x_f, sg_f) <- f -< (x_g, sg   `connect` sg_g)
+>                               returnA          -< (x_f, sg_g `connect` sg_f)
+
+     (GR f) . (GR g) = GR $ (\(x, sg) -> 
+                             let (x_g, sg_g) = g (x, sg)
+                                 (x_f, sg_f) = f (x_g, sg   `connect` sg_g)
+                             in  returnA         (x_f, sg_g `connect` sg_f)
+                            )
 
 Here is the implementation for what makes something of type Grid an arrow
 
@@ -232,6 +221,34 @@ In the next step the definition for Grid and the Arrow Choice class is given ...
      f ||| g = either
 
 
+instance (ArrowLoop a) => ArrowLoop (Grid a) where
+    loop (GR f) = GR (loop (arr swapsnd >>> f >>> arr swapsnd))
+
+
+TODO:
+TODO: better would be a solution similar to the following. This is because one could not 
+assume, that an a is alway an Arrow before we make it a Category ... Better would also be
+to make (b, Circuit) `a` (c, Circuit) an instance of Category, so we could use this
+attribute in the definition like ...
+     id              = GR $ \(x, sg) -> (Pr.id $ x, sg)
+     (GR f) . (GR g) = GR $ \(x, sg) ->
+                               let (x_g, sg_g) = g (x, sg)
+                                   (x_f, sg_f) = f (x_g, sg `connect` sg_g)
+                               in  (x_f, sg_g `connect` sg_f)
+
+
+It is not known, if the following has any relevance for this software, anyhow the code 
+shown here:
+
+instance Arrow a => (ArrowGrid (Grid a)) where
+  fetch = GR $ arr (\(_, sg) -> (sg, sg))
+  store = GR $ arr (\(sg, _) -> ((), sg))
+
+---------------------------------------------------------------------------------------------------
+
+
+
+
 And also the application (->) instance of Arrow is given here, so that 
 results could be simulated.
 
@@ -240,12 +257,7 @@ results could be simulated.
 >   first  f = (\(x, y) -> (f x, y)) -- f *** id -- this results in an endless loop ...
 
 
-It is not known, if the following has any relevance for this software, anyhow the code 
-shown here:
 
-> instance Arrow a => (ArrowGrid (Grid a)) where
->   fetch = GR $ arr (\(_, sg) -> (sg, sg))
->   store = GR $ arr (\(sg, _) -> ((), sg))
 
 
 
