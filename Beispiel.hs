@@ -79,7 +79,7 @@ aTest0
     >>> aAdd
 
 netlist_Test0 
-    = synthesize aTest0 par1
+    = synthesize aTest0
 
 
 -- Beispiel 1
@@ -90,7 +90,7 @@ aTest1
         returnA      -< tmp
 
 _netlist_Test1 
-    = synthesize aTest1 par1
+    = synthesize aTest1 
 
 
 -- Beispiel 2
@@ -105,7 +105,7 @@ aTest2
         returnA      -< tmp5
 
 _netlist_Test2 
-    = synthesize aTest2 par2
+    = synthesize aTest2
 
 
 -- Beispiel 3
@@ -117,7 +117,7 @@ aTest2'
        (first aAdd >>> arr (\ (tmp4, tmp3) -> (tmp3, tmp4))) >>> aAdd)
 
 netlist_Test2' 
-    = synthesize aTest2' par2
+    = synthesize aTest2'
 
 
 -- Beispiel 4
@@ -130,7 +130,7 @@ aShiftL4_AddKey
     >>> aAdd
 
 netlist_ShiftL4_AddKey 
-    = synthesize aShiftL4_AddKey par2
+    = synthesize aShiftL4_AddKey
 
 
 -- Beispiel 5
@@ -141,7 +141,7 @@ aAddDelta
     >>> aAdd
 
 netlist_AddDelta 
-    = synthesize aAddDelta par2
+    = synthesize aAddDelta
 
 
 -- Beispiel 6
@@ -154,7 +154,7 @@ aShiftR5_AddKey
     >>> aAdd
 
 netlist_ShiftR5_AddKey 
-    = synthesize aShiftR5_AddKey par2
+    = synthesize aShiftR5_AddKey
 
 
 counter :: (ArrowCircuit a) => a Int Int

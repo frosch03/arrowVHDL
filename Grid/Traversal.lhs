@@ -52,13 +52,6 @@ to the `arr`-function, where the given function needs to be of known types ...
 >   f &&& g = arr (\b -> (b, b)) >>> f *** g
 
 
-Not exactly a class definition, but this is the right place to define the basic
-returnA Arrow
-
-> returnA :: (Arrow a) => a b b
-> returnA = arr id
-
-
 > class (Arrow a) => ArrowLoop a where
 >     loop :: a (b,d) (c,d) -> a b c
 
@@ -86,14 +79,20 @@ returnA Arrow
 
 
 
-> class Arrow a => (ArrowGrid a) where
->   fetch :: a e  Circuit
->   store :: a Circuit ()
+Not exactly a class definition, but this is the right place to define the basic
+returnA Arrow which is only an identity arrow
+
+> returnA :: (Arrow a) => a b b
+> returnA = arr id
 
 
 
+-----+========+-----
+     |Showtype|
+-----+========+-----
 
-This instances define the different type-variants that are possible
+This instances define the different type-variants that are possible with the 
+showType function ... 
 
 > instance ShowType (b, c) (c, b) where
 >   showType _ = emptyCircuit { label = "|b,c>c,b|" 
@@ -213,6 +212,7 @@ Here is the implementation for what makes something of type Grid an arrow
 
 
 In the next step the definition for Grid and the Arrow Choice class is given ...
+But hey, it looks like there is no correct definition of a Choice-Arrow for Grid ...
 
  instance (Arrow a) => ArrowChoice (Grid a) where
      left  f = f      +++ arr id
@@ -244,62 +244,6 @@ instance Arrow a => (ArrowGrid (Grid a)) where
   fetch = GR $ arr (\(_, sg) -> (sg, sg))
   store = GR $ arr (\(sg, _) -> ((), sg))
 
----------------------------------------------------------------------------------------------------
-
-
-
-
-And also the application (->) instance of Arrow is given here, so that 
-results could be simulated.
-
-> instance Arrow (->) where
->   arr f    = f
->   first  f = (\(x, y) -> (f x, y)) -- f *** id -- this results in an endless loop ...
-
-
-
-
-
-
-
-For getting loops done and measurements in the circuit, there are streaming-functions
-needed. Therefore a stream-function datatype is defined with name `Stream` and with 
-typeconstructur `SF`. This Datatype consists of a function, that takes a list of a's to 
-a list of b's.
-
-> newtype Stream b c = SF { runStream :: ([b] -> [c]) }
-
-
-The next step is to make this stream a `Category` and after that make 
-it an Arrow.
-
-> instance Category Stream where
->     id              = SF (id)
->     (SF f) . (SF g) = SF (f . g) 
-
-> instance Arrow Stream where
->     arr          = SF . map 
->     first (SF f) = SF $ (uncurry zip) . (\(bs, cs) -> (f bs, cs)) . unzip 
-
-
-However, with a stream function a loop is alway's possible, so the next
-step is to make Stream a member of ArrowLoop
-
-> instance ArrowLoop Stream where
->     loop (SF f) = SF $ \bs -> 
->         let (cs, ds) = unzip (f (zip bs (stream ds))) in cs
->      where stream ~(x:xs) = x:stream xs
-
-
-And with the ArrowLoop instance, it is straigt forward, to lift the Stream 
-into the ArrowCircuit instance. This is the one, that holds a delay component
-and first of all, the class definition is given here.
-
-> instance ArrowCircuit Stream where
->     delay x = SF (x:)
-
-
-
 
 Last but not least, there are some functions needed, to run the Arrows
 
@@ -318,17 +262,74 @@ rt aAdd (1,1)
   ... ... 
 )
 
+---------------------------------------------------------------------------------------------------
 
 
 
-newtype Grid a b c = GR (a (b, Circuit) (c, Circuit))
-runGrid   :: (Arrow a) => Grid a b c -> a (b, Circuit) (c, Circuit)
-newtype Stream b c = SF { runStream :: ([b] -> [c]) }
-runStream :: 
 
-Also a run function for the Stream-Type is needed, so here we go
+And also the application (->) instance of Arrow is given here, so that 
+results could be simulated.
 
-runStream :: (Arrow a) => Stream b c -> a (
+> instance Arrow (->) where
+>   arr f    = f
+>   first  f = (\(x, y) -> (f x, y))
+
+---------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+-----+======+-----
+     |Stream|
+-----+======+-----
+
+For getting loops done and measurements in the circuit, there are streaming-functions
+needed. Therefore a stream-function datatype is defined with name `Stream` and with 
+typeconstructur `SF`. This Datatype consists of a function, that takes a list of a's to 
+a list of b's.
+
+> newtype Stream b c = SF { runStream :: ([b] -> [c]) }
+
+
+The next step is to make this stream a `Category` and after that make 
+it an Arrow.
+
+> instance Category Stream where
+>     id              = SF (id)
+>     (SF f) . (SF g) = SF (f . g) 
+
+> instance Arrow Stream where
+>     arr f             = (SF . map) f
+>     first  (SF f)     = SF $ (uncurry zip) . (\(bs, cs) -> (f bs, cs)) . unzip 
+>     second (SF g)     = SF $ (uncurry zip) . (\(bs, cs) -> (bs,  g cs)) . unzip 
+>     (SF f) *** (SF g) = SF $ (uncurry zip) . (\(bs, cs) -> (f bs, g cs)) . unzip
+
+
+However, with a stream function a loop is alway's possible, so the next
+step is to make Stream a member of ArrowLoop
+
+> instance ArrowLoop Stream where
+>     loop (SF f) = SF $ (\bs -> 
+>                          let (cs, ds) = unzip . f $ zip bs (stream ds) 
+>                          in  cs
+>                        )
+>      where stream ~(x:xs) = x:stream xs
+
+
+And with the ArrowLoop instance, it is straigt forward, to lift the Stream 
+into the ArrowCircuit instance. This is the one, that holds a delay component
+and first of all, the class definition is given here.
+
+> instance ArrowCircuit Stream where
+>     delay x = SF (x:)
+
+---------------------------------------------------------------------------------------------------
+
+
+
+
 
 
 
@@ -338,14 +339,22 @@ hardware. Beside the syntethesis the simulation is also an important process whi
 developing hardware. Both functionalities are defined in the following:
 
 
-synthesize :: (Arrow a) => Grid a b c -> b -> Circuit
+ synthesize :: (Arrow a) => Grid a b c -> Circuit
+ synthesize f x = flatten $ snd $ runGrid f (x, NoSG)
 
-> synthesize f x = flatten $ snd $ runGrid f (x, NoSG)
+> synthesize :: Grid (->) b c -> Circuit
+> synthesize f = flatten $ snd $ runGrid f (undefined, NoSG)
 
 
-simulate :: (Arrow a) => Grid a b c -> b -> c
+TODO
+TODO
+TODO
+TODO
 
-> simulate f x = fst $ runGrid f (x, NoSG)
+
+ simulate :: Grid (->) b c -> Stream b c 
+
+> simulate = (\f -> fst $ runGrid f (undefined, NoSG))
 
 
 Ist synthesize mit unit () möglich? 
