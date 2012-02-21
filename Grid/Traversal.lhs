@@ -153,7 +153,7 @@ instance ShowType b b where
 After all classes are defined, the first thing to do is to define a new data type, 
 which is called a Grid (TraversalArrow) 
 
-> newtype Grid a b c = GR (a (b, Circuit) (c, Circuit))
+> newtype Grid a b c = GR (a (b, (Circuit) (c, Circuit))
 
 
 Bevor the Grid (TraversalArrow) becomes an instance of Arrow, it has to be an instance
@@ -345,16 +345,12 @@ developing hardware. Both functionalities are defined in the following:
 > synthesize :: Grid (->) b c -> Circuit
 > synthesize f = flatten $ snd $ runGrid f (undefined, NoSG)
 
-
-TODO
-TODO
-TODO
-TODO
+> toFunctionModel :: Grid (->) b c -> (b -> c)
+> toFunctionModel f = \x -> fst $ runGrid f (x, NoSG)
 
 
- simulate :: Grid (->) b c -> Stream b c 
-
-> simulate = (\f -> fst $ runGrid f (undefined, NoSG))
+> simulate :: Grid (->) b c -> Stream b c 
+> simulate f = arr (toFunctionModel f)
 
 
 Ist synthesize mit unit () möglich? 
