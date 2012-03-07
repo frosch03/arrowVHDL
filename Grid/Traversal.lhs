@@ -153,7 +153,7 @@ instance ShowType b b where
 After all classes are defined, the first thing to do is to define a new data type, 
 which is called a Grid (TraversalArrow) 
 
-> newtype Grid a b c = GR (a (b, (Circuit) (c, Circuit))
+> newtype Grid a b c = GR (a (b, Circuit) (c, Circuit))
 
 
 Bevor the Grid (TraversalArrow) becomes an instance of Arrow, it has to be an instance
@@ -301,7 +301,7 @@ it an Arrow.
 >     (SF f) . (SF g) = SF (f . g) 
 
 > instance Arrow Stream where
->     arr f             = (SF . map) f
+>     arr f             = SF $ map f -- ?? (SF . map) f ??
 >     first  (SF f)     = SF $ (uncurry zip) . (\(bs, cs) -> (f bs, cs)) . unzip 
 >     second (SF g)     = SF $ (uncurry zip) . (\(bs, cs) -> (bs,  g cs)) . unzip 
 >     (SF f) *** (SF g) = SF $ (uncurry zip) . (\(bs, cs) -> (f bs, g cs)) . unzip
