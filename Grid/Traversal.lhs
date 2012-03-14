@@ -32,7 +32,7 @@ So here is the ShowType class, that is needed to evaluate the type of a function
 is passed to the `arr` function  ... 
 
 > class ShowType b c where
->   showType :: (b -> c) -> Circuit
+>   showType :: (b -> c) -> CircuitDescriptor
 
 
 One must define what an Arrow is, so here is the arrow-class.  Note that this class 
@@ -153,7 +153,7 @@ instance ShowType b b where
 After all classes are defined, the first thing to do is to define a new data type, 
 which is called a Grid (TraversalArrow) 
 
-> newtype Grid a b c = GR (a (b, Circuit) (c, Circuit))
+> newtype Grid a b c = GR (a (b, CircuitDescriptor) (c, CircuitDescriptor))
 
 
 Bevor the Grid (TraversalArrow) becomes an instance of Arrow, it has to be an instance
@@ -228,7 +228,7 @@ instance (ArrowLoop a) => ArrowLoop (Grid a) where
 TODO:
 TODO: better would be a solution similar to the following. This is because one could not 
 assume, that an a is alway an Arrow before we make it a Category ... Better would also be
-to make (b, Circuit) `a` (c, Circuit) an instance of Category, so we could use this
+to make (b, CircuitDescriptor) `a` (c, CircuitDescriptor) an instance of Category, so we could use this
 attribute in the definition like ...
      id              = GR $ \(x, sg) -> (Pr.id $ x, sg)
      (GR f) . (GR g) = GR $ \(x, sg) ->
@@ -248,13 +248,13 @@ instance Arrow a => (ArrowGrid (Grid a)) where
 Last but not least, there are some functions needed, to run the Arrows
 
 
-> runGrid :: (Arrow a) => Grid a b c -> a (b, Circuit) (c, Circuit)
+> runGrid :: (Arrow a) => Grid a b c -> a (b, CircuitDescriptor) (c, CircuitDescriptor)
 > runGrid (GR f) = f
 
 
 Here the notation for an empty graph is used, to start the computation ... 
 
-> runGrid_ f x = runGrid f (x, NoSG)
+> runGrid_ f x = runGrid f (x, NoDescriptor)
 > rt = runGrid_
 
 rt aAdd (1,1) 
@@ -339,14 +339,14 @@ hardware. Beside the syntethesis the simulation is also an important process whi
 developing hardware. Both functionalities are defined in the following:
 
 
- synthesize :: (Arrow a) => Grid a b c -> Circuit
- synthesize f x = flatten $ snd $ runGrid f (x, NoSG)
+ synthesize :: (Arrow a) => Grid a b c -> CircuitDescriptor
+ synthesize f x = flatten $ snd $ runGrid f (x, NoDescriptor)
 
-> synthesize :: Grid (->) b c -> Circuit
-> synthesize f = flatten $ snd $ runGrid f (undefined, NoSG)
+> synthesize :: Grid (->) b c -> CircuitDescriptor
+> synthesize f = flatten $ snd $ runGrid f (undefined, NoDescriptor)
 
 > toFunctionModel :: Grid (->) b c -> (b -> c)
-> toFunctionModel f = \x -> fst $ runGrid f (x, NoSG)
+> toFunctionModel f = \x -> fst $ runGrid f (x, NoDescriptor)
 
 
 > simulate :: Grid (->) b c -> Stream b c 
@@ -368,7 +368,7 @@ and there
 
 > insEmpty = insert emptyCircuit { label = "eeeempty", sinks = mkPins 1, sources = mkPins 3 }
 
-> augment :: (Arrow a) => Circuit -> Grid a b c -> Grid a b c
+> augment :: (Arrow a) => CircuitDescriptor -> Grid a b c -> Grid a b c
 > augment sg (GR f) = GR $ f >>> arr (insert sg)
 
 

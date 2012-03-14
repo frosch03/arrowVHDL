@@ -37,7 +37,7 @@ define the basic structure of a VHDL-SourceCode with an header, the
 entity-definition as well as the component-definition. 
 TODO: Add the signal-definition and the port-map-definitions
 
-> showCircuit :: Circuit -> String
+> showCircuit :: CircuitDescriptor -> String
 > showCircuit g 
 >      = concat $ map break
 >      [ ""
@@ -51,25 +51,25 @@ TODO: Add the signal-definition and the port-map-definitions
 >      where namedEdges = generateNamedEdges g
 >            namedComps = generateNamedComps g
 
-> nameEdges :: String -> Circuit -> [([Anchor], String)]
+> nameEdges :: String -> CircuitDescriptor -> [([Anchor], String)]
 > nameEdges pre g 
 >     = map (\(i, e) -> (sourceInfo e : sinkInfo e : [], pre ++ show i)) $ zip [0..] relevantEdges
 >     where relevantEdges = filter (\(MkEdge (ci,_) (co,_)) -> isJust ci && isJust co) $ edges g 
 
-> nameGraphPins :: Circuit -> [(CompID, ([(PinID, String)], [(PinID, String)]))]
+> nameGraphPins :: CircuitDescriptor -> [(CompID, ([(PinID, String)], [(PinID, String)]))]
 > nameGraphPins g = nameSuperPins g : (map nameSubPins $ nodes g)
 
-> nameSuperPins :: Circuit -> (CompID, ([(PinID, String)], [(PinID, String)]))
+> nameSuperPins :: CircuitDescriptor -> (CompID, ([(PinID, String)], [(PinID, String)]))
 > nameSuperPins g = (compID g, (namedSinks, namedSources))
 >     where namedSinks   = namePins' sinks   nameExI g 
 >           namedSources = namePins' sources nameExO g
 
-> nameSubPins :: Circuit -> (CompID, ([(PinID, String)], [(PinID, String)]))
+> nameSubPins :: CircuitDescriptor -> (CompID, ([(PinID, String)], [(PinID, String)]))
 > nameSubPins g = (compID g, (namedSinks, namedSources))
 >     where namedSinks   = namePins' sinks   nameInI g 
 >           namedSources = namePins' sources nameInO g
 
-> namePins' :: (Circuit -> Pins) -> String -> Circuit -> [(PinID, String)]
+> namePins' :: (CircuitDescriptor -> Pins) -> String -> CircuitDescriptor -> [(PinID, String)]
 > namePins' f pre g = map (\x -> (x, pre ++ show x)) $ f g 
 
 The VHDL-Header is just some boilerplate-code where library's are imported
@@ -84,7 +84,7 @@ The VHDL-Header is just some boilerplate-code where library's are imported
 A VHDL-Entity defines an "interface" to a hardware component. It consists of
 a name and of some port-definitions (like what wires go inside and come back out)
 
-> vhdl_entity :: Circuit -> [NamedComp] -> String
+> vhdl_entity :: CircuitDescriptor -> [NamedComp] -> String
 > vhdl_entity g namedComps
 >      = concat $ map break
 >      [ "ENTITY " ++ label g ++ " IS"
@@ -97,7 +97,7 @@ a name and of some port-definitions (like what wires go inside and come back out
 >      where snks = getInPinNames  namedComps (compID g)
 >            srcs = getOutPinNames namedComps (compID g)
 
-> vhdl_architecture :: Circuit -> String
+> vhdl_architecture :: CircuitDescriptor -> String
 > vhdl_architecture g 
 >     = "ARCHITECTURE " ++ (label g) ++ "Struct OF " ++ (label g) ++ " IS"
 
@@ -107,7 +107,7 @@ that are used inside this new definition. We therefore pick the components
 of which these new component consists. We call this components the level 1 
 components, because we descent only one step down in the graph. 
 
-> vhdl_components :: Circuit -> [NamedComp] -> String
+> vhdl_components :: CircuitDescriptor -> [NamedComp] -> String
 > vhdl_components g namedComps
 >      = concat $ nub $ map f (nodes g)
 >     where f g' = concat $ map break
@@ -125,14 +125,14 @@ components, because we descent only one step down in the graph.
 
 The VHDL-Signals is the list of inner wires, that are used inside the new component.
 
-> vhdl_signals :: Circuit -> [([Anchor], String)] -> String
+> vhdl_signals :: CircuitDescriptor -> [([Anchor], String)] -> String
 > vhdl_signals _ [] = ""
 > vhdl_signals g namedEdges
 >      = "SIGNAL " ++ sepBy ", " signals ++ ": std_logic;" 
 >      where signals = map snd namedEdges
 
 
-> vhdl_portmaps :: Circuit -> [NamedComp] -> [([Anchor], String)] -> String
+> vhdl_portmaps :: CircuitDescriptor -> [NamedComp] -> [([Anchor], String)] -> String
 > vhdl_portmaps g namedComps namedEdges
 >      = concat $ map break
 >      [ "BEGIN"
@@ -140,7 +140,7 @@ The VHDL-Signals is the list of inner wires, that are used inside the new compon
 >      , "END;"
 >      ]
 
-> vhdl_portmap :: Circuit -> [NamedComp] -> [([Anchor], String)] -> Circuit -> String
+> vhdl_portmap :: CircuitDescriptor -> [NamedComp] -> [([Anchor], String)] -> CircuitDescriptor -> String
 > vhdl_portmap superG namedComps namedEdges' g
 >      = concat $ map break
 >      [ (label g) ++ "Inst" ++ (show$compID g) ++ ": " ++ (label g) ++ "Comp"
@@ -226,7 +226,7 @@ It also takes a StructGraph (suprise :)) and a String, that is prepended to the 
 This functions returns a list, where every element is a tuple of the actual named pin (a string)
 and a part, that identifies the name.
 
-> namePins :: (Circuit -> Pins) -> String -> Circuit -> [(String, Anchor)]
+> namePins :: (CircuitDescriptor -> Pins) -> String -> CircuitDescriptor -> [(String, Anchor)]
 > namePins f pre g
 >     = map (\x -> (pre ++ (show x), (Nothing, x))) $ f g
 > --  = map (\x -> (pre ++ (show x), (compID g, x))) $ f g
@@ -238,7 +238,7 @@ only one field in the StructGraph that holds the edges.
 And also the return-type is a bit simpler, becaus an edge identifies itself, so there is no need
 to do this once more.
 
-> -- nameEdges :: String -> Circuit -> [(String, Edge)]
+> -- nameEdges :: String -> CircuitDescriptor -> [(String, Edge)]
 > -- nameEdges pre g
 > --     = map (\(num, edge) -> (pre ++ (show num), edge)) $ zip [0..] (edges g)
 

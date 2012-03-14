@@ -18,7 +18,7 @@ type Key   = (KeyChunk, KeyChunk, KeyChunk, KeyChunk)
 type KeyHalf = (KeyChunk, KeyChunk)
 type Value = (ValChunk, ValChunk)
 
-oneNodeCircuit :: String -> Circuit
+oneNodeCircuit :: String -> CircuitDescriptor
 oneNodeCircuit s = emptyCircuit { label = s }
 
 aId :: (Arrow a) => Grid a b b

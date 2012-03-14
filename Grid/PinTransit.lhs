@@ -61,7 +61,7 @@ Needed:
 [ ] 
 
 
-> generateNamedComps :: Circuit -> [NamedComp]
+> generateNamedComps :: CircuitDescriptor -> [NamedComp]
 > generateNamedComps g = generateSuperNames g : (map generateSubNames $ nodes g)
 >     where generateSuperNames g = ( compID g, ( namePins sinks   nameExI g
 >                                              , namePins sources nameExO g
@@ -127,6 +127,6 @@ It also takes a StructGraph (suprise :)) and a String, that is prepended to the 
 This functions returns a list, where every element is a tuple of the actual named pin (a string)
 and a part, that identifies the name.
 
-> namePins :: (Circuit -> Pins) -> String -> Circuit -> [NamedPin]
+> namePins :: (CircuitDescriptor -> Pins) -> String -> CircuitDescriptor -> [NamedPin]
 > namePins f pre g
 >     = map (\x -> (x, pre ++ (show x))) $ f g 

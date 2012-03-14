@@ -16,18 +16,18 @@ isToOutside :: Edge -> Bool
 isToOutside (MkEdge _ (Nothing, _)) = True
 isToOutside otherwise               = False
 
-hasLabel :: String -> Circuit -> Bool
+hasLabel :: String -> CircuitDescriptor -> Bool
 hasLabel s
     = ((== s).label)
 
-isID :: Circuit -> Bool
+isID :: CircuitDescriptor -> Bool
 isID = hasLabel "-ID-"
 
-isAtomic :: Circuit -> Bool
+isAtomic :: CircuitDescriptor -> Bool
 isAtomic g
     = if (length (nodes g) == 0) then True else False
 
-isSuperNodeOf :: Circuit -> CompID -> Bool
+isSuperNodeOf :: CircuitDescriptor -> CompID -> Bool
 isSuperNodeOf g cid 
     = if length (filter (== cid) subNodes) > 0
           then True
@@ -42,7 +42,7 @@ isFromOuter :: Edge -> Bool
 isFromOuter (MkEdge (Nothing, _) (_, _)) = True
 isFromOuter _                            = False
 
-isGenerated :: Circuit -> Bool
+isGenerated :: CircuitDescriptor -> Bool
 isGenerated s = ((== '|').head.label) s && ((== '|').head.reverse.label) s
 
 
@@ -86,5 +86,5 @@ isSnkComp cid (MkEdge (_, _) (Just cid', _)) = cid == cid'
 isSnkComp _ _ = False
 
 -- This test (isGeneric) is never used
-isGeneric :: Circuit -> Bool
+isGeneric :: CircuitDescriptor -> Bool
 isGeneric s = isGenerated s && ((== "|b>c|").label) s

@@ -33,20 +33,20 @@ If a connection between the empty graph and another graph is made, that
 connection is only the remaining graph (which is represented by the first 
 two lines).
 
-> connect :: Circuit -> Circuit -> Circuit
+> connect :: CircuitDescriptor -> CircuitDescriptor -> CircuitDescriptor
 > connect = splice (seqRewire, ">>>")
 
 
 TODO combine = frame???
 
-> combine :: Circuit -> Circuit -> Circuit
+> combine :: CircuitDescriptor -> CircuitDescriptor -> CircuitDescriptor
 > combine = splice (parRewire, "&&&")
 
-> dupCombine :: Circuit -> Circuit -> Circuit
+> dupCombine :: CircuitDescriptor -> CircuitDescriptor -> CircuitDescriptor
 > dupCombine = splice (dupParRewire, ">2>")
 
 
-> loopAdjoin :: Circuit -> Circuit
+> loopAdjoin :: CircuitDescriptor -> CircuitDescriptor
 > loopAdjoin sg
 >     | (length.sinks $ sg) /= 1 
 >     = error "only 1sink components can loop"
@@ -76,7 +76,7 @@ TODO combine = frame???
 
 
 
-> newCompID :: Circuit -> CompID
+> newCompID :: CircuitDescriptor -> CompID
 > newCompID sg = nextID compIDs
 >     where compIDs = compID sg : (next $ nodes sg)
 >           next []        = []
@@ -100,7 +100,7 @@ TODO combine = frame???
 >           notIO (MkEdge _ (Nothing, _)) = False
 >           notIO _                       = True
 
-> seqRewire :: Circuit -> Circuit -> ([Edge], (Pins, Pins))
+> seqRewire :: CircuitDescriptor -> CircuitDescriptor -> ([Edge], (Pins, Pins))
 > seqRewire sg_l sg_r
 >     = ( fromOuterToL ++ fromOuterToR ++ edgs ++ fromRToOuter ++ fromLToOuter
 >       , (super_srcs, super_snks)
@@ -113,7 +113,7 @@ TODO combine = frame???
 >           ( fromRToOuter, (_, super_snks')) =  wire (Just $ compID sg_r) Nothing (sources sg_r) super_snks
 >           ( fromLToOuter, (_, _))           =  wire (Just $ compID sg_l) Nothing (drop (length fromRToOuter) $ sources sg_l) super_snks'
 
-> parRewire :: Circuit -> Circuit -> ([Edge], (Pins, Pins))
+> parRewire :: CircuitDescriptor -> CircuitDescriptor -> ([Edge], (Pins, Pins))
 > parRewire sg_u sg_d
 >     = ( goingIn_edges ++ goingOut_edges
 >       , (super_srcs, super_snks)
@@ -125,7 +125,7 @@ TODO combine = frame???
 >           goingOut_edges =  (wire_ (Just $ compID sg_u) Nothing (sources sg_u)                              (super_snks))
 >                          ++ (wire_ (Just $ compID sg_d) Nothing (sources sg_d) (drop (length.sources $ sg_u) super_snks))
 
-> dupParRewire :: Circuit -> Circuit -> ([Edge], (Pins, Pins))
+> dupParRewire :: CircuitDescriptor -> CircuitDescriptor -> ([Edge], (Pins, Pins))
 > dupParRewire sg_u sg_d
 >     = ( goingIn_edges ++ goingOut_edges
 >       , (super_srcs, super_snks)
@@ -161,7 +161,7 @@ It is possible to have multiple edges that originate in an exclusiv pin of the
 super-graph. These edges are grouped and the according number of edges that point 
 to the intermediate pin, are generated with repeat.
 
-> partitionEdges :: Circuit -> Circuit -> (([Edge], [Edge]), [Edge])
+> partitionEdges :: CircuitDescriptor -> CircuitDescriptor -> (([Edge], [Edge]), [Edge])
 > partitionEdges superG subG  = ( ( newIncs ++ newOuts
 >                                 , neutrals
 >                                 )

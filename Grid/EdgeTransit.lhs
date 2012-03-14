@@ -53,7 +53,7 @@ Needed:
 > pre = nameSig
 
 
-> generateNamedEdges :: Circuit -> [NamedEdge]
+> generateNamedEdges :: CircuitDescriptor -> [NamedEdge]
 > generateNamedEdges g 
 >     = map (\(i, e) -> (sourceInfo e : sinkInfo e : [], pre ++ show i))
 >     $ zip [0..] relevantEdges

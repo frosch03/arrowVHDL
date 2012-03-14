@@ -1,90 +1,113 @@
-> module Grid.Core
-> where
+\section{Eine Komponente}
+\label{src:component}
+
+Im folgenden wird der das Modul \hsSource{Grid.Core} beschrieben
+\begin{code}
+  module Grid.Core
+  where
+\end{code}
+
+\subsection{Typen mit neuen Namen}
+Zunächst werden grundlegende Typaliasse vergeben, die im gesamten Quelltext Anwendung finden.
+
+\par
+Jede Hardware Komponente besitzt Pins verschiedener Art, darunter ein- und ausgehende. Diese sind durchnummeriert und werden über ihre
+Nummer, die als Integer abgebildet wird, identifiziert. Für die Komponenten ID gilt dies ebenfalls.
+\begin{code}
+  type PinID = Int
+  type Pins  = [PinID]
+
+  type CompID = Int
+\end{code}
+
+\par
+Eine Kante ist eine Verbindung zwischen zwei \hsSource{Pins}, dabei müssen die beiden \hsSource{Pins} nicht unbedingt zu unterschiedlichen
+Komponenten gehören \footnote{Beispielsweise bei zyklischen Schaltungen}. Das Tupel aus \hsSource{PinID} und \hsSource{CompID} identifiziert
+einen Pin. Da auch Kanten abgebildet werden sollen, die nach außerhalb der aktuellen Komponente gehen sollen, ist es notwendig, die
+\hsSource{CompID} als \hsSource{Maybe} Typ zu beschreiben. Das Tupel wird im folgenden mit \hsSource{Anchor} bezeichnet.
+\begin{code}
+  type Anchor       = (Maybe CompID, PinID)
+  type SinkAnchor   = Anchor
+  type SourceAnchor = Anchor
+\end{code}
+
+Außerdem wurden noch zwei weitere Aliasse vergeben, die Eingehende (\hsSource{SinkAnchor}) und Ausgehende (\hsSource{SourceAnchor}) Pins
+voneinander unterscheiden.
+
+\subsection{Benannte Typen}
+Um die Graph-Struktur später in Sourcecode überführen zu können, benötigt man Namen für \hsSource{Anchor} und \hsSource{Edges} sowie
+Lookup-Tabellen, in denen dann die Namen abgelegt werden. Die Typaliasse hierfür werden hier direkt definiert.
+\begin{code}
+  type NamedPins = [(String, Anchor)]
+  type NamedSigs = [(String, Edge)]
+  type NamedSnks = NamedPins
+  type NamedSrcs = NamedPins
+  type NamedIOs  = (NamedSnks, NamedSrcs)
+
+  nameSig = "i"
+  nameExI = "inc"
+  nameExO = "out"
+  nameInI = "e"
+  nameInO = "a"
+\end{code}
 
 
-First of all, lets name some basic types that are used through the whole
-source...
-There are the pins of a hardware component, and they are identified by an 
-integer. The same holds for the identification of a whole component, which 
-is also done by an integer. And than there is also a name for the list of
-pins that a component holds (either the sink pins or the source pins).
+\subsection{Schaltungsbeschreibung}
+Jede Komponente die durch einen Arrow repräsentiert wird, hat zusätzliche Attribute, die nicht in dem Arrow selber stehen. Diese Attribute
+werden auch nicht für alle Arrow-Klassen Instanzen benötigt. Daher sind diese lose an den Arrow gekoppelt. \footnote{Arrow und Attribute
+werden in einem Tupel zusammengefasst}
 
-> type PinID  = Int
-> type CompID = Int
-> type Pins   = [PinID]
+%%% TODO : is Circuit the right name? Component is better or: Chip / Device / Module / what ever
+%%% TODO : MkSG und NoSG sind die falschen Konstruktoren
 
 
-An edge is like a wire between two pins on different components. So it is
-identified by the component id and the pin id. This tupel is called an
-Anchor, and for documentation reasons there are two different versions,
-the SinkAnchor and the SourceAnchor.
 
-> type Anchor       = (Maybe CompID, PinID)
-> type SinkAnchor   = Anchor
-> type SourceAnchor = Anchor
+\subsection{Pins}
+Zunächst werden grundlegende Typaliasse vergeben, die im gesamten Quelltext Anwendung finden. 
+
+\par
+Jede Hardware Komponente besitzt Pins verschiedener Art, darunter Eingabe- und Ausgabepins.
+
+\subsection{Circuit}
+Jede Komponente die durch einen Arrow repräsentiert wird, hat zusätzliche Attribute, die nicht in dem Arrow selber stehen. Diese Attribute
+werden auch nicht für alle Arrow-Klassen Instanzen benötigt. Daher sind diese lose an den Arrow gekoppelt. \footnote{Arrow und Attribute
+werden in einem Tupel zusammengefasst}
+
+%%% TODO : is Circuit the right name? Component is better or: Chip / Device / Module / what ever
+%%% TODO : MkSG und NoSG sind die falschen Konstruktoren
+
+\begin{code}
+  data CircuitDescriptor
+    = MkDescriptor 
+           { label    :: String 
+           , compID   :: CompID
+           , nodes    :: [CircuitDescriptor]
+           , edges    :: [Edge]
+           , sinks    :: Pins
+           , sources  :: Pins
+           }
+    | NoDescriptor
+    deriving (Eq)
+
+  type Netlist = CircuitDescriptor
+\end{code}
+
+In Haskell lassen sich die Komponenten Attribute über einen Summentyp abgebildet. Dieser Datentyp ist ein fundamentaler Datentyp, da er
+gleichberechtigt neben der eigentlichen Funktionalität steht. Er besitzt einen Bezeichner \hsSource{label}, sowie eine eindeutige ID
+\hsSource{compID}. Zusätzlicher sind die Ein- sowie die Ausgehenden Pins aufgeführt und auch die verbindenden Kanten (\hsSource{edges}).
+
+\par 
+Jede Komponente kann durch untergeordnete Komponenten beschrieben werden. Dies wird im Datentyp über die \hsSource{nodes} Liste abgebildet.
+Ist die Komponenten atomar, so enthält dieses Datum die leere Liste. Der Konstruktor \hsSource{NoSG} ist analog zu \varnothing. %%% TODO : Mathematisch erklären warum {} benötigt wird
 
 
-To translate the graph structure into a VHDL-sourcecode the anchors and the
-edges are named and stored in lookup tables. There are two of them, one for 
-the named pins and one for the named edges. For documentation there is also
-a input output tuple, that holds the lookup table for the sinks and the 
-sources.
+\subsection{Kanten}
+Zuletzt fehlt jetzt lediglich die Definition einer Kante. Eine Kante kennt einen Quell-Pin sowie einen Ziel-Pin.
+\begin{code}
+  data Edge
+    = MkEdge { sourceInfo :: SourceAnchor
+             , sinkInfo   :: SinkAnchor
+             }
+    deriving (Eq)
+\end{code}
 
-> type NamedPins = [(String, Anchor)]
-> type NamedSigs = [(String, Edge)]
-> type NamedSnks = NamedPins
-> type NamedSrcs = NamedPins
-> type NamedIOs  = (NamedSnks, NamedSrcs)
-
-> nameSig = "i"
-> nameExI = "inc"
-> nameExO = "out"
-> nameInI = "e"
-> nameInO = "a"
-
-
-The structured graph is the fundamental datatype. It holds information
-about its nodes and is identified by an unique id. Additionally the in- 
-and out pins are listed as well as connections (edges) between the nodes.
-  [InPin]       := [Int]
-  [OutPin]      := [Int]
-  Component ID  := Int
-
-Also a name is needed later on to identify the components.
-  Name          := String
-
-It turns out, that a Node actually could hold another StructGraph, that 
-defines sub structures. It also could hold no sub structure and has only 
-a name and a component id.
-Another constructor to be not forgotten is the empty graph, marked here
-with NoSG. It's uses are i.e. to start the computation with runTraversal
-where an empty graph has to be passed over to the computing arrow
-
-> data Circuit
->   = MkSG { label    :: String
->          , compID   :: CompID
->          , nodes    :: [Circuit]
->          , edges    :: [Edge]
->          , sinks    :: Pins
->          , sources  :: Pins
->          }
->   | NoSG
->
->   deriving (Eq)
-
-> type Netlist = Circuit
-
-Remember, a Sink is something that takes something  (INPUT)
-and a Source is something that produces something (OUTPUT)
-
-So the next datatype to be defined is an edge. The edge knows 
-the pin/component it comes from, as well as the pin/component
-it goes to.
-
-> data Edge
->   = MkEdge { sourceInfo :: SourceAnchor
->            , sinkInfo   :: SinkAnchor
->            }
->   deriving (Eq)
-
-   deriving (Eq, Show)

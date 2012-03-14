@@ -22,7 +22,7 @@ import Grid.Auxillary
 import Grid.Show.DOT
 import Grid.Workers (mergeEdges)
 
-type Node = Circuit
+type Node = CircuitDescriptor
 
 
 -- Demo Functions
@@ -37,7 +37,7 @@ par2 :: (Int, Int)
 par2 = (0,0)
 
 
-toCircuit :: (String, Int, Int) -> Circuit
+toCircuit :: (String, Int, Int) -> CircuitDescriptor
 toCircuit (name, inPins, outPins)
     = emptyCircuit { label   = name
                  , sinks   = [0..(inPins -1)]
@@ -45,17 +45,17 @@ toCircuit (name, inPins, outPins)
                  }
 
 
-filterByName :: Circuit -> String -> Circuit
+filterByName :: CircuitDescriptor -> String -> CircuitDescriptor
 filterByName s n 
     = if (label s == n) && (length (nodes s) < 1) 
-        then NoSG
+        then NoDescriptor
         else s { nodes = (map (flip filterByName n) $ nodes s) }
 
 
-atomic :: Circuit -> Bool
+atomic :: CircuitDescriptor -> Bool
 atomic s = length (nodes s) <= 0
 
-replace :: Circuit -> (Circuit, Circuit) -> Circuit
+replace :: CircuitDescriptor -> (CircuitDescriptor, CircuitDescriptor) -> CircuitDescriptor
 replace s ft@(from, to) 
     | not $ atomic s
     = s { nodes = map (flip replace $ ft) (nodes s) }
@@ -71,8 +71,8 @@ replace s ft@(from, to)
 
 -- mark / cut / trim
 
-rebuildIf :: (Circuit -> Bool) ->  ([Edge], [Circuit]) -> Circuit -> ([Edge], [Circuit])
-rebuildIf isIt (super_es, new_ns) NoSG = (super_es, new_ns)
+rebuildIf :: (CircuitDescriptor -> Bool) ->  ([Edge], [CircuitDescriptor]) -> CircuitDescriptor -> ([Edge], [CircuitDescriptor])
+rebuildIf isIt (super_es, new_ns) NoDescriptor = (super_es, new_ns)
 rebuildIf isIt (super_es, new_ns) n
     |  isIt n       && length (sinks n) == length (sources n)
     = (new_es , new_ns)
@@ -89,7 +89,7 @@ rebuildIf isIt (super_es, new_ns) n
                       , edges = es
                       }
 
-bypass :: Circuit -> Circuit -> Circuit
+bypass :: CircuitDescriptor -> CircuitDescriptor -> CircuitDescriptor
 bypass s item 
   = s { nodes = ns
       , edges = es

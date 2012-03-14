@@ -13,7 +13,7 @@ import Grid.Tests
 -- Circuit Workers
 --
 
-alterCompIDs :: Int -> Circuit -> Circuit
+alterCompIDs :: Int -> CircuitDescriptor -> CircuitDescriptor
 alterCompIDs i sg 
     = sg { compID = compID sg + i
          , nodes  = map (alterCompIDs i) $ nodes sg
@@ -24,7 +24,7 @@ alterCompIDs i sg
          }
 
 
-dropCircuit :: (Circuit -> Bool) -> Circuit -> Circuit
+dropCircuit :: (CircuitDescriptor -> Bool) -> CircuitDescriptor -> CircuitDescriptor
 dropCircuit f sg
   = sg { nodes = newNodes
        , edges = newEdges
@@ -34,7 +34,7 @@ dropCircuit f sg
         newNodes = map (dropCircuit f) $ nodes sg \\ specific
 
 
-flatten :: Circuit -> Circuit
+flatten :: CircuitDescriptor -> CircuitDescriptor
 flatten g 
     = g' { nodes = nub $ nodes g'
          , edges =       edges g' ++ enders
@@ -57,10 +57,10 @@ flatten g
                                 , edges = nub $ edges new_g ++ [(connectCID orig_g new_g nextF nextTo)]
                                 } 
 
-dropGenerated :: Circuit -> Circuit
+dropGenerated :: CircuitDescriptor -> CircuitDescriptor
 dropGenerated = dropCircuit isGenerated
 
-dropID :: Circuit -> Circuit
+dropID :: CircuitDescriptor -> CircuitDescriptor
 dropID = dropCircuit isID
 
 
@@ -69,7 +69,7 @@ dropID = dropCircuit isID
 -- Edge Workers
 --
 
-connectCID :: Circuit -> Circuit -> CompID -> (CompID, PinID) -> Edge
+connectCID :: CircuitDescriptor -> CircuitDescriptor -> CompID -> (CompID, PinID) -> Edge
 connectCID old_g g cidF (cidT,pidT)
     = MkEdge (Just cidF, nextFpin) (Just cidT, pidT)
     where nextFpin  = head $ drop cntEsFrom $ sources $ getComp old_g cidF

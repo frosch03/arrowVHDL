@@ -20,5 +20,5 @@ therefore the Edge datatypes also needs to be an instance of Show.
 >   show = showEdge
 
 
-> instance Show (Circuit) where
+> instance Show (CircuitDescriptor) where
 >     show = showCircuit

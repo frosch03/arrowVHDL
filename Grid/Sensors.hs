@@ -7,45 +7,45 @@ import Grid.Tests
 -- Circuit Sensors:
 --
 
-allCircuits :: Circuit -> [Circuit]
+allCircuits :: CircuitDescriptor -> [CircuitDescriptor]
 allCircuits sg 
     = if (length next_sg == 0) then sg : []
                                else sg : (concat $ map allCircuits next_sg)
     where next_sg = nodes sg
           cid     = compID sg 
 
-getComp :: Circuit -> CompID -> Circuit
+getComp :: CircuitDescriptor -> CompID -> CircuitDescriptor
 getComp g cid = if length output == 1 
                   then head output
-                  else error "getComp: corrupted Circuit"
+                  else error "getComp: corrupted CircuitDescriptor"
     where output = getComp' g cid
 
-getComp' :: Circuit -> CompID -> [Circuit]
+getComp' :: CircuitDescriptor -> CompID -> [CircuitDescriptor]
 getComp' g cid 
     | compID g == cid 
     = [g]
     | otherwise       
     = concat $ map (flip getComp' cid) (nodes g)
 
-maxCompID :: Circuit -> CompID
+maxCompID :: CircuitDescriptor -> CompID
 maxCompID sg = compID sg `max` (foldl max 0 $ map maxCompID (nodes sg))
 
 
-superNode :: Circuit -> CompID -> Circuit
+superNode :: CircuitDescriptor -> CompID -> CircuitDescriptor
 superNode g cid 
    = if length output == 1
           then head output
-          else error "superNode: corrupted Circuit"
+          else error "superNode: corrupted CircuitDescriptor"
    where output = superNode' g cid
 
-superNode' :: Circuit -> CompID -> [Circuit]
+superNode' :: CircuitDescriptor -> CompID -> [CircuitDescriptor]
 superNode' g cid 
    | g `isSuperNodeOf` cid
    = [g]
    | otherwise
    = concat $ map (flip superNode' cid) $ nodes g
 
-nextAtomic :: Circuit -> Edge -> (CompID, PinID)
+nextAtomic :: CircuitDescriptor -> Edge -> (CompID, PinID)
 nextAtomic g e
     | isToOuter e && compID super == 0
     = (0, snkPin e)
@@ -63,10 +63,10 @@ nextAtomic g e
           supersuper = superNode g (compID super)
 
 
-allEdges :: Circuit -> [Edge]
+allEdges :: CircuitDescriptor -> [Edge]
 allEdges g = edges g ++ (concat $ map allEdges (nodes g))
 
-fromCompEdges :: Circuit -> CompID -> [Edge]
+fromCompEdges :: CircuitDescriptor -> CompID -> [Edge]
 fromCompEdges g cid
     = filter (\x -> (not.isFromOuter $ x) 
                  && (cid == (srcComp x) ) ) $ edges $ superNode g cid

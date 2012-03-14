@@ -6,7 +6,7 @@
 
 > import Grid.Core
 
-> showCircuit :: Circuit -> String
+> showCircuit :: CircuitDescriptor -> String
 > showCircuit g =  "\n"
 >             ++ (show.compID) g
 >             ++ "(" ++ (show.label) g ++ "): "

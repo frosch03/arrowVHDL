@@ -4,6 +4,9 @@ module Test where
 import Control.Category
 import Control.Arrow
 
+import Data.Binary
+import qualified Data.ByteString
+
 import Prelude hiding (id, (.))
 import qualified Prelude as Pr
 
@@ -40,16 +43,16 @@ instance Arrow (Stream) where
 
 
 
-data Measure = forall a . M a
+data Measure     = forall a . M a
 type Measurement = [Measure]
 
 
-newtype Sensor b c = Sens {runSens :: (b, Measurement) -> (c, Measurement) }
+newtype Sensor b c = Sens {sense :: (b, Measurement) -> (c, Measurement) }
 
 instance Category (Sensor) where
     id    = Sens $ \(x, msmts) -> (x, (M x):msmts)
-    f . g = Sens $ \(x, msmts) -> let (xg,  msmts_g) = runSens g $ (x,  msmts)
-                                      (xgf, msmts')  = runSens f $ (xg, msmts_g)
+    f . g = Sens $ \(x, msmts) -> let (xg,  msmts_g) = sense g $ (x,  msmts)
+                                      (xgf, msmts')  = sense f $ (xg, msmts_g)
                                   in  (xgf, msmts')
 
 instance Arrow (Sensor) where
@@ -69,15 +72,6 @@ swapsnd ~(~(x, y), z) = ((x, z), y)
 
 
 
-
-
-
-
-
-----------------------
-
-
-
 instance Category (NamedArrow Stream) where 
     id  = id
     (.) (NAr (f, sf)) (NAr (g, sg))
@@ -92,10 +86,16 @@ run (NAr (a, s)) = a
 description :: NamedArrow (->) b c -> String
 description (NAr (_, s)) = s 
 
+dearr :: (Arrow a) => NamedArrow (a) b c -> a b c
+dearr (NAr (a, _)) = a
+
 simulate :: NamedArrow Stream b c -> ([b] -> [c])
 simulate (NAr (a, _)) = runSF a
 
 synthesize = description
+
+measuring :: NamedArrow Sensor b c -> b -> Measurement
+measuring (NAr (a, _)) = \x -> snd $ sense a (x, [M ()])
 ----------------------
 
 

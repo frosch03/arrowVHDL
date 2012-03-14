@@ -4,9 +4,10 @@
 > import Grid.Core
 
 
-> emptyCircuit :: Circuit
+> emptyCircuit :: CircuitDescriptor
 > emptyCircuit 
->   = MkSG { label   = "..."
+>   = MkDescriptor 
+>          { label   = "..."
 >          , compID  = 0
 >          , nodes   = []
 >          , edges   = []

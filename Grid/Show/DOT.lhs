@@ -40,7 +40,7 @@ dot language... something like this:
 >           (Just snk_cid, snk_pid) = sinkInfo e 
 
 
-> showCircuit :: Circuit -> String
+> showCircuit :: CircuitDescriptor -> String
 > showCircuit g 
 >      = concat $ map break
 >      [ ""
@@ -63,7 +63,7 @@ dot language... something like this:
 >      , "]"
 >      ] 
 
-> dot_outer_nodes :: Circuit -> String
+> dot_outer_nodes :: CircuitDescriptor -> String
 > dot_outer_nodes g
 >      = concat $ map break
 >      [ ""
@@ -78,7 +78,7 @@ dot language... something like this:
 >      , "]"
 >      ]
 
-> dot_components :: Circuit -> String
+> dot_components :: CircuitDescriptor -> String
 > dot_components  g
 >      = concat $ nub $ map f (nodes g)
 >      where f g' = concat $ map break
@@ -108,6 +108,6 @@ dot language... something like this:
 >            f s x = "<" ++ s ++ show x ++ "> (" ++ show x ++ ") | "
 
 
-> dot_connections :: Circuit -> String
+> dot_connections :: CircuitDescriptor -> String
 > dot_connections g 
 >      = concat $ map (\x -> showEdge x ++ "\n") (edges g)
