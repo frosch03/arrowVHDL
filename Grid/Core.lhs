@@ -98,7 +98,7 @@ gleichberechtigt neben der eigentlichen Funktionalität steht. Er besitzt einen 
 
 \par 
 Jede Komponente kann durch untergeordnete Komponenten beschrieben werden. Dies wird im Datentyp über die \hsSource{nodes} Liste abgebildet.
-Ist die Komponenten atomar, so enthält dieses Datum die leere Liste. Der Konstruktor \hsSource{NoSG} ist analog zu \varnothing. %%% TODO : Mathematisch erklären warum {} benötigt wird
+Ist die Komponenten atomar, so enthält dieses Datum die leere Liste. Der Konstruktor \hsSource{NoSG} ist analog zu $\varnothing$. %%% TODO : Mathematisch erklären warum {} benötigt wird
 
 
 \subsection{Kanten}

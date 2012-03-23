@@ -8,7 +8,7 @@ import Data.Bits (xor, shiftL, shiftR)
 import Grid.Traversal
 import Grid.Show
 import Grid.Core
-import Grid.Graph
+-- import Grid.Graph
 import Grid.Auxillary
 
 import Grid.Tools
