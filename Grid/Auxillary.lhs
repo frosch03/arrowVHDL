@@ -1,221 +1,201 @@
-> module Grid.Auxillary 
-> where
+\section{Hilfunktionalitäten}
+\label{mod:Grid:Auxillary}
 
-> -- import Control.Arrow hiding (Arrow)
+Das Hilfsmodul stellt ein Sammelbecken für alle Funktionen dar, die nicht in eines der anderen Module gepasst haben.
 
-> import Data.List (union, groupBy, isInfixOf)
-> import Data.Maybe 
-> import Data.Either
-> import Control.Monad (msum)
-
-> import GHC.Exts (sortWith)
-
-> import Grid.Core
-> import Grid.Show
-> import Grid.Tests
-> import Grid.Splice
-> import Grid.Sensors
-> import Grid.Workers
-
-> import Grid.Graph (emptyCircuit)
+\begin{code}
+  module Grid.Auxillary 
+  where
+\end{code}
 
 
-The structured graph is the datatype, that represents the state inside our 
-traversal Arrow. While we want to make the TraversalArrow an element of 
-Category a function to connect two of these graphs together is needed.e
+\par
+Da dieses Modul keine spezielle Aufgabe besitzt sind auch die Aufgaben der einzelnen Funktionen sehr unterschiedlich. Aus diesen Gründen ist
+die Liste der eingebundenen Module recht lang. 
 
-This connect function generates a new graph out of the two input graphs.
-A new name is generated from the names of both inputs, the sinks of the 
-left graph become the sinks of the new graph and so are the sources of the 
-right one. 
-The component id's are updated so that every id is still unique. 
-If a connection between the empty graph and another graph is made, that 
-connection is only the remaining graph (which is represented by the first 
-two lines).
-
-> connect :: CircuitDescriptor -> CircuitDescriptor -> CircuitDescriptor
-> connect = splice (seqRewire, ">>>")
-
-
-TODO combine = frame???
-
-> combine :: CircuitDescriptor -> CircuitDescriptor -> CircuitDescriptor
-> combine = splice (parRewire, "&&&")
-
-> dupCombine :: CircuitDescriptor -> CircuitDescriptor -> CircuitDescriptor
-> dupCombine = splice (dupParRewire, ">2>")
+\begin{code}
+  import Data.List (union, groupBy, isInfixOf)
+  import Data.Maybe
+  import Data.Either
+  import Control.Monad (msum)
+  
+  import GHC.Exts (sortWith)
+  
+  import Grid.Core
+  import Grid.Show
+  import Grid.Tests
+  import Grid.Splice
+  import Grid.Sensors
+  import Grid.Workers
+  
+  import Grid.Graph (emptyCircuit)
+\end{code}
 
 
-> loopAdjoin :: CircuitDescriptor -> CircuitDescriptor
-> loopAdjoin sg
->     | (length.sinks $ sg) /= 1 
->     = error "only 1sink components can loop"
->
->     | (length.sources $ sg) /= 1 
->     = error "only 1source components can loop"
->
->     | otherwise 
->     = sgWrap
->     where nextSnk = 1 + (last.sinks   $ sg)
->           nextSrc = 1 + (last.sources $ sg)
->           nextCID = newCompID sg
->           sgLoop  = sg { sinks   = (sinks sg)   ++ [nextSnk]
->                        , sources = (sources sg) ++ [nextSrc]
->                        , edges   = (edges sg) ++ [MkEdge (Just $ compID sg, nextSrc) (Just $ compID sg, nextSnk)]
->                        }
->           sgWrap  = emptyCircuit 
->                        { label   = "0o." ++ label sg ++ ".o0" 
->                        , compID  = nextCID
->                        , nodes   = [sgLoop]
->                        , edges   = [ MkEdge (Nothing, 0)          (Just $ compID sg, 0)
->                                    , MkEdge (Just $ compID sg, 0) (Nothing,   0)
->                                    ] 
->                        , sinks   = [0]
->                        , sources = [0]
->                        }
+\subsection{Verdrahtungsvarianten}
+Die Funktion \hsSource{splice} aus dem Modul \ref{mod:Grid:Splice} verwendet für das ``verdrahten'' eine der folgenden
+\hsSource{rewire}-Funktionen. Daneben wird noch eine Zeichenkette zugeordnet, um später debug-Ausgaben erzeugen zu können.
+
+\par 
+Die \hsSource{connect} Funktion verbindet zwei Schaltkreise zu einem neuen. Hierbei wird sequentiell verbunden, als Zeichenkette wird der
+selbe Operator angegeben, wie er auch aus der \hsSource{Arrow}-Schreibweise schon bekannt ist.
+
+\begin{code}
+  connect :: CircuitDescriptor -> CircuitDescriptor -> CircuitDescriptor
+  connect = splice (seqRewire, ">>>")
+\end{code}
 
 
+\par
+Neben dem sequentiellen verbinden lassen sich Schaltkreise auch parallel verbinden. Dies ist mit der Funktion \hsSource{combine} möglich.
+Als Zeichenkette wird auch hier das aus der \hsSource{Arrow}-Schreibweise bekannte Operator-Symbol verwendet. 
+%%% TODO : combine = frame???
 
-> newCompID :: CircuitDescriptor -> CompID
-> newCompID sg = nextID compIDs
->     where compIDs = compID sg : (next $ nodes sg)
->           next []        = []
->           next [innerSG] = compID innerSG : next (nodes innerSG)
-
-> mkPins :: Int -> Pins
-> mkPins 0 = error $ show "It is not possible to generate a component with 0 pins"
-> mkPins n = [0..n-1]
-
-> nextID :: [CompID] -> CompID
-> nextID []    = 0
-> nextID [cid] = cid + 1
-> nextID cids  = nextID [foldl max 0 cids]
+\begin{code}
+  combine :: CircuitDescriptor -> CircuitDescriptor -> CircuitDescriptor
+  combine = splice (parRewire, "&&&")
+\end{code}
 
 
-> onlyInnerEdges :: [Edge] -> [Edge]
-> onlyInnerEdges es = es'
->     where es' = filter notIO $ es
->           notIO :: Edge -> Bool
->           notIO (MkEdge (Nothing, _) _) = False
->           notIO (MkEdge _ (Nothing, _)) = False
->           notIO _                       = True
+\par
+Eine Variante der \hsSource{combine} Funktion ist die Funktion \hsSource{dupCombine}. Hier werden die Eingänge zunächst dupliziert und dann
+parallel weiter verbunden. 
 
-> seqRewire :: CircuitDescriptor -> CircuitDescriptor -> ([Edge], (Pins, Pins))
-> seqRewire sg_l sg_r
->     = ( fromOuterToL ++ fromOuterToR ++ edgs ++ fromRToOuter ++ fromLToOuter
->       , (super_srcs, super_snks)
->       )
->     where (edgs, (srcs_l', snks_r')) =  wire (Just $ compID sg_l) (Just $ compID sg_r) (sources sg_l) (sinks sg_r)
->           super_srcs                 =  [0..(length.sinks   $ sg_l) + length snks_r' -1]
->           super_snks                 =  [0..(length.sources $ sg_r) + length srcs_l' -1]
->           ( fromOuterToL, (super_srcs', _)) =  wire Nothing (Just $ compID sg_l) super_srcs  (sinks sg_l)
->           ( fromOuterToR, (_          , _)) =  wire Nothing (Just $ compID sg_r) super_srcs' (drop (length fromOuterToL) $ sinks sg_r)
->           ( fromRToOuter, (_, super_snks')) =  wire (Just $ compID sg_r) Nothing (sources sg_r) super_snks
->           ( fromLToOuter, (_, _))           =  wire (Just $ compID sg_l) Nothing (drop (length fromRToOuter) $ sources sg_l) super_snks'
-
-> parRewire :: CircuitDescriptor -> CircuitDescriptor -> ([Edge], (Pins, Pins))
-> parRewire sg_u sg_d
->     = ( goingIn_edges ++ goingOut_edges
->       , (super_srcs, super_snks)
->       )
->     where super_srcs = [0..(length $ (sinks   sg_u) ++ (sinks   sg_d)) -1]
->           super_snks = [0..(length $ (sources sg_u) ++ (sources sg_d)) -1]
->           goingIn_edges  =  (wire_ Nothing (Just $ compID sg_u)                            (super_srcs) (sinks sg_u))
->                          ++ (wire_ Nothing (Just $ compID sg_d) (drop (length.sinks $ sg_u) super_srcs) (sinks sg_d))
->           goingOut_edges =  (wire_ (Just $ compID sg_u) Nothing (sources sg_u)                              (super_snks))
->                          ++ (wire_ (Just $ compID sg_d) Nothing (sources sg_d) (drop (length.sources $ sg_u) super_snks))
-
-> dupParRewire :: CircuitDescriptor -> CircuitDescriptor -> ([Edge], (Pins, Pins))
-> dupParRewire sg_u sg_d
->     = ( goingIn_edges ++ goingOut_edges
->       , (super_srcs, super_snks)
->       )
->     where super_srcs = [0..(length.sinks $ sg_u) -1]
->           super_snks = [0..(length $ (sources sg_u) ++ (sources sg_d)) -1]
->           goingIn_edges  =  (wire_ Nothing (Just $ compID sg_u) super_srcs (sinks sg_u))
->                          ++ (wire_ Nothing (Just $ compID sg_d) super_srcs (sinks sg_d))
->           goingOut_edges =  (wire_ (Just $ compID sg_u) Nothing (sources sg_u)                              (super_snks))
->                          ++ (wire_ (Just $ compID sg_d) Nothing (sources sg_d) (drop (length.sources $ sg_u) super_snks))
+\begin{code}
+  dupCombine :: CircuitDescriptor -> CircuitDescriptor -> CircuitDescriptor
+  dupCombine = splice (dupParRewire, ">2>")
+\end{code}
 
 
-> wire :: Maybe CompID -> Maybe CompID -> Pins -> Pins -> ([Edge], (Pins, Pins))
-> wire cid_l cid_r pins_l pins_r 
->     = (edges, (drop cnt pins_l, drop cnt pins_r))
->     where points_l = map ((,) (cid_l)) pins_l
->           points_r = map ((,) (cid_r)) pins_r
->           edges    = map (uncurry MkEdge) $ zip points_l points_r
->           cnt      = length edges
+\subsection{Smarte Konstruktoren}
+In Haskell lassen sich Typen sehr fein granular definieren. Für die Liste der Pins einer Schaltung passt eine Liste von Integer-Werten sehr
+gut aber nicht perfekt. So gibt es auch Integer-Listen mit keinem Inhalt. Wollte man das auf der Typebene verhindern, so würde dies einen
+Overhead erfordern, der nicht im Verhältnis zu dem Nutzen stehen würde. Eine einfache aber nützliche Alternative sind \begriff{smart
+constructor}. Hierbei handelt es sich um einen Funktion, die als Parameter alle Werte bekommt, die benötigt werden, um ein Datum des
+gewünschten Types zu erzeugen. Die Funktion erzeugt dann ein solches Datum und kann sich daneben auch noch um Fehler-Behandlungen kümmern.
+%%% TODO : Boxed Types reference
 
-> wire_ :: Maybe CompID -> Maybe CompID -> Pins -> Pins -> [Edge]
-> wire_ cid_l cid_r pins_l pins_r = fst $ wire cid_l cid_r pins_l pins_r
+\par
+Bei \hsSource{mkPins} handelt es sich um so einen \begriff{smart Constructor}. Dieser erhält die Anzahl der benötigten Pins als Parameter
+und erzeugt dann eine entsprechende Liste. 
 
-
-To generate the new edges, the edges are split into edges that
-    - come from a sub-graph 
-    - go to a sub-graph
-    - come from a super-graph
-    - go to a super-graph
-With their help the graph in between can be resolved and a new edge is generated
-that comes from a super-graph and connects with no indirection to the sub-graph.
-It is possible to have multiple edges that originate in an exclusiv pin of the
-super-graph. These edges are grouped and the according number of edges that point 
-to the intermediate pin, are generated with repeat.
-
-> partitionEdges :: CircuitDescriptor -> CircuitDescriptor -> (([Edge], [Edge]), [Edge])
-> partitionEdges superG subG  = ( ( newIncs ++ newOuts
->                                 , neutrals
->                                 )
->                               , toSubG  ++ fromSubG
->                               )
->     where fromSubG     = filter ((==Just (compID subG)).fst.sourceInfo) $ edges superG
->           toSubG       = filter ((==Just (compID subG)).fst.sinkInfo)   $ edges superG
->
->           fromNothing  = filter (isNothing.fst.sourceInfo)              $ edges subG
->           fromNothing' = groupBy (\x y -> (srcPin x) == (srcPin y)) $ sortWith srcPin fromNothing
-> 
->           toNothing    = filter (isNothing.fst.sinkInfo)                $ edges subG
->           toNothing'   = groupBy (\x y -> (snkPin x) == (snkPin y)) $ sortWith snkPin toNothing
->
->           neutrals     = filter (\x -> (isJust.fst.sourceInfo $ x) 
->                                     && (isJust.fst.sinkInfo   $ x) )    $ edges subG
->
->
->           newIncs      = mergeEdges.unzip.concat.map (\(x, y) -> zip (repeat x) y) $ zip toSubG fromNothing' 
-> --        newIncs      = mergeEdges (toSubG, fromNothing)
->           newOuts      = mergeEdges.unzip.concat.map (\(x, y) -> zip x (repeat y)) $ zip toNothing' fromSubG
-> --        newOuts      = mergeEdges (toNothing, fromSubG) 
+\begin{code}
+  mkPins :: Int -> Pins
+  mkPins 0 = error $ show "It is not possible to generate a component with 0 pins"
+  mkPins n = [0..n-1]
+\end{code}
 
 
+\par %%% Unter Ferner liefen XXX
+Mit \hsSource{nextID} hat man eine Funktion, die eine Liste vom Komponenten Nummer erhält und daraus dann eine nächste gültige Komponenten
+Nummer erzeugt.
+
+\begin{code}
+  nextID :: [CompID] -> CompID
+  nextID []    = 0
+  nextID [cid] = cid + 1
+  nextID cids  = nextID [foldl max 0 cids]
+\end{code}
 
 
+\par %%% Unter Ferner liefen XXX 
+Die Funktion \hsSource{onlyInnerEdges} filtert aus einer Liste von Kanten genau diese Kanten heraus, die die internen Kanten im Schaltkreis
+darstellen. Die Ergebnismenge enthält keine Ein- und Ausgehenden Kanten.
 
-> old_mergeEdges :: ([Edge], [Edge]) -> [Edge]
-> old_mergeEdges (xs, ys) 
->     = zipWith (\x y -> MkEdge (sourceInfo x) (sinkInfo y)) xs' ys'
->     where xs' = sortWith snkPin xs
->           ys' = sortWith srcPin ys
+\begin{code}
+  onlyInnerEdges :: [Edge] -> [Edge]
+  onlyInnerEdges es = es'
+      where es' = filter notIO $ es
+            notIO :: Edge -> Bool
+            notIO (MkEdge (Nothing, _) _) = False
+            notIO (MkEdge _ (Nothing, _)) = False
+            notIO _                       = True
+\end{code}
 
 
+\subsection{Verdrahtungs-Vorstufen}
+Unter den \hsSource{rewire}-Funktionen sind Funktionen zu verstehen, die eine Vorstufe für die eigentliche Verbindung (das
+\begriff{splicen}) darstellen. Zwei Schaltkreise werden jeweils in eine Zwischendarstellung überführt. Die Zwischendarstellung besteht aus
+einer Liste von neuen Kanten (\hsSource{[Edge]}), zusammen mit den überbleibenden Ein- und Ausgangspins. 
+
+\par
+Alle \hsSource{rewire}-Funktionen nutzen eine Funktion, nämlich \hsSource{wire}. Das verbinden von Drähten mit Komponenten ist, unabhängig
+davon ob sequentiell oder parallel verbunden werden soll, immer gleich. Eingehende Parameter zu \hsSource{wire} sind die beiden Komponenten
+Nummern, sowie die Pin-Listen. Auch diese Funktion erzeugt die schon beschriebene Zwischendarstellung.
+
+\begin{code}
+  wire :: Maybe CompID -> Maybe CompID -> Pins -> Pins -> ([Edge], (Pins, Pins))
+  wire cid_l cid_r pins_l pins_r 
+      = (edges, (drop cnt pins_l, drop cnt pins_r))
+      where points_l = map ((,) (cid_l)) pins_l
+            points_r = map ((,) (cid_r)) pins_r
+            edges    = map (uncurry MkEdge) $ zip points_l points_r
+            cnt      = length edges
+\end{code}
+  
+
+\par 
+\hsSource{wire_} ist ein Synonym für \hsSource{fst . wire}.
+
+\begin{code}
+  wire_ :: Maybe CompID -> Maybe CompID -> Pins -> Pins -> [Edge]
+  wire_ cid_l cid_r pins_l pins_r = fst $ wire cid_l cid_r pins_l pins_r
+\end{code}
 
 
----- Here is another try ----
+\par
+Bei der Funktion \hsSource{seqRewire} werden die Verbindungen sequentiell erstellt; übrige Ein oder Ausgänge werden zu den gesamt Ein und
+Ausgängen hinzugefügt. 
+
+\begin{code}
+  seqRewire :: CircuitDescriptor -> CircuitDescriptor -> ([Edge], (Pins, Pins))
+  seqRewire sg_l sg_r
+      = ( fromOuterToL ++ fromOuterToR ++ edgs ++ fromRToOuter ++ fromLToOuter
+        , (super_srcs, super_snks)
+        )
+      where (edgs, (srcs_l', snks_r')) =  wire (Just $ compID sg_l) (Just $ compID sg_r) (sources sg_l) (sinks sg_r)
+            super_srcs                 =  [0..(length.sinks   $ sg_l) + length snks_r' -1]
+            super_snks                 =  [0..(length.sources $ sg_r) + length srcs_l' -1]
+            ( fromOuterToL, (super_srcs', _)) =  wire Nothing (Just $ compID sg_l) super_srcs  (sinks sg_l)
+            ( fromOuterToR, (_          , _)) =  wire Nothing (Just $ compID sg_r) super_srcs' (drop (length fromOuterToL) $ sinks sg_r)
+            ( fromRToOuter, (_, super_snks')) =  wire (Just $ compID sg_r) Nothing (sources sg_r) super_snks
+            ( fromLToOuter, (_, _))           =  wire (Just $ compID sg_l) Nothing (drop (length fromRToOuter) $ sources sg_l) super_snks'
+\end{code}
 
 
---- Functions that obviously do not belong here: ---
+\par
+Bei der \hsSource{parRewire} Funktion werden beide Bausteine ``übereinander'' angeordnet. Die Eingänge beider Komponenten, sowie deren
+Ausgänge werden parallel geschaltet. 
 
-> collNext :: Int -> Int
-> collNext n = if n == 1 
->                   then 1 
->                   else (if (even n) 
->                             then (n `div` 2) 
->                             else (3*n + 1)
->                        )
+\begin{code}
+  parRewire :: CircuitDescriptor -> CircuitDescriptor -> ([Edge], (Pins, Pins))
+  parRewire sg_u sg_d
+      = ( goingIn_edges ++ goingOut_edges
+        , (super_srcs, super_snks)
+        )
+      where super_srcs = [0..(length $ (sinks   sg_u) ++ (sinks   sg_d)) -1]
+            super_snks = [0..(length $ (sources sg_u) ++ (sources sg_d)) -1]
+            goingIn_edges  =  (wire_ Nothing (Just $ compID sg_u)                            (super_srcs) (sinks sg_u))
+                           ++ (wire_ Nothing (Just $ compID sg_d) (drop (length.sinks $ sg_u) super_srcs) (sinks sg_d))
+            goingOut_edges =  (wire_ (Just $ compID sg_u) Nothing (sources sg_u)                              (super_snks))
+                           ++ (wire_ (Just $ compID sg_d) Nothing (sources sg_d) (drop (length.sources $ sg_u) super_snks))
+\end{code}
 
-> collatz :: ((Int, Int) -> Int) -> (Int, Int) -> Int
-> collatz = (\f (n, step) 
->           -> if n == 1 
->                   then step 
->                   else f (collNext n, step +1)
->           )
 
-> or_else x1 x2 = if x1 then x1 else x2
+\par
+Die Funktion \hsSource{dupParRewire} funktioniert dabei analog zur Funktion \hsSource{parRewire}. Lediglich die Eingänge werden zunächst
+dupliziert und dann auf beide Komponenten geschaltet.
+
+\begin{code}
+  dupParRewire :: CircuitDescriptor -> CircuitDescriptor -> ([Edge], (Pins, Pins))
+  dupParRewire sg_u sg_d
+      = ( goingIn_edges ++ goingOut_edges
+        , (super_srcs, super_snks)
+        )
+      where super_srcs = [0..(length.sinks $ sg_u) -1]
+            super_snks = [0..(length $ (sources sg_u) ++ (sources sg_d)) -1]
+            goingIn_edges  =  (wire_ Nothing (Just $ compID sg_u) super_srcs (sinks sg_u))
+                           ++ (wire_ Nothing (Just $ compID sg_d) super_srcs (sinks sg_d))
+            goingOut_edges =  (wire_ (Just $ compID sg_u) Nothing (sources sg_u)                              (super_snks))
+                           ++ (wire_ (Just $ compID sg_d) Nothing (sources sg_d) (drop (length.sources $ sg_u) super_snks))
+\end{code}

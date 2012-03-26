@@ -41,14 +41,14 @@ xxx f g = (aId *** aId) >>> f >>> (aId *** g)
 --  (start,(n,  step)) (step,(n,   step))
 --                     end
 
-aColl :: (Arrow a, ArrowLoop a) => a Int Int
-aColl = proc start -> do
-            let n    = start
-            let step = 0
-            rec n' <- arr collNext -< n
-                let n    = n'
-                let step = step +1
-            returnA -< step
+--aColl :: (Arrow a, ArrowLoop a) => a Int Int
+--aColl = proc start -> do
+--            let n    = start
+--            let step = 0
+--            rec n' <- arr collNext -< n
+--                let n    = n'
+--                let step = step +1
+--            returnA -< step
 
 aAdd1 :: (Arrow a) => a Int Int
 aAdd1 = arr (\x -> x +1)
@@ -162,3 +162,21 @@ counter = proc reset -> do
             rec output <- (arr (+1)) -< reset
                 next   <- delay 0    -< output
             returnA -< output
+
+
+-- Collatz Folge:
+
+--collNext :: Int -> Int
+--collNext n = if n == 1 
+--                  then 1 
+--                  else (if (even n) 
+--                            then (n `div` 2) 
+--                            else (3*n + 1)
+--                       )
+--
+--collatz :: ((Int, Int) -> Int) -> (Int, Int) -> Int
+--collatz = (\f (n, step) 
+--          -> if n == 1 
+--                  then step 
+--                  else f (collNext n, step +1)
+--          )
