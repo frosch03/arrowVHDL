@@ -149,8 +149,8 @@ The VHDL-Signals is the list of inner wires, that are used inside the new compon
 >      ++ ");"
 >      ]
 >      where relevantEdges = filter (isFromOrToComp $ compID g) $ edges superG
->            edge2inside   = filter (isFromOutside) $ relevantEdges
->            edge2outside  = filter (isToOutside)   $ relevantEdges
+>            edge2inside   = filter (isFromOuter)   $ relevantEdges
+>            edge2outside  = filter (isToOuter)     $ relevantEdges
 >            pin2signal    = relevantEdges \\ (edge2outside ++ edge2inside)
 >            incoming      = sepBy ", " $ map (genPortMap namedComps namedEdges' (compID g)) $ edge2inside
 >            outgoing      = sepBy ", " $ map (genPortMap namedComps namedEdges' (compID g)) $ edge2outside
