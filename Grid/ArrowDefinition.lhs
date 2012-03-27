@@ -14,13 +14,13 @@
 }
 
 \section{Pfeildefinitionen}
-\label{mod:Grid:Arrowdefinition}
+\label{mod:Grid:ArrowDefinition}
 
 Das Modul \hsSource{Grid.Arrowdefinition} beschreibt, wie die Arrow-Klasse zu implementieren sind um damit später Schaltkreise beschreiben,
 bearbeiten oder benutzen zu können.
 
 \begin{code}
-  module Grid.Traversal
+  module Grid.ArrowDefinition
   where
 \end{code}
 

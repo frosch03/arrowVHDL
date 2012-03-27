@@ -5,7 +5,7 @@ import Control.Category
 import Prelude hiding (id, (.))
 import Data.Bits (xor, shiftL, shiftR)
 
-import Grid.Traversal
+import Grid.ArrowDefinition
 import Grid.Show
 import Grid.Core
 -- import Grid.Graph
