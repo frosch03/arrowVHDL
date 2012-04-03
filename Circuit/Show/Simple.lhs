@@ -1,13 +1,18 @@
-> module Grid.Show.Simple
+> module Circuit.Show.Simple
 > ( showCircuit
 > , showEdge
 > )
 > where
 
-> import Grid.Core
+> import Circuit.Descriptor
 
 > showCircuit :: CircuitDescriptor -> String
-> showCircuit g =  "\n"
+> showCircuit g =  showCircuit' g
+>               ++ "\n" ++ "Area: " ++ (show $ space g)
+>               ++ "\n" ++ "Time: " ++ (show $ cycles g)
+
+> showCircuit' :: CircuitDescriptor -> String
+> showCircuit' g =  "\n"
 >             ++ (show.compID) g
 >             ++ "(" ++ (show.label) g ++ "): "
 >             ++ (prtInOuts.sinks) g ++ "] "
@@ -15,7 +20,7 @@
 >             ++ " [" ++ (prtInOuts.sources) g
 >             ++ (showNode.nodes) g
 >          where showNode [] = ""
->                showNode n  = concat $ map showCircuit n
+>                showNode n  = concat $ map showCircuit' n
 >                prtInOuts [] = "_"
 >                prtInOuts x  = foldl1 (\x y -> x ++ ',':y) $ map show x
 

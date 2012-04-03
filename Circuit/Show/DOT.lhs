@@ -1,4 +1,4 @@
-> module Grid.Show.DOT
+> module Circuit.Show.DOT
 > ( showCircuit
 > , showEdge
 > )
@@ -11,12 +11,12 @@
 
 > import Prelude hiding ( break ) 
 
-> import Grid.Core
+> import Circuit.Descriptor
 
-> import Grid.PinTransit
-> import Grid.EdgeTransit
+> import Circuit.PinTransit
+> import Circuit.EdgeTransit
 
-> import Grid.Show.Tools
+> import Circuit.Show.Tools
 
 
 This function produces the edge-description as it is required by the 

@@ -1,10 +1,10 @@
 \section{Sensorische Funktionen}
-\label{mod:Grid:Sensors}
+\label{mod:Circuit.Sensors}
 
-Das Modul \hsSource{Grid.Sensors} enthält eine Reihe von Funktionen, die bestimmte Werte aus übergebenen Daten herauslesen. 
+Das Modul \hsSource{Circuit.Sensors} enthält eine Reihe von Funktionen, die bestimmte Werte aus übergebenen Daten herauslesen. 
 
 \begin{code}
-  module Grid.Sensors
+  module Circuit.Sensors
   where
 \end{code} 
 
@@ -12,8 +12,8 @@ Das Modul \hsSource{Grid.Sensors} enthält eine Reihe von Funktionen, die bestim
 Es werden lediglich die Standard Definitionen, sowie die Tests benötigt.
 
 \begin{code}
-  import Grid.Core
-  import Grid.Tests
+  import Circuit.Descriptor
+  import Circuit.Tests
 \end{code} 
 
 

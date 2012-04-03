@@ -3,52 +3,24 @@ module Beispiel where
 
 import Control.Category 
 import Prelude hiding (id, (.))
-import Data.Bits (xor, shiftL, shiftR)
 
-import Grid.ArrowDefinition
-import Grid.Show
-import Grid.Core
--- import Grid.Graph
-import Grid.Auxillary
-
-import Grid.Tools
-
-import Defaults ( aId
-                , aConst
-                , aDup
-                , aFlip
-                , aAdd
-                , aXor
-                , aShiftL, aShiftL4, aShiftL4addKey
-                , aShiftR, aShiftR5, aShiftR5addKey
-                , aAddMagic
-                )
-import Control.Monad.Fix
-
----------------
--- TESTING TODO
-
-feedback2nd :: (Arrow a, ArrowLoop a) => a (b, d) (c, d) -> a b c
-feedback2nd a = loop a 
-
--- feedback2ndVia :: (Arrow a) => a (b, d) (b', d) -> a d d -> a b b'
--- (GR f) `feedback2ndVia` (GR g) = GR $ feedback2nd $ f >>> (aId *** g)
-
-xxx f g = (aId *** aId) >>> f >>> (aId *** g)
+import Circuit.Arrow
+import Circuit.Auxillary
 
 
--- a (Int, (Int, Int)) (Int, (Int, Int))
---  (start,(n,  step)) (step,(n,   step))
---                     end
+import Circuit
+import Circuit.Defaults 
+        ( aId
+        , aConst
+        , aDup
+        , aFlip
+        , aAdd
+        , aXor
+        , aShiftL, aShiftL4, aShiftL4addKey
+        , aShiftR, aShiftR5, aShiftR5addKey
+        , aAddMagic
+        )
 
---aColl :: (Arrow a, ArrowLoop a) => a Int Int
---aColl = proc start -> do
---            let n    = start
---            let step = 0
---            rec n' <- arr collNext -< n
---                let n    = n'
---                let step = step +1
---            returnA -< step
 
 aAdd1 :: (Arrow a) => a Int Int
 aAdd1 = arr (\x -> x +1)
@@ -58,18 +30,6 @@ aSub1 = arr (\x -> x -1)
 
 aSub2 = aSub1 >>> aSub1
 
-
--- aColl :: (Arrow a, ArrowLoop a) => a ((Int, Int), d) (Int, d) -> a (Int, Int) Int 
--- aColl 
---     = augment 
---         emptyCircuit { label   = "Coll"
---                      , sinks   = mkPins 2
---                      , sources = mkPins 1
---                      } 
---     $ feedback2nd collatz
-
--- TESTING TODO
----------------
 
 
 -- Beispiel 0
@@ -162,21 +122,3 @@ counter = proc reset -> do
             rec output <- (arr (+1)) -< reset
                 next   <- delay 0    -< output
             returnA -< output
-
-
--- Collatz Folge:
-
---collNext :: Int -> Int
---collNext n = if n == 1 
---                  then 1 
---                  else (if (even n) 
---                            then (n `div` 2) 
---                            else (3*n + 1)
---                       )
---
---collatz :: ((Int, Int) -> Int) -> (Int, Int) -> Int
---collatz = (\f (n, step) 
---          -> if n == 1 
---                  then step 
---                  else f (collNext n, step +1)
---          )

@@ -1,39 +1,69 @@
-\section{Hilfunktionalitäten}
-\label{mod:Grid:Auxillary}
+\section{Zusammengefüge}
+\label{mod:Circuit.Splice}
 
-Das Hilfsmodul stellt ein Sammelbecken für alle Funktionen dar, die nicht in eines der anderen Module gepasst haben.
+
+Das Module \hsSource{Circuit.Splice} bietet nach außen hin nur eine Funktion an, nämlich \hsSource{splice}. Diese Funktion führt zwei
+Schaltungen zu einer neuen zusammen. Dabei ist noch nicht festgelegt, wie dieses Zusammenführen tatsächlich aussieht. 
 
 \begin{code}
-  module Grid.Auxillary 
+  module Circuit.Splice
   where
-\end{code}
+\end{code} 
+
+\par
+Verwendet werden die Standard-Definitionen, sowie eine Sensor und einer Worker Funktion.
+
+
+\begin{code}
+  import Data.List (nub)
+
+  import Circuit.Graphs
+
+  import Circuit.Descriptor
+  import Circuit.Workers (alterCompIDs)
+  import Circuit.Sensors (maxCompID)
+\end{code} 
 
 
 \par
-Da dieses Modul keine spezielle Aufgabe besitzt sind auch die Aufgaben der einzelnen Funktionen sehr unterschiedlich. Aus diesen Gründen ist
-die Liste der eingebundenen Module recht lang. 
+Auch wenn hier tatsächlich zwei Funktionen stehen wird \hsSource{splice} doch als eine Einheit angesehen. \hsSource{splice'} enthält die
+Funktionalität, \hsSource{splice} ist der öffentliche Bezeichner, der obendrein noch eine grundlegende Fehlerprüfung macht.
+
+\par
+\hsSource{splice} wird eine \hsSource{rewire} Funktion übergeben. Diese Funktion enthält die Logik, nach der die ``Verdrahtung'' der beiden
+Schaltkreise erfolgen wird. Hier ist es dann möglich beispielsweise sequentiell oder parallel zu verdrahten. Außerdem erwartet
+\hsSource{splice} noch zwei Schaltungen, die zusammengeführt werden sollen. Diese beiden werden dann auf die gewählte Art miteinander
+verbunden. Die übrigen ``Drähte'' werden nach außen geführt, ein neuer Name wird erzeugt und dieser neue Schaltkreis wird dann
+zurückgegeben.
 
 \begin{code}
-  import Data.List (union, groupBy, isInfixOf)
-  import Data.Maybe
-  import Data.Either
-  import Control.Monad (msum)
-  
-  import GHC.Exts (sortWith)
-  
-  import Grid.Core
-  import Grid.Show
-  import Grid.Tests
-  import Grid.Splice
-  import Grid.Sensors
-  import Grid.Workers
-  
-  import Grid.Graph (emptyCircuit)
-\end{code}
+  splice :: ((CircuitDescriptor -> CircuitDescriptor -> ([Edge], (Pins, Pins))), String) -> CircuitDescriptor -> CircuitDescriptor -> CircuitDescriptor
+  splice _           sg NoDescriptor = sg
+  splice _           NoDescriptor sg = sg
+  splice (rewire, s) cd_f cd_g       = splice' (rewire, s) cd_f cd_g
+
+
+  splice' :: ((CircuitDescriptor -> CircuitDescriptor -> ([Edge], (Pins, Pins))), String) -> CircuitDescriptor -> CircuitDescriptor -> CircuitDescriptor
+  splice' (rewire, s) cd_f cd_g 
+      = MkCombinatorial
+             { label   = (label cd_f') ++ s ++ (label cd_g')
+             , compID  = 0
+             , nodes   = cd_f': cd_g' : []
+             , edges   = es
+             , sinks   = srcs 
+             , sources = snks
+             , cycles  = (cycles cd_f) + (cycles cd_g)
+             , space   = (space  cd_f) + (space  cd_g)
+             }
+      where cd_f'              = alterCompIDs 1                    cd_f
+            cd_g'              = alterCompIDs (maxCompID cd_f' +1) cd_g
+            (es, (srcs, snks)) = rewire cd_f' cd_g'
+\end{code} 
+
 
 
 \subsection{Verdrahtungsvarianten}
-Die Funktion \hsSource{splice} aus dem Modul \ref{mod:Grid:Splice} verwendet für das ``verdrahten'' eine der folgenden
+Die Funktion \hsSource{splice} aus dem Modul \ref{mod:Circuit.Splice} verwendet für das ``verdrahten'' eine der folgenden
 \hsSource{rewire}-Funktionen. Daneben wird noch eine Zeichenkette zugeordnet, um später debug-Ausgaben erzeugen zu können.
 
 \par 
@@ -67,50 +97,27 @@ parallel weiter verbunden.
 \end{code}
 
 
-\subsection{Smarte Konstruktoren}
-In Haskell lassen sich Typen sehr fein granular definieren. Für die Liste der Pins einer Schaltung passt eine Liste von Integer-Werten sehr
-gut aber nicht perfekt. So gibt es auch Integer-Listen mit keinem Inhalt. Wollte man das auf der Typebene verhindern, so würde dies einen
-Overhead erfordern, der nicht im Verhältnis zu dem Nutzen stehen würde. Eine einfache aber nützliche Alternative sind \begriff{smart
-constructor}. Hierbei handelt es sich um einen Funktion, die als Parameter alle Werte bekommt, die benötigt werden, um ein Datum des
-gewünschten Types zu erzeugen. Die Funktion erzeugt dann ein solches Datum und kann sich daneben auch noch um Fehler-Behandlungen kümmern.
-%%% TODO : Boxed Types reference
+\par 
+Möchte man einen \begriff{Loop} erstellen, so wird dieser durch ein Register geführt, dass eine Verzögerung um einen Takt ermöglicht. Die
+Funktion, die ein Bauteil um eine Schleife mit Register erweitert, nennt sich \hsSource{registerloopRewire}. Diese Funktion lässt sich
+mittels \hsSource{splice} zu der nach Außen verwendeten \hsSource{loopWithRegister} Funktion umbauen.
 
-\par
-Bei \hsSource{mkPins} handelt es sich um so einen \begriff{smart Constructor}. Dieser erhält die Anzahl der benötigten Pins als Parameter
-und erzeugt dann eine entsprechende Liste. 
 
 \begin{code}
-  mkPins :: Int -> Pins
-  mkPins 0 = error $ show "It is not possible to generate a component with 0 pins"
-  mkPins n = [0..n-1]
-\end{code}
-
-
-\par %%% Unter Ferner liefen XXX
-Mit \hsSource{nextID} hat man eine Funktion, die eine Liste vom Komponenten Nummer erhält und daraus dann eine nächste gültige Komponenten
-Nummer erzeugt.
-
-\begin{code}
-  nextID :: [CompID] -> CompID
-  nextID []    = 0
-  nextID [cid] = cid + 1
-  nextID cids  = nextID [foldl max 0 cids]
-\end{code}
-
-
-\par %%% Unter Ferner liefen XXX 
-Die Funktion \hsSource{onlyInnerEdges} filtert aus einer Liste von Kanten genau diese Kanten heraus, die die internen Kanten im Schaltkreis
-darstellen. Die Ergebnismenge enthält keine Ein- und Ausgehenden Kanten.
-
-\begin{code}
-  onlyInnerEdges :: [Edge] -> [Edge]
-  onlyInnerEdges es = es'
-      where es' = filter notIO $ es
-            notIO :: Edge -> Bool
-            notIO (MkEdge (Nothing, _) _) = False
-            notIO (MkEdge _ (Nothing, _)) = False
-            notIO _                       = True
-\end{code}
+  loopWithRegister :: CircuitDescriptor -> CircuitDescriptor
+  loopWithRegister cd 
+    = MkCombinatorial 
+      { label   = "loop(" ++ (label cd) ++ ")"
+      , compID  = 0
+      , nodes   = [alterCompIDs 1 cd]
+      , edges   = es
+      , sinks   = srcs
+      , sources = snks
+      , cycles  = cycles cd
+      , space   = space cd
+      }
+    where (es, (srcs, snks)) = registerLoopRewire cd
+\end{code} 
 
 
 \subsection{Verdrahtungs-Vorstufen}
@@ -199,3 +206,22 @@ dupliziert und dann auf beide Komponenten geschaltet.
             goingOut_edges =  (wire_ (Just $ compID sg_u) Nothing (sources sg_u)                              (super_snks))
                            ++ (wire_ (Just $ compID sg_d) Nothing (sources sg_d) (drop (length.sources $ sg_u) super_snks))
 \end{code}
+
+
+\par
+\hsSource{skipSinkPin} 
+\hsSource{skipSourcePin}
+\hsSource{skipPins} 
+
+
+\begin{code}
+  registerLoopRewire :: CircuitDescriptor -> ([Edge], (Pins, Pins))
+  registerLoopRewire cd
+      = (es, (srcs, snks))
+      where reg = mkRegister emptyCircuit
+            (es1, (srcs1, snks1)) = seqRewire cd reg
+            (es2, (srcs2, snks2)) = seqRewire reg cd
+            es   = es1 ++ es2
+            srcs = nub $ filter (flip elem srcs2) srcs1 ++ filter (flip elem srcs1) srcs2
+            snks = nub $ filter (flip elem snks2) snks1 ++ filter (flip elem snks1) snks2 
+\end{code} 

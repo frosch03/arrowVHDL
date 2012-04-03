@@ -1,10 +1,10 @@
 \subsection{Anzeige-Funktionalität}
-\label{src:Grid:Show}
-Dieses Modul stellt die Schnittstelle für die Show-Funktionalität dar. Wird \hsSource{Grid.Show} in einem anderen Modul eingebunden, so
+\label{mod:Circuit.Show}
+Dieses Modul stellt die Schnittstelle für die Show-Funktionalität dar. Wird \hsSource{Circuit.Show} in einem anderen Modul eingebunden, so
 können \hsSource{CircuitDescriptor}en mittels \hsSource{show} angezeigt werden. 
 
 \begin{code}
-  module Grid.Show
+  module Circuit.Show
   where
 \end{code} 
 
@@ -12,16 +12,16 @@ können \hsSource{CircuitDescriptor}en mittels \hsSource{show} angezeigt werden.
 %% missing object-file error. Exit the ghci and restart it, will do the job.
 
 \begin{code}
-  import Grid.Core
-  -- import Grid.Show.Simple
-  import Grid.Show.VHDL
-  -- import Grid.Show.DOT
-  import qualified Grid.Show.Simple as Simple
-  import qualified Grid.Show.DOT as DOT
-  import qualified Grid.Show.VHDL as VHDL
+  import Circuit.Descriptor
+  import Circuit.Show.Simple
+  -- import Circuit.Show.VHDL
+  -- import Circuit.Show.DOT
+  import qualified Circuit.Show.Simple as Simple
+  import qualified Circuit.Show.DOT as DOT
+  import qualified Circuit.Show.VHDL as VHDL
 \end{code} 
 
-An externen Modulen wird hier lediglich die Kerndefinition \hsSource{Grid.Core} verwendet. Darüber hinaus werden die jeweiligen
+An externen Modulen wird hier lediglich die Kerndefinition \hsSource{Circuit.Descriptor} verwendet. Darüber hinaus werden die jeweiligen
 Anzeigemodule eingebunden. Folgende Formate können als Ausgabeformat gewählt werden:
 \begin{itemize}
   \item Mit \begriff{Simple} ist ein Ausgabeformat gemeint, welches sehr kurz und prägnant alle verfügbaren Informationen anzeigt. Dieses

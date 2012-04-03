@@ -3,15 +3,15 @@ In diesem Modul wird ein Algebraischer Datentyp aufgebaut. Dieses Datum wird im 
 Algebraische Datentyp besteht aus einem Tupel, dass aus einer Liste von Ankerpunkten sowie den dazugehörigen Namen, besteht. 
 
 \begin{code}
-  module Grid.EdgeTransit
+  module Circuit.EdgeTransit
   where
 \end{code}
 
 \par
-Im späteren wird die Funktionen aus dem \ref{mod:Grid:Core} Modul benötigt, sowie die Funktion \hsSource{isJust} aus \hsSource{Data.Maybe}.
+Im späteren wird die Funktionen aus dem \ref{mod:Circuit.Descriptor} Modul benötigt, sowie die Funktion \hsSource{isJust} aus \hsSource{Data.Maybe}.
 \begin{code}
   import Data.Maybe (isJust)
-  import Grid.Core
+  import Circuit.Descriptor
 \end{code}
 
 \subsection{Datenstruktur}

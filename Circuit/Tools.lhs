@@ -1,10 +1,10 @@
 \section{Werkzeuge}
-\label{mod:Grid:Tools}
+\label{mod:Circuit.Tools}
 
 Dieses Modul stellt Funktionen zur Verfügung die beim erstellen von Beispielen nützlich sind. 
 
 \begin{code}
-  module Grid.Tools
+  module Circuit.Tools
   where
 \end{code}
 
@@ -25,16 +25,16 @@ Daneben wird noch der \begriff{except}-Operator (\hsSource{(\\)}) aus dem Listen
 
 
 \par
-Schließlich werden eine ganze Reihe von Modulen aus der \hsSource{Grid}-Reihe verwendet:
+Schließlich werden eine ganze Reihe von Modulen aus der \hsSource{Circuit}-Reihe verwendet:
 
 \begin{code}
-  import Grid.Core
-  import Grid.Show
-  import Grid.Graph
-  import Grid.Auxillary
-  import Grid.Show.DOT
-  import Grid.Workers (mergeEdges)
-  import Grid.Tests
+  import Circuit.Descriptor
+  import Circuit.Show
+  import Circuit.Graphs
+  import Circuit.Auxillary
+  import Circuit.Show.DOT
+  import Circuit.Workers (mergeEdges)
+  import Circuit.Tests
 \end{code}
 
 
@@ -48,7 +48,7 @@ Schaltkreises erzeugt und im \hsSource{/tmp}-Folder abgespeichert.
 wird vorausgesetzt, das auf dem System die \begriff{graphviz}-Umgebung vorinstalliert ist.
 
 \begin{code}
-  write x    = writeFile "/tmp/test.dot" (Grid.Show.DOT.showCircuit x)
+  write x    = writeFile "/tmp/test.dot" (Circuit.Show.DOT.showCircuit x)
   genPicture = system "dot /tmp/test.dot -Tjpg -o /tmp/test.jpg"
 \end{code}
 

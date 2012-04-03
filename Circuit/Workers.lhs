@@ -1,11 +1,11 @@
 \section{Worker Funktionen}
-\label{mod:Grid:Workers}
+\label{mod:Circuit.Workers}
 
 In diesem Modul werden eine Reihe von \begriff{worker}-Funktionen definiert die alle einen übergebenen Wert verändern und die geänderte
 Variante zurückliefern. 
 
 \begin{code}
-  module Grid.Workers
+  module Circuit.Workers
   where
 \end{code} 
 
@@ -17,9 +17,9 @@ Zur Funktionsdefinition werden Funktionen aus folgenden Modulen benötigt.
 
   import GHC.Exts (sortWith)
 
-  import Grid.Core
-  import Grid.Sensors
-  import Grid.Tests
+  import Circuit.Descriptor
+  import Circuit.Sensors
+  import Circuit.Tests
 \end{code} 
 
 
@@ -96,7 +96,7 @@ Hierzu wird eine match-Funktion als erster Parameter erwartet.
 Die Funktionen \hsSource{dropGenerated} sowie \hsSource{dropID} stellen Spezialfälle der \hsSource{dropCircuit} Funktion dar.
 \hsSource{dropGenerated} löscht sämtliche \hsSource{CircuitDescriptor}en, die automatisch generiert wurden. Ebenso löscht \hsSource{dropID}
 \hsSource{CircuitDescriptor}en, die den \hsSource{isID}-Test bestehen. \hsSource{isID} sowie \hsSource{isGenerated} sind im Modul
-\ref{mod:Grid:Tests} beschrieben.
+\ref{mod:Circuit.Tests} beschrieben.
 
 \begin{code}
   dropGenerated :: CircuitDescriptor -> CircuitDescriptor

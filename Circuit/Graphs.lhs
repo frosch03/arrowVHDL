@@ -1,19 +1,19 @@
 \section{Standard Schaltkreise}
-\label{src:Grid:Graph}
+\label{src:Circuit.Graphs}
 
 Dieser Abschnitt stellt einige Standard-Schaltkreise vor. Diese können als Grundlage für komplexere Schaltkreise herangezogen werden. 
 
 \begin{code}
-  module Grid.Graph
+  module Circuit.Graphs
   where
 \end{code} 
 
 \par 
-Verwendet wird ausschließlich das Modul \ref{mod:Grid:Core} (\hsSource{Grid.Core}).
+Verwendet wird ausschließlich das Modul \ref{mod:Circuit.Graphs} (\hsSource{Circuit.Descriptor}).
 
 
 \begin{code}
-  import Grid.Core
+  import Circuit.Descriptor
 \end{code} 
 
 \subsection{Leerer Schaltkreis}
@@ -24,13 +24,15 @@ nicht leer}, \hsSource{Integer} werden auf $0$ gesetzt und Listen sind jeweils l
 \begin{code}
   emptyCircuit :: CircuitDescriptor
   emptyCircuit 
-    = MkDescriptor 
+    = MkCombinatorial
            { label   = "..."
            , compID  = 0
            , nodes   = []
            , edges   = []
            , sinks   = []
            , sources = []
+           , cycles  = 0
+           , space   = 0
            }
 \end{code} 
 

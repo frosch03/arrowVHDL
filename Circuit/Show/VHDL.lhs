@@ -1,4 +1,4 @@
-> module Grid.Show.VHDL
+> module Circuit.Show.VHDL
 > ( showCircuit
 > , showEdge
 > )
@@ -11,13 +11,13 @@
 
 > import Prelude hiding ( break ) 
 
-> import Grid.Core
+> import Circuit.Descriptor
 
-> import Grid.PinTransit
-> import Grid.EdgeTransit
-> import Grid.Tests
+> import Circuit.PinTransit
+> import Circuit.EdgeTransit
+> import Circuit.Tests
 
-> import Grid.Show.Tools
+> import Circuit.Show.Tools
 
 
 The showEdge function is only needed for the Show class. 

@@ -1,4 +1,4 @@
-module Grid.Show.Tools
+module Circuit.Show.Tools
 where
 
 

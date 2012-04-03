@@ -1,23 +1,23 @@
 \long\def\ignore#1{}
 
 \section{Test Funktionen}
-\label{mod:Grid:Tests}
+\label{mod:Circuit.Tests}
 
 Dieses Modul beschreibt eine Reihe von Funktionen zum prüfen von Eigenschaften. Diese Funktionen haben eine Gemeinsamkeit, nämlich dass sie
 letztlich immer einen \hsSource{Bool}-Wert erzeugen. 
 
 
 \begin{code}
-  module Grid.Tests 
+  module Circuit.Tests 
   where
 \end{code} 
 
 \par 
-Lediglich das Modul \hsSource{Grid.Core} wird benötigt
+Lediglich das Modul \hsSource{Circuit.Descriptor} wird benötigt
 
 
 \begin{code}
-  import Grid.Core
+  import Circuit.Descriptor
 \end{code} 
 
 \subsection{Tests mit Kantenbezug}

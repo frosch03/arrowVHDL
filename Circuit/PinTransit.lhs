@@ -1,19 +1,19 @@
 \section{Benannte Pins}
-\label{mod:Grid:PinTransit}
+\label{mod:Circuit.PinTransit}
 Dieses Modul definiert einen Algebraischen Datentyp der im Codegenerator zur Generierung des Zielcodes benötigt. Er enthält die % TODO : Referenz
 Komponenten ID, sowie benannte Ein- und Ausgangspins.
 
 \begin{code}
-  module Grid.PinTransit
+  module Circuit.PinTransit
   where
 \end{code}
 
 
 \par
-Benötigt werden die Definitionen aus dem \ref{mod:Grid:Core} (\hsSource{Grid.Core}) Module benötigt.
+Benötigt werden Modul-Definitionen aus \hsSource{Circuit}.
 
 \begin{code}
-  import Grid.Core
+  import Circuit.Descriptor
 \end{code}
 
 \subsection{Datenstruktur}
