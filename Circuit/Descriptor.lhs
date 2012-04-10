@@ -85,21 +85,39 @@ werden in einem Tupel zusammengefasst}
 Hier wird unterschieden zwischen Kombinatorischen Schaltungen \hsSource{MkCombinatorial}, Registern \hsSource{MkRegister} und nicht
 vorhandenen Schaltungen \hsSource{NoDescriptor}. %%% TODO : Wie fließt hier MkComposite rein?
 
+\par
+Ein Register unterscheidet sich von einer kombinatorischen Schaltung, teilweise gibt es Gemeinsamkeiten. Diese Gemeinsamkeiten werden über
+den Datentyp \hsSource{NodeDescriptor} verkörpert.
+
+
+\begin{code}
+  data NodeDescriptor
+    = MkNode
+      { label   :: String 
+      , nodeId  :: ID
+      , sinks   :: Pins
+      , sources :: Pins
+      }
+    deriving (Eq)
+\end{code} 
+
+
+\par
+Der \hsSource{NodeDescriptor} taucht in der Definition eines Schaltkreises, aber auch in der Definition eines Registers, auf.
+
 \begin{code}
   data CircuitDescriptor
     = MkCombinatorial
-      { label   :: String 
-      , compID  :: ID
-      , nodes   :: [CircuitDescriptor]
-      , edges   :: [Edge]
-      , sinks   :: Pins
-      , sources :: Pins
-      , cycles  :: Tick
-      , space   :: Area
+      { nodeDesc :: NodeDescriptor
+      , nodes    :: [CircuitDescriptor]
+      , edges    :: [Edge]
+      , cycles   :: Tick
+      , space    :: Area
       }
 
     | MkRegister
-      { descriptor :: CircuitDescriptor 
+      { nodeDesc :: NodeDescriptor
+      , bit      :: Int
       }
 
 --  | MkComposite
@@ -112,7 +130,7 @@ vorhandenen Schaltungen \hsSource{NoDescriptor}. %%% TODO : Wie fließt hier MkC
 
 In Haskell lassen sich die Komponenten Attribute über einen Summentyp abgebildet. Dieser Datentyp ist ein fundamentaler Datentyp, da er
 gleichberechtigt neben der eigentlichen Funktionalität steht. Er besitzt einen Bezeichner \hsSource{label}, sowie eine eindeutige ID
-\hsSource{compID}. Zusätzlicher sind die Ein- sowie die Ausgehenden Pins aufgeführt und auch die verbindenden Kanten (\hsSource{edges}).
+\hsSource{nodeId}. Zusätzlicher sind die Ein- sowie die Ausgehenden Pins aufgeführt und auch die verbindenden Kanten (\hsSource{edges}).
 
 \par 
 Jede Komponente kann durch untergeordnete Komponenten beschrieben werden. Dies wird im Datentyp über die \hsSource{nodes} Liste abgebildet.
@@ -131,8 +149,12 @@ bekommt, die schon einmal vergeben wurde.
 %%% TODO : error checking muss hier noch rein
 
 \begin{code}
-  mkRegister :: CircuitDescriptor -> CircuitDescriptor
-  mkRegister cd = MkRegister $ cd { label = "REG" } 
+  mkRegister :: NodeDescriptor -> CircuitDescriptor
+  mkRegister nd 
+    = MkRegister  
+      { nodeDesc = nd { label = "REG" ++ (show $ nodeId nd) } 
+      , bit      = length $ sinks nd
+      }
 \end{code} 
 
 

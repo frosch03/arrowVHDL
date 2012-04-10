@@ -38,3 +38,14 @@ Folgenden Module werden benötigt, um die Arrows definieren zu können:
     arr   f = f
     first f = (\(x, y) -> (f x, y))
 \end{code}
+
+
+\par 
+Im folgenden wird eine Instanz der \hsSource{ArrowLoop}-Klasse für einfache Funktionsauswertung definiert.
+
+
+\begin{code}
+  instance ArrowLoop (->) where
+    loop f b = let (c, d) = f (b, d) in c
+\end{code} 
+

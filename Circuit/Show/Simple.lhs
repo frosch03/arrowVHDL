@@ -13,11 +13,11 @@
 
 > showCircuit' :: CircuitDescriptor -> String
 > showCircuit' g =  "\n"
->             ++ (show.compID) g
->             ++ "(" ++ (show.label) g ++ "): "
->             ++ (prtInOuts.sinks) g ++ "] "
+>             ++ (show.nodeId.nodeDesc) g
+>             ++ "(" ++ (show.label.nodeDesc) g ++ "): "
+>             ++ (prtInOuts.sinks.nodeDesc) g ++ "] "
 >             ++ (showEdges.edges) g
->             ++ " [" ++ (prtInOuts.sources) g
+>             ++ " [" ++ (prtInOuts.sources.nodeDesc) g
 >             ++ (showNode.nodes) g
 >          where showNode [] = ""
 >                showNode n  = concat $ map showCircuit' n

@@ -82,7 +82,8 @@ diesen in einen \hsSource{Stream}-Arrow, der dann mit einem kontinuierlichem Dat
 
 \begin{code}
   synthesize :: Grid (->) b c -> CircuitDescriptor
-  synthesize (GR (_, cd)) = flatten cd
+  synthesize (GR (_, cd)) = cd
+  --synthesize (GR (_, cd)) = flatten cd    %%% TODO : Flatten won't work with Looping-Stuff ...
   
   simulate :: Grid (->) b c -> Stream b c 
   simulate f = arr (toFunctionModel f)
@@ -112,7 +113,7 @@ Weitere Hilfsfunktionen werden notwendig, um schon bestehende \hsSource{Grid}-Ar
   insert :: b -> (a, b) -> (a, b)
   insert sg ~(x, _) = (x, sg)
   
-  insEmpty = insert emptyCircuit { label = "eeeempty", sinks = mkPins 1, sources = mkPins 3 }
+  insEmpty = insert emptyCircuit { nodeDesc = MkNode { label = "eeeempty", nodeId = 0, sinks = mkPins 1, sources = mkPins 3 } }
   
   augment :: (Arrow a) => CircuitDescriptor -> a b c -> Grid a b c
   augment cd_f f = GR (f, cd_f)

@@ -5,6 +5,10 @@ Das Modul \hsSource{Circuit} stellt ein Wrapper-Modul nach dem Fassaden Entwurfs
 
 \begin{code}
   module Circuit
+    ( Grid(..)
+    , Stream(..)
+    , Show(..)
+    )
   where
 \end{code}
 

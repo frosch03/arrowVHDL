@@ -46,15 +46,17 @@ zurückgegeben.
   splice' :: ((CircuitDescriptor -> CircuitDescriptor -> ([Edge], (Pins, Pins))), String) -> CircuitDescriptor -> CircuitDescriptor -> CircuitDescriptor
   splice' (rewire, s) cd_f cd_g 
       = MkCombinatorial
-             { label   = (label cd_f') ++ s ++ (label cd_g')
-             , compID  = 0
-             , nodes   = cd_f': cd_g' : []
-             , edges   = es
+           { nodeDesc = MkNode 
+             { label   = (label.nodeDesc $ cd_f') ++ s ++ (label.nodeDesc $ cd_g')
+             , nodeId  = 0
              , sinks   = srcs 
              , sources = snks
-             , cycles  = (cycles cd_f) + (cycles cd_g)
-             , space   = (space  cd_f) + (space  cd_g)
              }
+           , nodes   = cd_f': cd_g' : []
+           , edges   = es
+           , cycles  = (cycles cd_f) + (cycles cd_g)
+           , space   = (space  cd_f) + (space  cd_g)
+           }
       where cd_f'              = alterCompIDs 1                    cd_f
             cd_g'              = alterCompIDs (maxCompID cd_f' +1) cd_g
             (es, (srcs, snks)) = rewire cd_f' cd_g'
@@ -97,6 +99,14 @@ parallel weiter verbunden.
 \end{code}
 
 
+\par
+Um eine Verzögerung in Hardware zu realisieren ist es notwendig die Daten zu speichern. Dies wird über ein Register erreicht. Nach der
+gewünschten Anzahl von Zyklen, kann dann das Datum aus dem Register wieder ausgelesen werden, und in der Schaltung weiter verwendet werden. 
+Die Funktion %%%%%%%%%%%%%%%%%%% 
+%%% TODO : Schaltwerke
+
+
+
 \par 
 Möchte man einen \begriff{Loop} erstellen, so wird dieser durch ein Register geführt, dass eine Verzögerung um einen Takt ermöglicht. Die
 Funktion, die ein Bauteil um eine Schleife mit Register erweitert, nennt sich \hsSource{registerloopRewire}. Diese Funktion lässt sich
@@ -107,12 +117,14 @@ mittels \hsSource{splice} zu der nach Außen verwendeten \hsSource{loopWithRegis
   loopWithRegister :: CircuitDescriptor -> CircuitDescriptor
   loopWithRegister cd 
     = MkCombinatorial 
-      { label   = "loop(" ++ (label cd) ++ ")"
-      , compID  = 0
+      { nodeDesc = MkNode
+        { label   = "loop(" ++ (label.nodeDesc $ cd) ++ ")"
+        , nodeId  = 0
+        , sinks   = srcs
+        , sources = snks
+        }
       , nodes   = [alterCompIDs 1 cd]
       , edges   = es
-      , sinks   = srcs
-      , sources = snks
       , cycles  = cycles cd
       , space   = space cd
       }
@@ -160,13 +172,13 @@ Ausgängen hinzugefügt.
       = ( fromOuterToL ++ fromOuterToR ++ edgs ++ fromRToOuter ++ fromLToOuter
         , (super_srcs, super_snks)
         )
-      where (edgs, (srcs_l', snks_r')) =  wire (Just $ compID sg_l) (Just $ compID sg_r) (sources sg_l) (sinks sg_r)
-            super_srcs                 =  [0..(length.sinks   $ sg_l) + length snks_r' -1]
-            super_snks                 =  [0..(length.sources $ sg_r) + length srcs_l' -1]
-            ( fromOuterToL, (super_srcs', _)) =  wire Nothing (Just $ compID sg_l) super_srcs  (sinks sg_l)
-            ( fromOuterToR, (_          , _)) =  wire Nothing (Just $ compID sg_r) super_srcs' (drop (length fromOuterToL) $ sinks sg_r)
-            ( fromRToOuter, (_, super_snks')) =  wire (Just $ compID sg_r) Nothing (sources sg_r) super_snks
-            ( fromLToOuter, (_, _))           =  wire (Just $ compID sg_l) Nothing (drop (length fromRToOuter) $ sources sg_l) super_snks'
+      where (edgs, (srcs_l', snks_r')) =  wire (Just $ nodeId.nodeDesc $ sg_l) (Just $ nodeId.nodeDesc $ sg_r) (sources.nodeDesc $ sg_l) (sinks.nodeDesc $ sg_r)
+            super_srcs                 =  [0..(length.sinks.nodeDesc   $ sg_l) + length snks_r' -1]
+            super_snks                 =  [0..(length.sources.nodeDesc $ sg_r) + length srcs_l' -1]
+            ( fromOuterToL, (super_srcs', _)) =  wire Nothing (Just $ nodeId.nodeDesc $ sg_l) super_srcs  (sinks.nodeDesc $ sg_l)
+            ( fromOuterToR, (_          , _)) =  wire Nothing (Just $ nodeId.nodeDesc $ sg_r) super_srcs' (drop (length fromOuterToL) $ sinks.nodeDesc $ sg_r)
+            ( fromRToOuter, (_, super_snks')) =  wire (Just $ nodeId.nodeDesc $ sg_r) Nothing (sources.nodeDesc $ sg_r) super_snks
+            ( fromLToOuter, (_, _))           =  wire (Just $ nodeId.nodeDesc $ sg_l) Nothing (drop (length fromRToOuter) $ sources.nodeDesc $ sg_l) super_snks'
 \end{code}
 
 
@@ -180,12 +192,12 @@ Ausgänge werden parallel geschaltet.
       = ( goingIn_edges ++ goingOut_edges
         , (super_srcs, super_snks)
         )
-      where super_srcs = [0..(length $ (sinks   sg_u) ++ (sinks   sg_d)) -1]
-            super_snks = [0..(length $ (sources sg_u) ++ (sources sg_d)) -1]
-            goingIn_edges  =  (wire_ Nothing (Just $ compID sg_u)                            (super_srcs) (sinks sg_u))
-                           ++ (wire_ Nothing (Just $ compID sg_d) (drop (length.sinks $ sg_u) super_srcs) (sinks sg_d))
-            goingOut_edges =  (wire_ (Just $ compID sg_u) Nothing (sources sg_u)                              (super_snks))
-                           ++ (wire_ (Just $ compID sg_d) Nothing (sources sg_d) (drop (length.sources $ sg_u) super_snks))
+      where super_srcs = [0..(length $ (sinks.nodeDesc $   sg_u) ++ (sinks.nodeDesc $   sg_d)) -1]
+            super_snks = [0..(length $ (sources.nodeDesc $ sg_u) ++ (sources.nodeDesc $ sg_d)) -1]
+            goingIn_edges  =  (wire_ Nothing (Just $ nodeId.nodeDesc $ sg_u)                            (super_srcs) (sinks.nodeDesc $ sg_u))
+                           ++ (wire_ Nothing (Just $ nodeId.nodeDesc $ sg_d) (drop (length.sinks.nodeDesc $ sg_u) super_srcs) (sinks.nodeDesc $ sg_d))
+            goingOut_edges =  (wire_ (Just $ nodeId.nodeDesc $ sg_u) Nothing (sources.nodeDesc $ sg_u)                              (super_snks))
+                           ++ (wire_ (Just $ nodeId.nodeDesc $ sg_d) Nothing (sources.nodeDesc $ sg_d) (drop (length.sources.nodeDesc $ sg_u) super_snks))
 \end{code}
 
 
@@ -199,12 +211,12 @@ dupliziert und dann auf beide Komponenten geschaltet.
       = ( goingIn_edges ++ goingOut_edges
         , (super_srcs, super_snks)
         )
-      where super_srcs = [0..(length.sinks $ sg_u) -1]
-            super_snks = [0..(length $ (sources sg_u) ++ (sources sg_d)) -1]
-            goingIn_edges  =  (wire_ Nothing (Just $ compID sg_u) super_srcs (sinks sg_u))
-                           ++ (wire_ Nothing (Just $ compID sg_d) super_srcs (sinks sg_d))
-            goingOut_edges =  (wire_ (Just $ compID sg_u) Nothing (sources sg_u)                              (super_snks))
-                           ++ (wire_ (Just $ compID sg_d) Nothing (sources sg_d) (drop (length.sources $ sg_u) super_snks))
+      where super_srcs = [0..(length.sinks.nodeDesc $ sg_u) -1]
+            super_snks = [0..(length $ (sources.nodeDesc $ sg_u) ++ (sources.nodeDesc $ sg_d)) -1]
+            goingIn_edges  =  (wire_ Nothing (Just $ nodeId.nodeDesc $ sg_u) super_srcs (sinks.nodeDesc $ sg_u))
+                           ++ (wire_ Nothing (Just $ nodeId.nodeDesc $ sg_d) super_srcs (sinks.nodeDesc $ sg_d))
+            goingOut_edges =  (wire_ (Just $ nodeId.nodeDesc $ sg_u) Nothing (sources.nodeDesc $ sg_u)                              (super_snks))
+                           ++ (wire_ (Just $ nodeId.nodeDesc $ sg_d) Nothing (sources.nodeDesc $ sg_d) (drop (length.sources.nodeDesc $ sg_u) super_snks))
 \end{code}
 
 
@@ -218,7 +230,7 @@ dupliziert und dann auf beide Komponenten geschaltet.
   registerLoopRewire :: CircuitDescriptor -> ([Edge], (Pins, Pins))
   registerLoopRewire cd
       = (es, (srcs, snks))
-      where reg = mkRegister emptyCircuit
+      where reg = mkRegister $ nodeDesc emptyCircuit
             (es1, (srcs1, snks1)) = seqRewire cd reg
             (es2, (srcs2, snks2)) = seqRewire reg cd
             es   = es1 ++ es2

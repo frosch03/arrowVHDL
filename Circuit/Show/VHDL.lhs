@@ -60,14 +60,14 @@ TODO: Add the signal-definition and the port-map-definitions
 > nameGraphPins g = nameSuperPins g : (map nameSubPins $ nodes g)
 
 > nameSuperPins :: CircuitDescriptor -> (CompID, ([(PinID, String)], [(PinID, String)]))
-> nameSuperPins g = (compID g, (namedSinks, namedSources))
->     where namedSinks   = namePins' sinks   nameExI g 
->           namedSources = namePins' sources nameExO g
+> nameSuperPins g = (nodeId.nodeDesc $ g, (namedSinks, namedSources))
+>     where namedSinks   = namePins' (sinks.nodeDesc)   nameExI g 
+>           namedSources = namePins' (sources.nodeDesc) nameExO g
 
 > nameSubPins :: CircuitDescriptor -> (CompID, ([(PinID, String)], [(PinID, String)]))
-> nameSubPins g = (compID g, (namedSinks, namedSources))
->     where namedSinks   = namePins' sinks   nameInI g 
->           namedSources = namePins' sources nameInO g
+> nameSubPins g = (nodeId.nodeDesc $ g, (namedSinks, namedSources))
+>     where namedSinks   = namePins' (sinks.nodeDesc)   nameInI g 
+>           namedSources = namePins' (sources.nodeDesc) nameInO g
 
 > namePins' :: (CircuitDescriptor -> Pins) -> String -> CircuitDescriptor -> [(PinID, String)]
 > namePins' f pre g = map (\x -> (x, pre ++ show x)) $ f g 
@@ -87,19 +87,19 @@ a name and of some port-definitions (like what wires go inside and come back out
 > vhdl_entity :: CircuitDescriptor -> [NamedComp] -> String
 > vhdl_entity g namedComps
 >      = concat $ map break
->      [ "ENTITY " ++ label g ++ " IS"
+>      [ "ENTITY " ++ (label.nodeDesc) g ++ " IS"
 >      , "PORT (" 
 >      , (sepBy "\n" $ map (\x -> x ++ " : IN  std_logic;") $ snks)
 >      , (sepBy "\n" $ map (\x -> x ++ " : OUT std_logic ") $ srcs)
 >      , ");"
->      , "END " ++ label g ++ ";"
+>      , "END " ++ (label.nodeDesc) g ++ ";"
 >      ]
->      where snks = getInPinNames  namedComps (compID g)
->            srcs = getOutPinNames namedComps (compID g)
+>      where snks = getInPinNames  namedComps (nodeId.nodeDesc $ g)
+>            srcs = getOutPinNames namedComps (nodeId.nodeDesc $ g)
 
 > vhdl_architecture :: CircuitDescriptor -> String
 > vhdl_architecture g 
->     = "ARCHITECTURE " ++ (label g) ++ "Struct OF " ++ (label g) ++ " IS"
+>     = "ARCHITECTURE " ++ (label.nodeDesc $ g) ++ "Struct OF " ++ (label.nodeDesc $ g) ++ " IS"
 
 
 The VHDL-Component definitions describe the basic interface to the components
@@ -112,15 +112,15 @@ components, because we descent only one step down in the graph.
 >      = concat $ nub $ map f (nodes g)
 >     where f g' = concat $ map break
 >                [ ""
->                , "COMPONENT " ++ label g' ++ "Comp"
+>                , "COMPONENT " ++ (label.nodeDesc $ g') ++ "Comp"
 >                , "PORT ("
 >                , (sepBy "\n" $ map (\x -> x ++ " : IN  std_logic;") $ snks)
 >                , (sepBy "\n" $ map (\x -> x ++ " : OUT std_logic ") $ srcs)
 >                , ");"
->                , "END COMPONENT " ++ label g' ++ "Comp;"
+>                , "END COMPONENT " ++ (label.nodeDesc $ g') ++ "Comp;"
 >                ] 
->                where snks = getInPinNames  namedComps (compID g')
->                      srcs = getOutPinNames namedComps (compID g')
+>                where snks = getInPinNames  namedComps (nodeId.nodeDesc $ g')
+>                      srcs = getOutPinNames namedComps (nodeId.nodeDesc $ g')
 
 
 The VHDL-Signals is the list of inner wires, that are used inside the new component.
@@ -143,18 +143,18 @@ The VHDL-Signals is the list of inner wires, that are used inside the new compon
 > vhdl_portmap :: CircuitDescriptor -> [NamedComp] -> [([Anchor], String)] -> CircuitDescriptor -> String
 > vhdl_portmap superG namedComps namedEdges' g
 >      = concat $ map break
->      [ (label g) ++ "Inst" ++ (show$compID g) ++ ": " ++ (label g) ++ "Comp"
+>      [ (label.nodeDesc $ g) ++ "Inst" ++ (show.nodeId.nodeDesc $ g) ++ ": " ++ (label.nodeDesc $ g) ++ "Comp"
 >      , "PORT MAP ("
 >      ++ (sepBy ", " $ filter ((>0).length) [incoming, signaling, outgoing])
 >      ++ ");"
 >      ]
->      where relevantEdges = filter (isFromOrToComp $ compID g) $ edges superG
+>      where relevantEdges = filter (isFromOrToComp $ nodeId.nodeDesc $ g) $ edges superG
 >            edge2inside   = filter (isFromOuter)   $ relevantEdges
 >            edge2outside  = filter (isToOuter)     $ relevantEdges
 >            pin2signal    = relevantEdges \\ (edge2outside ++ edge2inside)
->            incoming      = sepBy ", " $ map (genPortMap namedComps namedEdges' (compID g)) $ edge2inside
->            outgoing      = sepBy ", " $ map (genPortMap namedComps namedEdges' (compID g)) $ edge2outside
->            signaling     = sepBy ", " $ map (genPortMap namedComps namedEdges' (compID g)) $ pin2signal
+>            incoming      = sepBy ", " $ map (genPortMap namedComps namedEdges' (nodeId.nodeDesc $ g)) $ edge2inside
+>            outgoing      = sepBy ", " $ map (genPortMap namedComps namedEdges' (nodeId.nodeDesc $ g)) $ edge2outside
+>            signaling     = sepBy ", " $ map (genPortMap namedComps namedEdges' (nodeId.nodeDesc $ g)) $ pin2signal
 
 
 > genPortMap :: [NamedComp] -> [NamedEdge] -> CompID -> Edge -> String
@@ -229,7 +229,7 @@ and a part, that identifies the name.
 > namePins :: (CircuitDescriptor -> Pins) -> String -> CircuitDescriptor -> [(String, Anchor)]
 > namePins f pre g
 >     = map (\x -> (pre ++ (show x), (Nothing, x))) $ f g
-> --  = map (\x -> (pre ++ (show x), (compID g, x))) $ f g
+> --  = map (\x -> (pre ++ (show x), (nodeId g, x))) $ f g
 
 
 The nameEdges function is pretty similar to the namePins function with some minor differences. 

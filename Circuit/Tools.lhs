@@ -99,7 +99,7 @@ eine veränderte Schaltung
       && length (sources s) == length (sources from)
       && length (sinks   s) == length (sinks   to)
       && length (sources s) == length (sources to)
-      = to { compID = compID s }
+      = to { nodeId = nodeId s }
   
       | otherwise = s
 \end{code}
@@ -134,8 +134,8 @@ Allerdings nimmt \hsSource{bypass} nur die gefundenen Bausteine aus der Schaltun
       = (super_es, new_ns ++ [n'])
   
       where new_es  = (super_es \\ (lws ++ rws)) ++ nws
-            lws     = leftWires super_es (compID n)
-            rws     = rightWires super_es (compID n)
+            lws     = leftWires super_es (nodeId n)
+            rws     = rightWires super_es (nodeId n)
             nws     = zipWith MkEdge (map sourceInfo lws) (map sinkInfo rws)
             (es,ns) = foldl (rebuildIf isIt) (edges n, []) $ nodes n
             n'      = n { nodes = ns

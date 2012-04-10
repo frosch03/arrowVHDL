@@ -6,6 +6,7 @@ import Prelude hiding (id, (.))
 
 import Circuit.Arrow
 import Circuit.Auxillary
+import Circuit.Descriptor
 
 
 import Circuit
@@ -38,6 +39,7 @@ aTest0
     =   aDup 
     >>> aAdd
 
+netlist_Test0 :: CircuitDescriptor
 netlist_Test0 
     = synthesize aTest0
 
@@ -122,3 +124,8 @@ counter = proc reset -> do
             rec output <- (arr (+1)) -< reset
                 next   <- delay 0    -< output
             returnA -< output
+
+
+aLoopBsp :: (ArrowLoop a) => Grid a Int Int
+aLoopBsp
+    = loop (aAdd >>> (aId &&& (aConst 4)))

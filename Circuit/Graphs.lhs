@@ -21,19 +21,35 @@ Zunächst wird ein leerer Schaltkreis definiert, also ein Datum des Types \hsSou
 korrekte Struktur, aber keine Nutzdaten. \hsSource{String}s sind leer \footnote{der \hsSource{String} ``...'' ist für das Debugging bewusst
 nicht leer}, \hsSource{Integer} werden auf $0$ gesetzt und Listen sind jeweils leere Listen.
 
+\par 
+Da ein \hsSource{CircuitDescriptor} auch aus einem \hsSource{NodeDescriptor} aufgebaut ist, liegt es auf der Hand, auch einen leeren
+\hsSource{NodeDescriptor} zu definieren. 
+
+
+\begin{code}
+  emptyNodeDesc :: NodeDescriptor
+  emptyNodeDesc 
+    = MkNode { label   = "..."
+             , nodeId  = 0
+             , sinks   = []
+             , sources = []
+             }
+\end{code} 
+
+
+\par
+Der leere Schaltkreis lässt sich jetzt über den leeren \hsSource{NodeDescriptor} beschreiben.
+
 \begin{code}
   emptyCircuit :: CircuitDescriptor
   emptyCircuit 
     = MkCombinatorial
-           { label   = "..."
-           , compID  = 0
-           , nodes   = []
-           , edges   = []
-           , sinks   = []
-           , sources = []
-           , cycles  = 0
-           , space   = 0
-           }
+      { nodeDesc = emptyNodeDesc
+      , nodes   = []
+      , edges   = []
+      , cycles  = 0
+      , space   = 0
+      }
 \end{code} 
 
 \subsection{Schaltkreis Modifikatoren}
@@ -45,13 +61,16 @@ Schöner ist es allerdings, wenn man hier auf Modifikatoren zurückgreifen kann,
 
 \begin{code}
   withLabel :: String -> CircuitDescriptor -> CircuitDescriptor
-  withLabel l cd   = cd { label = l }
+  withLabel l cd   = cd { nodeDesc = nd { label = l } }
+    where nd = nodeDesc cd
 
   sinkCount :: Int -> CircuitDescriptor -> CircuitDescriptor
-  sinkCount i cd   = cd { sinks = [0..(i-1)] }
+  sinkCount i cd   = cd { nodeDesc = nd { sinks = [0..(i-1)] } }
+    where nd = nodeDesc cd
 
   sourceCount :: Int -> CircuitDescriptor -> CircuitDescriptor
-  sourceCount i cd = cd { sources = [0..(i-1)] }
+  sourceCount i cd = cd { nodeDesc = nd { sources = [0..(i-1)] } }
+    where nd = nodeDesc cd
 \end{code} 
 
 \par

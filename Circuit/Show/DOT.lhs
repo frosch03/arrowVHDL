@@ -21,21 +21,21 @@
 
 This function produces the edge-description as it is required by the 
 dot language... something like this:
-    compID3:op0 -> compID6:ip0
+    nodeId3:op0 -> nodeId6:ip0
 
 > showEdge :: Edge -> String
 > showEdge (MkEdge (Nothing, pid) (Just snk_cid, snk_pid))
 >     =  "xSTART" ++ ':':"op" ++ show pid
 >     ++ " -> "
->     ++ "compID" ++ show snk_cid ++ ':': "ip" ++ show snk_pid
+>     ++ "nodeId" ++ show snk_cid ++ ':': "ip" ++ show snk_pid
 > showEdge (MkEdge (Just src_cid, src_pid) (Nothing, pid)) 
->     =  "compID" ++ show src_cid ++ ':': "op" ++ show src_pid
+>     =  "nodeId" ++ show src_cid ++ ':': "op" ++ show src_pid
 >     ++ " -> "
 >     ++ "xEND" ++ ':':"ip" ++ show pid
 > showEdge e
->     =  "compID" ++ show src_cid ++ ':': "op" ++ show src_pid
+>     =  "nodeId" ++ show src_cid ++ ':': "op" ++ show src_pid
 >     ++ " -> "
->     ++ "compID" ++ show snk_cid ++ ':': "ip" ++ show snk_pid
+>     ++ "nodeId" ++ show snk_cid ++ ':': "ip" ++ show snk_pid
 >     where (Just src_cid, src_pid) = sourceInfo e
 >           (Just snk_cid, snk_pid) = sinkInfo e 
 
@@ -68,12 +68,12 @@ dot language... something like this:
 >      = concat $ map break
 >      [ ""
 >      , "xSTART ["
->      , "    " ++ dot_outer_label "op" (sinks g)
+>      , "    " ++ dot_outer_label "op" (sinks.nodeDesc $ g)
 >      , "    " ++ "shape = \"record\""
 >      , "]"
 >      , ""
 >      , "xEND ["
->      , "    " ++ dot_outer_label "ip" (sources g)
+>      , "    " ++ dot_outer_label "ip" (sources.nodeDesc $ g)
 >      , "    " ++ "shape = \"record\""
 >      , "]"
 >      ]
@@ -83,8 +83,8 @@ dot language... something like this:
 >      = concat $ nub $ map f (nodes g)
 >      where f g' = concat $ map break
 >                 [ ""
->                 , "compID" ++ show (compID g') ++ " ["
->                 , "    " ++ dot_label (sinks g') (map (\x -> if x == '>' then '-' else x) $ label g') (compID g') (sources g')
+>                 , "nodeId" ++ show (nodeId.nodeDesc $ g') ++ " ["
+>                 , "    " ++ dot_label (sinks.nodeDesc $ g') (map (\x -> if x == '>' then '-' else x) $ label.nodeDesc $ g') (nodeId.nodeDesc $ g') (sources.nodeDesc $ g')
 >                 , "    " ++ "shape = \"record\""
 >                 , "]"
 >                 ] 

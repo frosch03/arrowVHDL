@@ -54,10 +54,14 @@ Mit dem Typ \hsSource{(b, c) -> (c, b)} stellt die folgende Variante eine dar, i
 \begin{code}
   instance ShowType (b, c) (c, b) where
     showType _ 
-      = emptyCircuit { label   = "|b,c>c,b|" 
-                     , sinks   = mkPins 2
-                     , sources = mkPins 2
+      = emptyCircuit { nodeDesc = MkNode
+                       { label   = "|b,c>c,b|" 
+                       , nodeId  = 0
+                       , sinks   = mkPins 2
+                       , sources = mkPins 2
+                       }
                      }
+      where nd = nodeDesc emptyCircuit
 \end{code}
 
 
@@ -67,10 +71,14 @@ Diese Variante mit dem Typ \hsSource{b -> (b, b)} beschreibt den Fall, in dem ei
 \begin{code}
   instance ShowType b (b, b) where
     showType _ 
-      = emptyCircuit { label   = "|b>b,b|"
-                     , sinks   = mkPins 1
-                     , sources = mkPins 2
+      = emptyCircuit { nodeDesc = MkNode
+                       { label   = "|b>b,b|" 
+                       , nodeId  = 0
+                       , sinks   = mkPins 1
+                       , sources = mkPins 2
+                       }
                      }
+      where nd = nodeDesc emptyCircuit
 \end{code}
   
 
@@ -80,10 +88,14 @@ Mit dem Typ \hsSource{(b, b) -> b} wir dann der Fall abgebildet, der zwei Eingä
 \begin{code}
   instance ShowType (b, b) b where
     showType _ 
-      = emptyCircuit { label   = "|b,b>b|"
-                     , sinks   = mkPins 2
-                     , sources = mkPins 1
+      = emptyCircuit { nodeDesc = MkNode
+                       { label   = "|b,b>b|"
+                       , nodeId  = 0
+                       , sinks   = mkPins 2
+                       , sources = mkPins 1
+                       }
                      }
+      where nd = nodeDesc emptyCircuit
 \end{code}
   
 %%% instance ShowType (b, c) (b', c') where
@@ -116,8 +128,12 @@ Letztlich bleibt noch der allgemeinste Fall der Möglich ist. Diese Varianten is
 \begin{code}
   instance ShowType b c where
     showType _ 
-      = emptyCircuit { label   = "|b>c|"
-                     , sinks   = mkPins 1
-                     , sources = mkPins 1
+      = emptyCircuit { nodeDesc = MkNode
+                       { label   = "|b>c|"
+                       , nodeId  = 0
+                       , sinks   = mkPins 1
+                       , sources = mkPins 1
+                       }
                      }
+      where nd = nodeDesc emptyCircuit
 \end{code}

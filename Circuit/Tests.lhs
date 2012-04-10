@@ -65,7 +65,7 @@ Mit der Funktion \hsSource{hasLabel} wird überprüft, ob ein Schaltkreis den ü
 \begin{code}
   hasLabel :: String -> CircuitDescriptor -> Bool
   hasLabel s
-      = ((== s).label)
+      = ((== s).label.nodeDesc)
 \end{code} 
 
 
@@ -89,7 +89,7 @@ enthält.
       = if length (filter (== cid) subNodes) > 0
             then True
             else False
-      where subNodes = map compID $ nodes g
+      where subNodes = map (nodeId.nodeDesc) $ nodes g
 \end{code} 
 
 
@@ -99,7 +99,7 @@ diese Komponente automatisch vom System erzeugt wurde.
 
 \begin{code}
   isGenerated :: CircuitDescriptor -> Bool
-  isGenerated s = ((== '|').head.label) s && ((== '|').head.reverse.label) s
+  isGenerated s = ((== '|').head.label.nodeDesc) s && ((== '|').head.reverse.label.nodeDesc) s
 \end{code} 
 
 

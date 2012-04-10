@@ -34,13 +34,14 @@ Parameter legt dabei die kleinst mögliche ID fest.
 \begin{code}
   alterCompIDs :: Int -> CircuitDescriptor -> CircuitDescriptor
   alterCompIDs i sg
-      = sg { compID = compID sg + i
+      = sg { nodeDesc = nd { nodeId = nodeId nd + i }
            , nodes  = map (alterCompIDs i) $ nodes sg
            , edges  = map (\ (MkEdge (ci,pi) (co,po))
                           -> (MkEdge (maybe ci (Just.(+i)) $ ci ,pi)
                                      (maybe co (Just.(+i)) $ co ,po))
                           ) $ edges sg
            }
+       where nd = nodeDesc sg
 \end{code} 
 
 
@@ -55,7 +56,7 @@ Hierzu wird eine match-Funktion als erster Parameter erwartet.
          , edges = newEdges
          }
     where specific = filter f (nodes sg)
-          newEdges = foldl (flip dropEdgesBordering) (edges sg) (map compID specific)
+          newEdges = foldl (flip dropEdgesBordering) (edges sg) (map (nodeId.nodeDesc) specific)
           newNodes = map (dropCircuit f) $ nodes sg \\ specific
 \end{code} 
 
@@ -75,9 +76,9 @@ Hierzu wird eine match-Funktion als erster Parameter erwartet.
       where g'            = foldl (f g) (g { nodes = [], edges = starters }) innerConns
 
             allAtomCIDs   = filter isAtomic $ allCircuits g
-            edgsFromAtom  = map (fromCompEdges g . compID) allAtomCIDs
+            edgsFromAtom  = map (fromCompEdges g . nodeId . nodeDesc) allAtomCIDs
             nextCIDs      = map (map $ nextAtomic g) edgsFromAtom
-            connections   = concat $ map (\(x, ys) -> concat $ map (\z -> [(compID x, z)]) ys) $ zip allAtomCIDs nextCIDs
+            connections   = concat $ map (\(x, ys) -> concat $ map (\z -> [(nodeId.nodeDesc $ x, z)]) ys) $ zip allAtomCIDs nextCIDs
 
             starters      = zipWith (\(c, p)      i -> MkEdge (Nothing, i) (Just c,  p)) (map (nextAtomic g) fromOuterEs)                 ([0..])
             enders        = zipWith (\(c, (_, p)) i -> MkEdge (Just c,  p) (Nothing, i)) (filter (\x  -> (fst.snd) x == 0) $ connections) ([0..])
@@ -124,7 +125,7 @@ definieren.
   connectCID :: CircuitDescriptor -> CircuitDescriptor -> CompID -> (CompID, PinID) -> Edge
   connectCID old_g g cidF (cidT,pidT)
       = MkEdge (Just cidF, nextFpin) (Just cidT, pidT)
-      where nextFpin  = head $ drop cntEsFrom $ sources $ getComp old_g cidF
+      where nextFpin  = head $ drop cntEsFrom $ sources.nodeDesc $ getComp old_g cidF
             cntEsFrom = length $ filter (\x -> (not.isFromOuter $ x) && (srcComp x == cidF)) $ edges g
 \end{code} 
 

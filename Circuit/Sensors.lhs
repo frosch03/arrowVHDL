@@ -27,7 +27,7 @@ Ergebnis wird dann als Liste von Bausteinen zurückgegeben.
       = if (length next_sg == 0) then sg : []
                                  else sg : (concat $ map allCircuits next_sg)
       where next_sg = nodes sg
-            cid     = compID sg 
+            cid     = nodeId.nodeDesc $ sg 
 \end{code}
 
 
@@ -36,7 +36,7 @@ Mithilfe der Funktion \hsSource{maxCompID} lässt sich die maximale Komponentenn
 
 \begin{code}
   maxCompID :: CircuitDescriptor -> CompID
-  maxCompID sg = compID sg `max` (foldl max 0 $ map maxCompID (nodes sg))
+  maxCompID sg = (nodeId.nodeDesc $ sg) `max` (foldl max 0 $ map maxCompID (nodes sg))
 \end{code}
 
 
@@ -54,7 +54,7 @@ Bausteine über seine Komponentennummer. \hsSource{getComp} ist hier die Funktio
 
   getComp' :: CircuitDescriptor -> CompID -> [CircuitDescriptor]
   getComp' g cid 
-      | compID g == cid 
+      | (nodeId.nodeDesc $ g) == cid 
       = [g]
       | otherwise       
       = concat $ map (flip getComp' cid) (nodes g)
@@ -92,11 +92,11 @@ ist.
 \begin{code}
   nextAtomic :: CircuitDescriptor -> Edge -> (CompID, PinID)
   nextAtomic g e
-      | isToOuter e && compID super == 0
+      | isToOuter e && (nodeId.nodeDesc $ super) == 0
       = (0, snkPin e)
      
       | isToOuter e
-      = nextAtomic g $ head $ filter (\x -> sourceInfo x == (Just $ compID super, snkPin e)) $ edges supersuper
+      = nextAtomic g $ head $ filter (\x -> sourceInfo x == (Just $ nodeId.nodeDesc $ super, snkPin e)) $ edges supersuper
   
       | not.isAtomic $ sub 
       = nextAtomic g $ head $ filter (\x -> (isFromOuter x) && (snkPin e == srcPin x)) $ edges sub
@@ -105,7 +105,7 @@ ist.
       = (snkComp e, snkPin e)
       where sub        = getComp   g (snkComp e)
             super      = superNode g (srcComp e)
-            supersuper = superNode g (compID super)
+            supersuper = superNode g (nodeId.nodeDesc $ super)
 \end{code}
 
 

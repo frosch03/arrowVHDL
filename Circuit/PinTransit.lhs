@@ -52,13 +52,15 @@ hingegen auf alle dem \hsSource{CircuitDescriptor} untergeordneten \hsSource{Cir
 \begin{code}
   generateNamedComps :: CircuitDescriptor -> [NamedComp]
   generateNamedComps g = generateSuperNames g : (map generateSubNames $ nodes g)
-      where generateSuperNames g = ( compID g, ( namePins sinks   nameExI g
-                                               , namePins sources nameExO g
-                                               )
+      where generateSuperNames g = ( (nodeId.nodeDesc) g
+                                   , ( namePins (sinks.nodeDesc)   nameExI g
+                                     , namePins (sources.nodeDesc) nameExO g
+                                     )
                                    )
-            generateSubNames g   = ( compID g, ( namePins sinks   nameInI g
-                                               , namePins sources nameInO g
-                                               )
+            generateSubNames g   = ( (nodeId.nodeDesc) g
+                                   , ( namePins (sinks.nodeDesc)   nameInI g
+                                     , namePins (sources.nodeDesc) nameInO g
+                                     )
                                    )
 \end{code}
 
