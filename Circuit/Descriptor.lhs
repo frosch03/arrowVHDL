@@ -120,6 +120,14 @@ Der \hsSource{NodeDescriptor} taucht in der Definition eines Schaltkreises, aber
       , bit      :: Int
       }
 
+    | MkLoop
+      { nodeDesc :: NodeDescriptor
+      , nodes    :: [CircuitDescriptor]
+      , edges    :: [Edge]
+      , cycles   :: Tick
+      , space    :: Area
+      }
+
 --  | MkComposite
 
     | NoDescriptor

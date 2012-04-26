@@ -82,8 +82,8 @@ diesen in einen \hsSource{Stream}-Arrow, der dann mit einem kontinuierlichem Dat
 
 \begin{code}
   synthesize :: Grid (->) b c -> CircuitDescriptor
+  --synthesize (GR (_, cd)) = flatten cd   -- %%% TODO : Flatten won't work with Looping-Stuff ...
   synthesize (GR (_, cd)) = cd
-  --synthesize (GR (_, cd)) = flatten cd    %%% TODO : Flatten won't work with Looping-Stuff ...
   
   simulate :: Grid (->) b c -> Stream b c 
   simulate f = arr (toFunctionModel f)

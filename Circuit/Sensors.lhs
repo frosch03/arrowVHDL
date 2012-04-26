@@ -92,8 +92,8 @@ ist.
 \begin{code}
   nextAtomic :: CircuitDescriptor -> Edge -> (CompID, PinID)
   nextAtomic g e
-      | isToOuter e && (nodeId.nodeDesc $ super) == 0
-      = (0, snkPin e)
+      | isToOuter e && (nodeId.nodeDesc $ super) == mainID
+      = (mainID, snkPin e)
      
       | isToOuter e
       = nextAtomic g $ head $ filter (\x -> sourceInfo x == (Just $ nodeId.nodeDesc $ super, snkPin e)) $ edges supersuper
@@ -103,7 +103,8 @@ ist.
   
       | isAtomic sub
       = (snkComp e, snkPin e)
-      where sub        = getComp   g (snkComp e)
+      where mainID     = nodeId.nodeDesc $ g
+            sub        = getComp   g (snkComp e)
             super      = superNode g (srcComp e)
             supersuper = superNode g (nodeId.nodeDesc $ super)
 \end{code}

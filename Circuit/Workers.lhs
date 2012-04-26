@@ -67,29 +67,27 @@ Hierzu wird eine match-Funktion als erster Parameter erwartet.
 \hsSource{CircuitDescriptor} aufgebaut wird. Enthält der \hsSource{CircuitDescriptor} unnötige Verschachtelungen, werden diese mittels
 \hsSource{flatten} entfernt. 
 
+\par 
+Als Sonderfall gelten die Schaltungen, die Schleifen darstellen. Hier gibt es keine überflüssigen Verschachtelungen, mindestens aber muss
+der Algorithmus zum erkennen solcher ein anderer sein, so dass \hsSource{flatten} auf diese Teilbereiche zunächst nicht angewandt werden
+sollte.  
 \begin{code}
   flatten :: CircuitDescriptor -> CircuitDescriptor
   flatten g
-      = g' { nodes = nub $ nodes g'
-           , edges =       edges g' ++ enders
-           }
-      where g'            = foldl (f g) (g { nodes = [], edges = starters }) innerConns
+    | isLoop g
+    = g
 
-            allAtomCIDs   = filter isAtomic $ allCircuits g
-            edgsFromAtom  = map (fromCompEdges g . nodeId . nodeDesc) allAtomCIDs
-            nextCIDs      = map (map $ nextAtomic g) edgsFromAtom
-            connections   = concat $ map (\(x, ys) -> concat $ map (\z -> [(nodeId.nodeDesc $ x, z)]) ys) $ zip allAtomCIDs nextCIDs
-
-            starters      = zipWith (\(c, p)      i -> MkEdge (Nothing, i) (Just c,  p)) (map (nextAtomic g) fromOuterEs)                 ([0..])
-            enders        = zipWith (\(c, (_, p)) i -> MkEdge (Just c,  p) (Nothing, i)) (filter (\x  -> (fst.snd) x == 0) $ connections) ([0..])
-
-            innerConns    = filter (\x  -> (fst.snd) x /= 0) $ connections
-            fromOuterEs   = filter (isFromOuter) $ edges g
-
-            f orig_g new_g (nextF, nextTo@(nextToC, nextToP))
-                          = new_g { nodes = nub $ nodes new_g ++ (getComp g nextF) : [getComp g nextToC]
-                                  , edges = nub $ edges new_g ++ [(connectCID orig_g new_g nextF nextTo)]
-                                  }
+    | otherwise
+    = g { nodes = nub $ atomCIDs
+        , edges =       esBetweenAtoms
+        }
+    where atomCIDs       = filter isAtomic $ allCircuits g
+          esFromAtoms    = concat $ map (fromCompEdges g . nodeId . nodeDesc) atomCIDs
+          esFromOuter    = filter isFromOuter $ edges g
+          esBetweenAtoms = zipWith MkEdge (map sourceInfo $ esFromOuter ++ esFromAtoms) (map nextAtomOrOut $ esFromOuter ++ esFromAtoms)
+          nextAtomOrOut  = (\e -> let (c, p) = nextAtomic g e 
+                                  in  if c == mainID then (Nothing, p) else (Just c, p))
+          mainID         = nodeId.nodeDesc $ g
 \end{code} 
 
 

@@ -111,3 +111,21 @@ diese Komponente automatisch vom System erzeugt wurde.
   isID = hasLabel "-ID-"
 \end{code} 
 }
+
+\par 
+In einem weiteren Test wird die Art der Schaltung überprüft. Handelt es sich bei dem vorliegenden \hsSource{CircuitDescriptor} um einen
+Kombinatorischen Schaltkreis, um ein Register oder um eine Schleife?
+
+\begin{code}
+  isCombinatorial :: CircuitDescriptor -> Bool
+  isCombinatorial (MkCombinatorial _ _ _ _ _) = True
+  isCombinatorial otherwise           = False
+
+  isRegister :: CircuitDescriptor -> Bool
+  isRegister (MkRegister _ _) = True
+  isRegister otherwise      = False
+
+  isLoop :: CircuitDescriptor -> Bool
+  isLoop (MkLoop _ _ _ _ _) = True
+  isLoop otherwise          = False
+\end{code} 

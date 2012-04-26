@@ -116,7 +116,7 @@ mittels \hsSource{splice} zu der nach Außen verwendeten \hsSource{loopWithRegis
 \begin{code}
   loopWithRegister :: CircuitDescriptor -> CircuitDescriptor
   loopWithRegister cd 
-    = MkCombinatorial 
+    = MkLoop
       { nodeDesc = MkNode
         { label   = "loop(" ++ (label.nodeDesc $ cd) ++ ")"
         , nodeId  = 0
@@ -125,7 +125,7 @@ mittels \hsSource{splice} zu der nach Außen verwendeten \hsSource{loopWithRegis
         }
       , nodes   = [alterCompIDs 1 cd]
       , edges   = es
-      , cycles  = cycles cd
+      , cycles  = 1111111  -- TODO : HERE THIS IS NOT RIGHT
       , space   = space cd
       }
     where (es, (srcs, snks)) = registerLoopRewire cd
