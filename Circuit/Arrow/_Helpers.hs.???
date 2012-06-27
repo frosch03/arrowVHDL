@@ -1,0 +1,75 @@
+Das Modul \hsSource{Circuit.Arrow.Helpers} beschreibt Hilfsfunktionen, zur Arrow-Gestaltung.
+
+
+module Circuit.Arrow.Helpers
+where
+
+
+
+-- Folgenden Module werden benötigt, um die Arrows definieren zu können:
+
+
+import Circuit.Arrow.Class
+import Circuit.Arrow.Instance
+
+
+
+
+-- Typischerweise verwendet man den Begriff \begriff{Synthese} in der Hardware-Community für den Prozess, aus einer Modellhaften
+-- Hardwarebeschreibung heraus tatsächlichen Hardwarecode (beispielsweise VHDL) zu erzeugen. Daneben ist auch die \begriff{Simulation} von
+-- Hardwaremodellen notwendig, um die entworfenen Modelle vor der Realisierung überprüfen zu können.
+-- 
+-- Die beiden Prozesse lassen sich auch auf das \hsSource{Grid}-Arrow Modell übertragen. So stellt \hsSource{synthesize} eine Funktion dar, die
+-- aus einem gegebenen \hsSource{Grid} die fertige Hardwarebeschreibung \footnote{in diesem Fall ausgeliefert in VHDL} erzeugt. Die Simulation
+-- wird mittels der Funktion \hsSource{simulate} abgebildet. Diese Funktion erzeugt nun aus einem \hsSource{Grid}-Arrow ein
+-- \hsSource{Stream}-Arrow, der dann mit einem kontinuierlichem Datenstrom simuliert werden kann.
+
+
+synthesize :: Grid (->) b c -> CircuitDescriptor
+synthesize f = flatten $ snd $ runGrid f (undefined, NoDescriptor)
+
+simulate :: Grid (->) b c -> Stream b c 
+simulate f = arr (toFunctionModel f)
+
+
+-- Um einen \hsSource{Grid}-Arrow kombinatorisch auszuwerten, existiert die Hilfsfunktion \hsSource{toFunctionModel}.
+  
+
+toFunctionModel :: Grid (->) b c -> (b -> c)
+toFunctionModel f = \x -> fst $ runGrid f (x, NoDescriptor)
+
+  
+
+-- %%% TODO : Ist synthesize mit unit () möglich? 
+-- %%% TODO : Keine zufälligen daten ... 
+-- %%% TODO : Frage nach simulate / synthesize => right ... 
+-- %%% TODO : _kritische_pfad_analyse_ / ... 
+
+
+
+-- Weitere Hilfsfunktionen werden notwendig, um schon bestehende \hsSource{Grid}-Arrows mit Schaltkreis Beschreibungen anzureichern. 
+
+
+insert :: b -> (a, b) -> (a, b)
+insert sg ~(x, _) = (x, sg)
+
+insEmpty = insert emptyCircuit { label = "eeeempty", sinks = mkPins 1, sources = mkPins 3 }
+
+augment :: (Arrow a) => CircuitDescriptor -> Grid a b c -> Grid a b c
+augment sg (GR f) = GR $ f >>> arr (insert sg)
+
+
+
+-- Zu guter letzt werden noch Funktionen benötigt, die bei der Umstrukturierung von Daten gebraucht werden.
+
+
+movebrc :: ((a, b), c) -> (a, (b, c))
+movebrc ~(~(x, y), sg) = (x, (y, sg))
+
+backbrc :: (a, (b, c)) -> ((a, b), c)
+backbrc ~(x, ~(y, sg)) = ((x, y), sg)
+
+swapsnd :: ((a, b), c) -> ((a, c), b)
+swapsnd ~(~(x, y), sg) = ((x, sg), y)
+
+
