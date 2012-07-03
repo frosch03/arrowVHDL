@@ -27,21 +27,14 @@ import Circuit.Arrow.Instance
 
 
 
--- Das Modul Circuit.Arrow beschreibt, wie die Arrow-Klasse zu implementieren sind um damit später Schaltkreise beschreiben,
--- bearbeiten oder benutzen zu können.
-
--- Neben den Klassendefinitionen ist es ganz Praktisch, einen Arrow zu definieren, der in allen Arrow-Beschreibungen wieder Anwendung finden
--- wird. Es handelt sich um 'returnA', was der Kategorientheoretischen _Unit_ Funktion entspricht.
-
-
+-- | 'returnA' is a standard arrow-function that is similar to return in the monad context
 returnA :: (Arrow a) => a b b
 returnA = arr id
 
 
 
--- Zu guter letzt werden noch Funktionen benötigt, die bei der Umstrukturierung von Daten gebraucht werden.
 
-
+-- | 'movebrc', 'backbrc' and 'swapsnd' are functions that change the order of tuples
 movebrc :: ((a, b), c) -> (a, (b, c))
 movebrc ~(~(x, y), sg) = (x, (y, sg))
 

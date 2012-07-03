@@ -17,3 +17,4 @@ import Circuit.Descriptor
 -- Types. 
 
 newtype Grid a b c = GR (a b c, CircuitDescriptor)
+

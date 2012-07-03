@@ -1,15 +1,5 @@
--- Das Hilfsmodul stellt ein Sammelbecken für alle Funktionen dar, die nicht in eines der anderen Module gepasst haben.
-
-
-  module Circuit.Auxillary 
-  where
-
-
-
-
--- Da dieses Modul keine spezielle Aufgabe besitzt sind auch die Aufgaben der einzelnen Funktionen sehr unterschiedlich. Aus diesen Gründen ist
--- die Liste der eingebundenen Module recht lang. 
-
+module Circuit.Auxillary 
+where
 
 import Data.List (union, groupBy, isInfixOf)
 import Data.Maybe
@@ -38,10 +28,7 @@ import Circuit.Graphs (emptyCircuit)
 
 
 
--- Mit \hsSource{nextID} hat man eine Funktion, die eine Liste vom Komponenten Nummer erhält und daraus dann eine nächste gültige Komponenten
--- Nummer erzeugt.
-
-
+-- 'nextID' is function that gets a list of component numbers and generates the next valid one
 nextID :: [CompID] -> CompID
 nextID []    = 0
 nextID [cid] = cid + 1
@@ -52,8 +39,6 @@ nextID cids  = nextID [foldl max 0 cids]
 --  %%% Unter Ferner liefen XXX 
 -- Die Funktion \hsSource{onlyInnerEdges} filtert aus einer Liste von Kanten genau diese Kanten heraus, die die internen Kanten im Schaltkreis
 -- darstellen. Die Ergebnismenge enthält keine Ein- und Ausgehenden Kanten.
-
-
 onlyInnerEdges :: [Edge] -> [Edge]
 onlyInnerEdges es = es'
     where es' = filter notIO $ es

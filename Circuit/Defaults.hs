@@ -3,7 +3,7 @@ module Circuit.Defaults where
 
 import Control.Category 
 import Prelude hiding (id, (.))
-import Data.Bits (xor, shiftL, shiftR)
+import Data.Bits (shiftL, shiftR)
 
 import Circuit
 
@@ -23,6 +23,10 @@ type Key   = (KeyChunk, KeyChunk, KeyChunk, KeyChunk)
 type KeyHalf = (KeyChunk, KeyChunk)
 type Value = (ValChunk, ValChunk)
 
+xor :: Bool -> Bool -> Bool
+xor x y | x == True && y == False = True
+        | x == False && y == True = True
+        | otherwise = False
 
 oneNodeCircuit :: String -> CircuitDescriptor
 oneNodeCircuit s = emptyCircuit { nodeDesc = emptyNodeDesc { label = s } }
@@ -57,7 +61,52 @@ aConst x
     $ arr (const x)
 
 
-aXor :: (Arrow a) => Grid a (Int, Int) (Int)
+aAnd :: (Arrow a) => Grid a (Bool, Bool) (Bool)
+aAnd 
+    = augment 
+        emptyCircuit 
+          { nodeDesc = emptyNodeDesc 
+            { label   = "AND"
+            , sinks   = mkPins 2
+            , sources = mkPins 1
+            }
+          , cycles  = 1
+          , space   = 4
+          }
+    $ arr (uncurry (&&)) 
+
+
+aOr :: (Arrow a) => Grid a (Bool, Bool) (Bool)
+aOr
+    = augment 
+        emptyCircuit 
+          { nodeDesc = emptyNodeDesc 
+            { label   = "OR"
+            , sinks   = mkPins 2
+            , sources = mkPins 1
+            }
+          , cycles  = 1
+          , space   = 4
+          }
+    $ arr (uncurry (||)) 
+
+
+aNot :: (Arrow a) => Grid a (Bool) (Bool)
+aNot
+    = augment 
+        emptyCircuit 
+          { nodeDesc = emptyNodeDesc 
+            { label   = "NOT"
+            , sinks   = mkPins 1
+            , sources = mkPins 1
+            }
+          , cycles  = 1
+          , space   = 2
+          }
+    $ arr (not) 
+
+
+aXor :: (Arrow a) => Grid a (Bool, Bool) (Bool)
 aXor 
     = augment 
         emptyCircuit 
@@ -72,7 +121,7 @@ aXor
     $ arr (uncurry xor) 
 
 
-aFst :: (Arrow a) => Grid a (Int, Int) (Int)
+aFst :: (Arrow a) => Grid a (b, c) (b)
 aFst 
     = augment 
         emptyCircuit 
@@ -87,7 +136,7 @@ aFst
     $ arr (fst) 
 
 
-aSnd :: (Arrow a) => Grid a (Int, Int) (Int)
+aSnd :: (Arrow a) => Grid a (b, c) (c)
 aSnd 
     = augment 
         emptyCircuit 
@@ -255,3 +304,17 @@ aRegister
         )
     $ arr id
         
+
+-- aL_headtail :: (Arrow a) => Grid a ([b]) (b, [b])
+-- aL_headtail 
+--     = augment 
+--         emptyCircuit 
+--             { nodeDesc = emptyNodeDesc
+--                 { label   = "listHEADTAIL"
+--                 , sinks   = mkPins 1
+--                 , sources = mkPins 2
+--                 }
+--             , cycles = 2
+--             , space  = 16
+--             }
+--     $ arr (\(x:xs) -> (x, xs))

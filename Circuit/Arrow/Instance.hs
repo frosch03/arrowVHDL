@@ -30,8 +30,8 @@ import Circuit.Arrow.Class
 
 
 instance Arrow (->) where
---    arr   f = f
---    first f = (\(x, y) -> (f x, y))
+    arr   f = f
+    first f = (\(x, y) -> (f x, y))
 
 
 

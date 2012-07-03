@@ -1,6 +1,9 @@
 module Circuit
   ( Grid(..)
+  , runGrid
+
   , Stream(..)
+
   , Show(..)
   )
 where
