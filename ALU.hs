@@ -86,6 +86,7 @@ a4Mux
     >>> a3Mux
 
 
+--                               Cin     a     b      Cout   e
 aFullAdd :: (Arrow a) => Grid a (Bool, (Bool, Bool)) (Bool, Bool)
 aFullAdd 
     =   aFst &&& (   aSnd
@@ -95,38 +96,163 @@ aFullAdd
     >>> first (aXor &&& aAnd)
     >>> first (aFlip)
     >>> aSwapSnd
-    >>> aFlip
-    >>> second aOr
+    >>> first aOr
     where _aFlipBrc = aFlip >>> aSwapSnd >>> first aFlip
 
 
+--                                Cin    Opt       a     b      Cout   e
 a1BitALU :: (Arrow a) => Grid a ((Bool, (Bool)), (Bool, Bool)) (Bool, Bool)
 a1BitALU 
-    =   aDup
+    =   aSwapSnd
     >>> first 
-        (   aSwapSnd
-        >>> aFst
-        >>> aFullAdd
-        )
-    >>> second (aSnd *** aAnd)
-    >>> aDup
-    >>> first 
-        (   second aSnd
-        >>> first  aFlip
-        >>> aSwapSnd
+        (   aFullAdd &&& (aSnd >>> aAnd)
+        >>> a_ABc2aBC
         >>> aFlip
+        )
+    >>> aSwapSnd
+    >>> aFlip
+    >>> second
+        (   aFlip
         >>> aMux
         )
-    >>> second 
-        (   aFst
-        >>> aFst
-        )
-    >>> aFlip
+
+type Input   = (Bool, Bool)
+type Output  = Bool
+type Cin     = Bool
+type Cout    = Bool
+type Opt1Bit = Bool
+
+
+aDassoc :: (Arrow a) => Grid a ((b, c), (d, e)) ((b, d), (c, e))
+aDassoc 
+    =   aSwapSnd
+    >>> a_aBC2ABc *** aId
+    >>> a_ABc2aBC
+    >>> aId *** aFlip
+
+
+carry_connect_through :: (Arrow a) => (Grid a Input Output) -> Grid a (Cin, Input) (Cout, Output)
+carry_connect_through arrow = (aConst False) *** arrow
+
+
+a2HullALU :: (Arrow a) 
+          => Grid a (Cin, Input) (Cout, Output) 
+          -> Grid a (Cin, Input) (Cout, Output) 
+          -> Grid a (Opt1Bit, (Cin, Input)) (Cout, Output)
+a2HullALU h1 h2
+    =   second (h1 &&& h2 >>> aDassoc)
+    >>> aAssoc
+    >>> aMux *** aMux
 
 
 
---     >>> (aFst *** aFst) &&& (aSnd *** aSnd)
---     >>> first aFlip
---     >>> aSwapSnd
---     >>> first aMux
---     >>> aFlip
+
+
+
+tAnd 
+    = [ (False, False)    --  [ False
+      , (False, True )    --  , False
+      , (True , False)    --  , False
+      , (True , True )    --  , False
+      ]                   --  ]
+       
+tFullAdd
+    = [ (False, (False, False))   --	[ (False, False)
+      , (False, (False, True ))   --	, (False, True)
+      , (False, (True , False))   --	, (False, True)
+      , (False, (True , True ))   --	, (True,  False)
+                               
+      , (True , (False, False))   --	, (False, True)
+      , (True , (False, True ))   --	, (True,  False)
+      , (True , (True , False))   --	, (True,  False)
+      , (True , (True , True ))   --	, (True,  True)
+      ]                           --    ]
+      
+t1BitALU
+    = [ ((False, False), (False, False))	--  [ (False, False)	[ (False, False)
+      , ((False, False), (False, True ))	--  , (False, True) 	, (False, True)
+      , ((False, False), (True , False))	--  , (False, True) 	, (False, True)
+      , ((False, False), (True , True ))	--  , (True,  True) 	, (True,  False)
+                                                                
+      , ((True , False), (False, False))	--  , (False, True) 	, (False, True)
+      , ((True , False), (False, True ))	--  , (True,  False)	, (True,  False)
+      , ((True , False), (True , False))	--  , (True,  False)	, (True,  False)
+      , ((True , False), (True , True ))	--  , (True,  True) 	, (True,  True)
+                                                                    
+      , ((False, True),  (False, False))	--  , (False, False)	, (False, False)
+      , ((False, True),  (False, True ))	--  , (False, True) 	, (False, False)
+      , ((False, True),  (True , False))	--  , (False, True) 	, (False, False)
+      , ((False, True),  (True , True ))	--  , (True,  True) 	, (True,  True)
+                                                                
+      , ((True , True),  (False, False))	--  , (False, True) 	, (False, False)
+      , ((True , True),  (False, True ))	--  , (True,  False)	, (True,  False)
+      , ((True , True),  (True , False))	--  , (True,  False)	, (True,  False)
+      , ((True , True),  (True , True ))	--  , (True,  True) 	, (True,  True)
+      ]                                 	--  ]                   ]
+
+
+t2HullALU
+    = [ (False, (False, (False, False)))	--	[ (False, False)
+      , (False, (False, (False, True )))	--	, (False, True)
+      , (False, (False, (True , False)))	--	, (False, True)
+      , (False, (False, (True , True )))	--	, (True,  False)
+                                        
+      , (False, (True , (False, False)))	--	, (False, True)
+      , (False, (True , (False, True )))	--	, (True,  False)
+      , (False, (True , (True , False)))	--	, (True,  False)
+      , (False, (True , (True , True )))	--	, (True,  True)
+                                        
+      , (True , (False, (False, False)))	--	, (False, False)
+      , (True , (False, (False, True )))	--	, (False, True)
+      , (True , (False, (True , False)))	--	, (False, True)
+      , (True , (False, (True , True )))	--	, (True,  False)
+                                        
+      , (True , (True,  (False, False)))	--	, (False, True)
+      , (True , (True,  (False, True )))	--	, (True,  False)
+      , (True , (True,  (True , False)))	--	, (True,  False)
+      , (True , (True,  (True , True )))	--	, (True,  True)
+      ]                                
+
+    --  runStream (simulate $ a2HullALU aFullAdd aFullAdd) $ t2HullALU
+	--	[ (False, False)
+	--	, (False, True)
+	--	, (False, True)
+	--	, (True,  False)
+
+	--	, (False, True)
+	--	, (True,  False)
+	--	, (True,  False)
+	--	, (True,  True)
+
+	--	, (False, False)
+	--	, (False, True)
+	--	, (False, True)
+	--	, (True,  False)
+
+	--	, (False, True)
+	--	, (True,  False)
+	--	, (True,  False)
+	--	, (True,  True)
+	--	]
+
+
+    --  runStream (simulate $ a2HullALU aFullAdd (carry_connect_through aAnd)) $ t2HullALU
+	--	[ (False, False)
+	--	, (False, True)
+	--	, (False, True)
+	--	, (True,  False)
+
+	--	, (False, True)
+	--	, (True,  False)
+	--	, (True,  False)
+	--	, (True,  True)
+
+	--	, (False, False)
+	--	, (False, False)
+	--	, (False, False)
+	--	, (False, True)
+
+	--	, (False, False)
+	--	, (False, False)
+	--	, (False, False)
+	--	, (False, True)]

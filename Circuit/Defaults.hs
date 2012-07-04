@@ -221,6 +221,34 @@ aSwapSnd
            }
     $ arr (\((x, y), z) -> ((x, z), y))
 
+a_ABc2aBC :: (Arrow a) => Grid a ((b, c), d) (b, (c, d))
+a_ABc2aBC    
+    = augment
+         emptyCircuit
+           { nodeDesc = emptyNodeDesc 
+             { label   = "ABc2aBC"
+             , sinks   = mkPins 2
+             , sources = mkPins 2
+             }
+           , cycles  = 1
+           , space   = 6
+           }
+    $ arr (\((x, y), z) -> (x, (y, z)))
+
+a_aBC2ABc :: (Arrow a) => Grid a (b, (c, d)) ((b, c), d)
+a_aBC2ABc    
+    = augment
+         emptyCircuit
+           { nodeDesc = emptyNodeDesc 
+             { label   = "aBC2ABc"
+             , sinks   = mkPins 2
+             , sources = mkPins 2
+             }
+           , cycles  = 1
+           , space   = 6
+           }
+    $ arr (\(x, (y, z)) -> ((x, y), z))
+
 aShiftL4 :: (Arrow a) => Grid a Int Int
 aShiftL4 
     = augment
