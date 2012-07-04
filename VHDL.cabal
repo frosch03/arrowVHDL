@@ -1,13 +1,13 @@
-name: 		          VHDL
-version:	          0.0
-author:		          Matthias Brettschneider
-maintainer:	        frosch03@gmail.com
+name: 		    VHDL
+version:	    0.0
+author:		    Matthias Brettschneider
+maintainer:	    frosch03@gmail.com
 homepage:           http://github.com/frosch03
-description:	      Using Arrows to describe Hardware and to generate VHDL code
-license:	          BSD3
+description:	    Using Arrows to describe Hardware and to generate VHDL code
+license:	    BSD3
 category:           Testing
 cabal-version:	    >=1.2
-build-type:	        Simple
+build-type:	    Simple
 
 Library
   build-depends:    base > 3
