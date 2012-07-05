@@ -121,6 +121,10 @@ type Output  = Bool
 type Cin     = Bool
 type Cout    = Bool
 type Opt1Bit = Bool
+type Opt2Bit = (Opt1Bit, Opt1Bit)
+
+type In4Bit  = (Input,  (Input,  (Input,  (Input))))
+type Out4Bit = (Output, (Output, (Output, (Output))))
 
 
 aDassoc :: (Arrow a) => Grid a ((b, c), (d, e)) ((b, d), (c, e))
@@ -131,8 +135,8 @@ aDassoc
     >>> aId *** aFlip
 
 
-carry_connect_through :: (Arrow a) => (Grid a Input Output) -> Grid a (Cin, Input) (Cout, Output)
-carry_connect_through arrow = (aConst False) *** arrow
+noCarry :: (Arrow a) => (Grid a Input Output) -> Grid a (Cin, Input) (Cout, Output)
+noCarry arrow = (aConst False) *** arrow
 
 
 a2HullALU :: (Arrow a) 
@@ -144,7 +148,51 @@ a2HullALU h1 h2
     >>> aAssoc
     >>> aMux *** aMux
 
+a4Op1BitALU :: (Arrow a)
+          => Grid a (Cin, Input) (Cout, Output) 
+          -> Grid a (Cin, Input) (Cout, Output) 
+          -> Grid a (Cin, Input) (Cout, Output) 
+          -> Grid a (Cin, Input) (Cout, Output) 
+          -> Grid a (Opt2Bit, (Cin, Input)) (Cout, Output)
+a4Op1BitALU a1 a2 a3 a4
+    =   second (   (a1 &&& a2) &&& (a3 &&& a4)
+               >>> aDassoc     *** aDassoc
+               >>> aDassoc
+               )
+    >>> aAssoc
+    >>> a2Mux *** a2Mux
 
+aAndOr :: (Arrow a) => Grid a (Opt1Bit, (Cin, Input)) (Cout, Output)
+aAndOr = a2HullALU (noCarry aAnd) (noCarry aOr)
+
+aXorNot :: (Arrow a) => Grid a (Opt1Bit, (Cin, Input)) (Cout, Output)
+aXorNot = a2HullALU (noCarry aXor) (noCarry $ aFst >>> aNot)
+
+testALU4Op1Bit = a4Op1BitALU (noCarry aAnd) (noCarry aOr) (noCarry aXor) (noCarry $ aFst >>> aNot)
+
+
+a4Op4BitALU :: (Arrow a)
+          => Grid a (Opt2Bit, (Cin, Input)) (Cout, Output) 
+          -> Grid a (Opt2Bit, (Cin, In4Bit)) (Cout, Out4Bit)
+a4Op4BitALU aBitALU
+    =   eval
+    >>> second 
+        (   eval
+        >>> second
+            (   eval
+            >>> second (aBitALU >>> aFlip)
+            )
+        )
+    >>> (aSnd >>> aSnd >>> aSnd >>> aSnd) &&& (second (second (second aFst)))
+    where eval =   second a_aBC2ABc
+               >>> aAssoc
+               >>> first aBitALU
+               >>> aFlip *** aFlip
+               >>> a_ABc2aBC
+               >>> second 
+                   (   a_aBC2ABc
+                   >>> aFlip
+                   )
 
 
 
@@ -191,68 +239,44 @@ t1BitALU
       ]                                 	--  ]                   ]
 
 
-t2HullALU
+t2HullALU                                   --  runStream (simulate $ a2HullALU aFullAdd (carry_connect_through aAnd)) $ t2HullALU
     = [ (False, (False, (False, False)))	--	[ (False, False)
       , (False, (False, (False, True )))	--	, (False, True)
       , (False, (False, (True , False)))	--	, (False, True)
       , (False, (False, (True , True )))	--	, (True,  False)
-                                        
+                                                                
       , (False, (True , (False, False)))	--	, (False, True)
       , (False, (True , (False, True )))	--	, (True,  False)
       , (False, (True , (True , False)))	--	, (True,  False)
       , (False, (True , (True , True )))	--	, (True,  True)
-                                        
+                                                                
       , (True , (False, (False, False)))	--	, (False, False)
-      , (True , (False, (False, True )))	--	, (False, True)
-      , (True , (False, (True , False)))	--	, (False, True)
-      , (True , (False, (True , True )))	--	, (True,  False)
-                                        
-      , (True , (True,  (False, False)))	--	, (False, True)
-      , (True , (True,  (False, True )))	--	, (True,  False)
-      , (True , (True,  (True , False)))	--	, (True,  False)
-      , (True , (True,  (True , True )))	--	, (True,  True)
+      , (True , (False, (False, True )))	--	, (False, False)
+      , (True , (False, (True , False)))	--	, (False, False)
+      , (True , (False, (True , True )))	--	, (False, True)
+                                                                
+      , (True , (True,  (False, False)))	--	, (False, False)
+      , (True , (True,  (False, True )))	--	, (False, False)
+      , (True , (True,  (True , False)))	--	, (False, False)
+      , (True , (True,  (True , True )))	--	, (False, True)]
       ]                                
 
-    --  runStream (simulate $ a2HullALU aFullAdd aFullAdd) $ t2HullALU
-	--	[ (False, False)
-	--	, (False, True)
-	--	, (False, True)
-	--	, (True,  False)
+	
+	
+	
+	
 
-	--	, (False, True)
-	--	, (True,  False)
-	--	, (True,  False)
-	--	, (True,  True)
+	
+	
+	
+	
 
-	--	, (False, False)
-	--	, (False, True)
-	--	, (False, True)
-	--	, (True,  False)
+	
+	
+	
+	
 
-	--	, (False, True)
-	--	, (True,  False)
-	--	, (True,  False)
-	--	, (True,  True)
-	--	]
-
-
-    --  runStream (simulate $ a2HullALU aFullAdd (carry_connect_through aAnd)) $ t2HullALU
-	--	[ (False, False)
-	--	, (False, True)
-	--	, (False, True)
-	--	, (True,  False)
-
-	--	, (False, True)
-	--	, (True,  False)
-	--	, (True,  False)
-	--	, (True,  True)
-
-	--	, (False, False)
-	--	, (False, False)
-	--	, (False, False)
-	--	, (False, True)
-
-	--	, (False, False)
-	--	, (False, False)
-	--	, (False, False)
-	--	, (False, True)]
+	
+	
+	
+	
