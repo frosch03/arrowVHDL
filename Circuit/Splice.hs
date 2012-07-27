@@ -82,6 +82,11 @@ dupCombine = splice (dupParRewire, ">2>")
 -- Die Funktion %%%%%%%%%%%%%%%%%%% 
 -- %%% TODO : Schaltwerke
 
+delayByRegister :: CircuitDescriptor -> CircuitDescriptor
+delayByRegister cd@(MkCombinatorial nd _ _ _ _)
+    = MkComposite (cd : reg : [])
+    where reg = mkRegister nd
+
 
 
 -- Möchte man einen \begriff{Loop} erstellen, so wird dieser durch ein Register geführt, dass eine Verzögerung um einen Takt ermöglicht. Die
@@ -100,7 +105,6 @@ loopWithRegister cd
             }
         , nodes   = [alterCompIDs 1 cd]
         , edges   = es
-        , cycles  = 1111111  -- TODO : HERE THIS IS NOT RIGHT
         , space   = space cd
         }
     where (es, (srcs, snks)) = registerLoopRewire cd

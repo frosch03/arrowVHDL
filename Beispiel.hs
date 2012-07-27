@@ -1,5 +1,3 @@
---Bla
-
 {-# LANGUAGE Arrows, NoMonomorphismRestriction, RebindableSyntax #-}
 module Beispiel where
 

@@ -1,3 +1,5 @@
+{-# LANGUAGE Arrows,
+             RankNTypes #-}
 module Circuit.Auxillary 
 where
 
@@ -60,9 +62,18 @@ onlyInnerEdges es = es'
 -- diesen in einen \hsSource{Stream}-Arrow, der dann mit einem kontinuierlichem Datenstrom simuliert werden kann.
 
 
-synthesize :: Grid (->) b c -> CircuitDescriptor
+
+testPreSynth :: (Arrow a) => Grid a b c -> (a b c, CircuitDescriptor)
+testPreSynth (GR tuple) = tuple
+
+test2PreSynt = snd
+
+--synthesize :: (Arrow a) => Grid a b c -> CircuitDescriptor
 --synthesize (GR (_, cd)) = flatten cd   -- %%% TODO : Flatten won't work with Looping-Stuff ...
+synthesize :: Grid (->) b c -> CircuitDescriptor
 synthesize (GR (_, cd)) = cd
+--synthesize (GR x) = snd x
+    
 
 simulate :: Grid (->) b c -> Stream b c 
 simulate f = arr (toFunctionModel f)

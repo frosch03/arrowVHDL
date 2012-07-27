@@ -81,6 +81,12 @@ instance (ArrowLoop a) => ArrowLoop (Grid a) where
     loop (GR (f, cd_f)) = GR (loop f, loopWithRegister cd_f)
 
 
+
+instance (ArrowCircuit a) => ArrowCircuit (Grid a) where
+    delay x = GR (delay x, mkRegister $ MkNode "" 0 (mkPins 1) (mkPins 1))
+
+
+
 -- Um den \hsSource{Grid}-Arrow zu \hsSource{ArrowChoice} hinzufüge, so ist die Implementierung von \hsSource{ArrowChoice} für \hsSource{Grid}
 -- notwendig. 
 -- 

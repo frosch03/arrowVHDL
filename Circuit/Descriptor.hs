@@ -105,27 +105,28 @@ data NodeDescriptor
 
 data CircuitDescriptor
     = MkCombinatorial
-      { nodeDesc :: NodeDescriptor
-      , nodes    :: [CircuitDescriptor]
-      , edges    :: [Edge]
-      , cycles   :: Tick
-      , space    :: Area
+      { nodeDesc  :: NodeDescriptor
+      , nodes     :: [CircuitDescriptor]
+      , edges     :: [Edge]
+      , cycles    :: Tick
+      , space     :: Area
       }
 
     | MkRegister
-      { nodeDesc :: NodeDescriptor
-      , bit      :: Int
+      { nodeDesc  :: NodeDescriptor
+      , bits      :: Int
       }
 
     | MkLoop
-      { nodeDesc :: NodeDescriptor
-      , nodes    :: [CircuitDescriptor]
-      , edges    :: [Edge]
-      , cycles   :: Tick
-      , space    :: Area
+      { nodeDesc  :: NodeDescriptor
+      , nodes     :: [CircuitDescriptor]
+      , edges     :: [Edge]
+      , space     :: Area
       }
 
---  | MkComposite
+    | MkComposite
+      { composite :: [CircuitDescriptor]
+      }
 
     | NoDescriptor
     deriving (Eq)
@@ -139,7 +140,8 @@ type Netlist = CircuitDescriptor
 -- 
 --  
 -- Jede Komponente kann durch untergeordnete Komponenten beschrieben werden. Dies wird im Datentyp über die \hsSource{nodes} Liste abgebildet.
--- Ist die Komponenten atomar, so enthält dieses Datum die leere Liste. Der Konstruktor \hsSource{NoSG} ist analog zu $\varnothing$. %%% TODO : Mathematisch erklären warum {} benötigt wird
+-- Ist die Komponenten atomar, so enthält dieses Datum die leere Liste. Der Konstruktor \hsSource{NoSG} ist analog zu $\varnothing$. 
+-- %%% TODO : Mathematisch erklären warum {} benötigt wird
 -- 
 -- 
 -- Um zu verhindern, dass ungültige Schaltungsbeschreibungen erzeugt werden, können \begriff{smart constructor}s eingesetzt werden. Hierbei
@@ -158,7 +160,7 @@ mkRegister :: NodeDescriptor -> CircuitDescriptor
 mkRegister nd 
     = MkRegister  
       { nodeDesc = nd { label = "REG" ++ (show $ nodeId nd) } 
-      , bit      = length $ sinks nd
+      , bits     = length $ sinks nd
       }
  
 

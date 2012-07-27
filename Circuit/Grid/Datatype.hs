@@ -6,6 +6,8 @@ where
 
 -- Folgenden Module werden benötigt, um den Datentyp definieren zu können:
 
+import Control.Arrow
+
 import Circuit.Descriptor
 
 
@@ -17,4 +19,3 @@ import Circuit.Descriptor
 -- Types. 
 
 newtype Grid a b c = GR (a b c, CircuitDescriptor)
-

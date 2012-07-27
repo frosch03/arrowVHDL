@@ -249,6 +249,22 @@ a_aBC2ABc
            }
     $ arr (\(x, (y, z)) -> ((x, y), z))
 
+
+-- |'aAssoc' defines an associativity of an expression ... 
+-- (x,(a,b))  ->  ((x,a), (x,b))
+aAssoc :: (Arrow a) => Grid a (b, (c, d)) ((b, c), (b, d))
+aAssoc 
+    =   aDup
+    >>> second aFst *** second aSnd
+
+-- |'aDassoc' is the reverse operation to the Assoc operation
+aDassoc :: (Arrow a) => Grid a ((b, c), (d, e)) ((b, d), (c, e))
+aDassoc 
+    =   aSwapSnd
+    >>> a_aBC2ABc *** aId
+    >>> a_ABc2aBC
+    >>> aId *** aFlip
+
 aShiftL4 :: (Arrow a) => Grid a Int Int
 aShiftL4 
     = augment

@@ -91,5 +91,5 @@ isRegister (MkRegister _ _) = True
 isRegister otherwise      = False
 
 isLoop :: CircuitDescriptor -> Bool
-isLoop (MkLoop _ _ _ _ _) = True
-isLoop otherwise          = False
+isLoop (MkLoop _ _ _ _) = True
+isLoop otherwise        = False

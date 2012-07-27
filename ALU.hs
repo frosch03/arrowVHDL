@@ -10,6 +10,24 @@ import Circuit
 import Circuit.Arrow -- here we get first and second
 import Circuit.Defaults
 
+type Input   = (Bool, Bool)
+type Output  = Bool
+type Cin     = Bool
+type Cout    = Bool
+type Opt1Bit = Bool
+type Opt2Bit = (Opt1Bit, Opt1Bit)
+type Opt3Bit = (Opt1Bit, Opt2Bit)
+type Opt4Bit = (Opt1Bit, Opt3Bit)
+
+type In2Bit  = (Input,  (Input))
+type Out2Bit = (Output, (Output))
+
+type In4Bit  = (Input,  (Input,  (Input,  (Input))))
+type Out4Bit = (Output, (Output, (Output, (Output))))
+
+type In8Bit  = (Input,  (Input,  (Input,  (Input,  (Input,  (Input,  (Input,  (Input))))))))
+type Out8Bit = (Output, (Output, (Output, (Output, (Output, (Output, (Output, (Output)))))))) 
+
 
 -- aFst
 -- aSnd
@@ -19,60 +37,62 @@ import Circuit.Defaults
 -- aAdd
 
 
--- |'aAssoc' defines an associativity of an expression ... 
--- (x,(a,b))  ->  ((x,a), (x,b))
-aAssoc :: (Arrow a) => Grid a (b, (c, d)) ((b, c), (b, d))
-aAssoc 
-    =   aDup
-    >>> second aFst *** second aSnd
+aDassoc_new :: (Arrow a) => Grid a ((b, c), (b, e)) (b, (c, e))
+aDassoc_new 
+    = proc ((x1, y), (x2, z)) -> do
+        returnA -< (x1, (y, z))
 
+
+-- |With the 'noC' operator, one can shortwire the CarryIn bit direct to the CarryOut bit
+noC :: (Arrow a) => (Grid a Input Output) -> Grid a (Cin, Input) (Output, Cout)
+noC arrow 
+    =   second arrow
+    >>> aFlip
+    
+
+-- |'aFullAdd' is the full adder implementation
+aFullAdd :: (Arrow a) => Grid a (Cin, Input) (Output, Cout)
+aFullAdd
+    =   second (aXor &&& aAnd)
+    >>> a_aBC2ABc
+    >>> first  (aXor &&& aAnd)
+    >>> a_ABc2aBC
+    >>> second (aOr)
+
+-- Multiplexer --
 
 -- | With 'aMux' a 1 Bit multiplexer is defined
-aMux :: (Arrow a) => Grid a (Bool, (Bool, Bool)) (Bool)
+aMux :: (Arrow a) => Grid a (Opt1Bit, (Output, Output))  Output
 aMux 
     =   aAssoc
-    >>> aFlip *** aFlip
-    >>> first (second aNot)
+    >>> first (first aNot)
     >>> aAnd *** aAnd
     >>> aOr
 
-a2Mux :: (Arrow a) => Grid a ((Bool, Bool), ((Bool, Bool), (Bool, Bool))) (Bool)
-a2Mux 
-    =   aDup
-    >>> first (aFst >>> aSnd)
-    >>> second
-        (   first aFst
-        >>> aAssoc
-        >>> aMux *** aMux
-        )
+aMux2Bit :: (Arrow a) --        00      01        10      11
+         => Grid a (Opt2Bit, ((Output, Output), (Output, Output)))  Output
+aMux2Bit
+    =   a_ABc2aBC
+    >>> second aAssoc
+    >>> second (aMux *** aMux)
     >>> aMux
 
+aMux3Bit :: (Arrow a) --         000     001       010     011         100     101       110     111
+         => Grid a (Opt3Bit, (((Output, Output), (Output, Output)), ((Output, Output), (Output, Output))))  Output
+aMux3Bit
+    =   a_ABc2aBC
+    >>> second aAssoc
+    >>> second (aMux2Bit *** aMux2Bit)
+    >>> aMux
 
-a3Mux :: (Arrow a) => Grid a ((Bool, (Bool, Bool)), (((Bool, Bool), (Bool, Bool)), ((Bool, Bool), (Bool, Bool)))) (Bool)
-a3Mux
-    =   aDup
-    >>> first (aFst >>> aSnd)
-    >>> second 
-        (   first aFst
-        >>> aAssoc
-        >>> aAssoc *** aAssoc
-        >>> (aMux *** aMux ) *** (aMux *** aMux) 
-        )
-    >>> a2Mux
-
-a4Mux :: (Arrow a) => Grid a ((Bool, (Bool, (Bool, Bool))), ((((Bool, Bool), (Bool, Bool)), ((Bool, Bool), (Bool, Bool))), (((Bool, Bool), (Bool, Bool)), ((Bool, Bool), (Bool, Bool))))) (Bool)
-a4Mux 
-    =   aDup
-    >>> first (aFst >>> aSnd)
-    >>> second
-        (   first aFst
-        >>> aAssoc
-        >>> aAssoc *** aAssoc
-        >>> (aAssoc *** aAssoc) *** (aAssoc *** aAssoc)
-        >>> ((aMux *** aMux ) *** (aMux *** aMux)) *** ((aMux *** aMux ) *** (aMux *** aMux))
-        )
-    >>> a3Mux
-
+aMux4Bit :: (Arrow a) 
+         => Grid a (Opt4Bit, ( (((Output, Output), (Output, Output)), ((Output, Output), (Output, Output)))
+                             , (((Output, Output), (Output, Output)), ((Output, Output), (Output, Output)))))  Output
+aMux4Bit 
+    =   a_ABc2aBC
+    >>> second aAssoc
+    >>> second (aMux3Bit *** aMux3Bit)
+    >>> aMux
 
 -- |'anXum' is the Multiplexer where the last input-pin is the s-line
 -- |it is generated out of one of the mux'es
@@ -80,110 +100,50 @@ anXum mux =   aFlip
           >>> mux
 
 aXum  = anXum aMux
-a2Xum = anXum a2Mux
-a3Xum = anXum a3Mux
-a4Xum = anXum a4Mux
+a2Xum = anXum aMux2Bit
+a3Xum = anXum aMux3Bit
+a4Xum = anXum aMux4Bit
 
+--_____________--
 
-a1Bit_MuxOp :: (Arrow a) => Grid a (Bool, (Bool, Bool)) (Bool)
-a1Bit_MuxOp 
-    =   second (   aDup
-               >>> aOr *** aAnd
-               )
-    >>> aMux
-
---                               Cin     a     b       e    Cout
-aFullAdd :: (Arrow a) => Grid a (Bool, (Bool, Bool)) (Bool, Bool)
-aFullAdd 
-    =   aFst &&& (   aSnd
-                 >>> aXor &&& aAnd
-                 )
-    >>> _aFlipBrc
-    >>> first (aXor &&& aAnd)
-    >>> first (aFlip)
-    >>> aSwapSnd
-    >>> first aOr
-    >>> aFlip
-    where _aFlipBrc = aFlip >>> aSwapSnd >>> first aFlip
-
-
-type Input   = (Bool, Bool)
-type Output  = Bool
-type Cin     = Bool
-type Cout    = Bool
-type Opt1Bit = Bool
-type Opt2Bit = (Opt1Bit, Opt1Bit)
-
-type In2Bit  = (Input,  (Input))
-type Out2Bit = (Output, (Output))
-
-type In4Bit  = (Input,  (Input,  (Input,  (Input))))
-type Out4Bit = (Output, (Output, (Output, (Output))))
-
-type In8Bit  = (Input,  (Input,  (Input,  (Input, (Input,  (Input,  (Input,  (Input))))))))
-type Out8Bit = (Output, (Output, (Output, (Output, (Output, (Output, (Output, (Output))))))))
-
-
-aDassoc :: (Arrow a) => Grid a ((b, c), (d, e)) ((b, d), (c, e))
-aDassoc 
-    =   aSwapSnd
-    >>> a_aBC2ABc *** aId
-    >>> a_ABc2aBC
-    >>> aId *** aFlip
-
-
-noCarry :: (Arrow a) => (Grid a Input Output) -> Grid a (Cin, Input) (Cout, Output)
-noCarry arrow = (aConst False) *** arrow
-
-
-a2HullALU :: (Arrow a) 
-          => Grid a (Cin, Input) (Cout, Output) 
-          -> Grid a (Cin, Input) (Cout, Output) 
-          -> Grid a (Opt1Bit, (Cin, Input)) (Cout, Output)
-a2HullALU h1 h2
-    =   second (h1 &&& h2 >>> aDassoc)
-    >>> aAssoc
-    >>> aMux *** aMux
-
-aAndOr :: (Arrow a) => Grid a (Opt1Bit, (Cin, Input)) (Cout, Output)
-aAndOr = a2HullALU (noCarry aAnd) (noCarry aOr)
-
-aXorNot :: (Arrow a) => Grid a (Opt1Bit, (Cin, Input)) (Cout, Output)
-aXorNot = a2HullALU (noCarry aXor) (noCarry $ aFst >>> aNot)
-
-eval :: (Arrow a) => Grid a (Cin, (Opt1Bit, Input)) (Output, Cout) -> Grid a (Cin, (Opt1Bit, (Input, rest))) (Output, (Cout, (Opt1Bit, rest)))
+--eval :: (Arrow a) => Grid a (Cin, (Opt1Bit, Input)) (Output, Cout) -> Grid a (Cin, (Opt1Bit, (Input, rest))) (Output, (Cout, (Opt1Bit, rest)))
+-- |The 'eval' function takes a single bit ALU and evaluates the first bit of a multiBit input
+-- so with 'eval' one can define the steps of n-Bit ALU
 eval aALU 
     =   second aAssoc
     >>> a_aBC2ABc
     >>> first aALU
     >>> a_ABc2aBC
 
+-- n-Bit ALU's --
+
+--a1BitALU :: (Arrow a) => Grid a (Cin, (Opt1Bit, Input))   (Output, Cout) 
+--                      -> Grid a (Cin, (Opt1Bit, (Input))) (Output, (Cout))
+mk1BitALU = id
 
 
-alALU :: (Arrow a) => Grid a (Cin, (Opt1Bit, Input)) (Output, Cout) 
-                   -> Grid a (Cin, (Opt1Bit, (Input,  (Input)))) 
-                                             (Output, (Output, (Cout)))
-alALU aALU 
+--a2BitALU :: (Arrow a) => Grid a (Cin, (Opt1Bit, Input)) (Output, Cout) 
+--                   -> Grid a (Cin, (Opt1Bit, (Input,  (Input)))) 
+--                                             (Output, (Output, (Cout)))
+mk2BitALU aALU 
     = eval aALU >>> next aALU
     where next = second
 
 
-
-a4BitALU :: (Arrow a) => Grid a (Cin, (Opt1Bit, Input)) (Output, Cout) 
-                      -> Grid a (Cin, (Opt1Bit, (Input,  (Input,  (Input,  (Input)))))) 
-                                                (Output, (Output, (Output, (Output, (Cout)))))
-a4BitALU aALU
+--a4BitALU :: (Arrow a) => Grid a (Cin, (Opt1Bit, Input)) (Output, Cout) 
+--                      -> Grid a (Cin, (Opt1Bit, (Input,  (Input,  (Input,  (Input)))))) 
+--                                                (Output, (Output, (Output, (Output, (Cout)))))
+mk4BitALU aALU
     = eval aALU >>> next 
     ( eval aALU >>> next 
     ( eval aALU >>> next aALU))
     where next = second
 
 
-
-a8BitALU :: Arrow a => Grid a (Cin, (Opt1Bit, Input)) (Output, Cout) 
-                    -> Grid a (Cin, (Opt1Bit, (Input,  (Input,  (Input,  (Input,  (Input,  (Input,  (Input,  Input))))))))) 
-                                              (Output, (Output, (Output, (Output, (Output, (Output, (Output, (Output, Cout))))))))
-a8BitALU aALU
+--a8BitALU :: Arrow a => Grid a (Cin, (Opt1Bit, Input)) (Output, Cout) 
+--                    -> Grid a (Cin, (Opt1Bit, (Input,  (Input,  (Input,  (Input,  (Input,  (Input,  (Input,  Input))))))))) 
+--                                              (Output, (Output, (Output, (Output, (Output, (Output, (Output, (Output, Cout))))))))
+mk8BitALU aALU
     = eval aALU >>> next 
     ( eval aALU >>> next 
     ( eval aALU >>> next 
@@ -194,112 +154,111 @@ a8BitALU aALU
     where next = second
 
 
+-- n-Bit ALU's --
+--_____________--
 
+-- n-Bit Operators --
 
-testALU4Op1Bit = a4Op1BitALU (aFullAdd) (noCarry aOr) (noCarry aXor) (noCarry $ aFst >>> aNot)
-opFullAdd = (False, False)
-opXOR     = (False, True)
-opOR      = (True,  False)
-opNOT     = (True,  True)
-
-
-a4Op1BitALU :: (Arrow a)
-          => Grid a (Cin, Input) (Cout, Output) 
-          -> Grid a (Cin, Input) (Cout, Output) 
-          -> Grid a (Cin, Input) (Cout, Output) 
-          -> Grid a (Cin, Input) (Cout, Output) 
-          -> Grid a (Opt2Bit, (Cin, Input)) (Cout, Output)
-a4Op1BitALU op01 op02 op03 op04
-    =   second (   (op01 &&& op02) &&& (op03 &&& op04)
-               >>> aDassoc     *** aDassoc
-               >>> aDassoc
-               )
-    >>> aAssoc
-    >>> a2Mux *** a2Mux
-
-a4Op2BitALU :: (Arrow a)
-            => Grid a (Opt2Bit, (Cin, Input)) (Cout, Output)
-            -> Grid a (Opt2Bit, (Cin, In2Bit)) (Cout, Out2Bit)
-a4Op2BitALU aBitALU
-    =   eval >>> second (aBitALU >>> aFlip)
-    where eval =   second a_aBC2ABc
-               >>> aAssoc
-               >>> first aBitALU
-               >>> aFlip *** aFlip
-               >>> a_ABc2aBC
-               >>> second 
-                   (   a_aBC2ABc
-                   >>> aFlip
-                   )
-
---    =   second a_aBC2ABc  
---    >>> aAssoc
---    >>> first (aBitALU >>> aFlip)
---    >>> a_ABc2aBC
---    >>> second 
---        (   a_aBC2ABc
---        >>> aFlip
---        >>> a_ABc2aBC
---        >>> aBitALU 
---        )
-
-a4Op4BitALU :: (Arrow a)
-          => Grid a (Opt2Bit, (Cin, Input)) (Cout, Output) 
-          -> Grid a (Opt2Bit, (Cin, In4Bit)) (Cout, Out4Bit)
-a4Op4BitALU aBitALU
-    =   eval
+aOpt1Bit :: (Arrow a)
+         => Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, (Opt1Bit, Input)) (Output, Cout)
+aOpt1Bit aOp0 aOp1
+    =   a_aBC2ABc
+    >>> first aFlip
+    >>> a_ABc2aBC
     >>> second 
-        (   eval
-        >>> second
-            (   eval
-            >>> second (aBitALU >>> aFlip)
-            )
+        (   aOp0 &&& aOp1
+        >>> aDassoc
         )
-    >>> (aSnd >>> aSnd >>> aSnd >>> aSnd) &&& (second (second (second aFst)))
-    where eval =   second a_aBC2ABc
-               >>> aAssoc
-               >>> first aBitALU
-               >>> aFlip *** aFlip
-               >>> a_ABc2aBC
-               >>> second 
-                   (   a_aBC2ABc
-                   >>> aFlip
-                   )
+    >>> aAssoc
+    >>> aMux *** aMux
 
-a4Op8BitALU :: (Arrow a)
-          => Grid a (Opt2Bit, (Cin, Input)) (Cout, Output) 
-          -> Grid a (Opt2Bit, (Cin, In8Bit)) (Cout, Out8Bit)
-a4Op8BitALU aBitALU
-    =   eval
-    >>> second
-        (   eval
-        >>> second
-            (   eval
-            >>> second
-                (   eval
-                >>> second
-                    (   eval
-                    >>> second 
-                        (   eval
-                        >>> second
-                            (   eval
-                            >>> second (aBitALU >>> aFlip)
-                            )
-                        )
-                    )
-                )
-            )
+
+aOpt2Bit :: (Arrow a)
+         => Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, (Opt2Bit, Input)) (Output, Cout)
+aOpt2Bit aOp00 aOp01 aOp10 aOp11
+    =   a_aBC2ABc
+    >>> first aFlip
+    >>> a_ABc2aBC
+    >>> second 
+        (   (aOp00 &&& aOp01) &&& (aOp10 &&& aOp11)
+        >>> aDassoc *** aDassoc
+        >>> aDassoc
         )
-    >>> (aSnd >>> aSnd >>> aSnd >>> aSnd >>> aSnd >>> aSnd >>> aSnd >>> aSnd) &&& (second (second (second (second (second (second (second aFst)))))))
-    where eval =   second a_aBC2ABc
-               >>> aAssoc
-               >>> first aBitALU
-               >>> aFlip *** aFlip
-               >>> a_ABc2aBC
-               >>> second 
-                   (   a_aBC2ABc
-                   >>> aFlip
-                   )
+    >>> aAssoc
+    >>> aMux2Bit *** aMux2Bit
+
+
+aOpt3Bit :: (Arrow a)
+         => Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, (Opt3Bit, Input)) (Output, Cout)
+aOpt3Bit aOp000 aOp001 aOp010 aOp011 aOp100 aOp101 aOp110 aOp111
+    =   a_aBC2ABc
+    >>> first aFlip
+    >>> a_ABc2aBC
+    >>> second
+        (   ((aOp000 &&& aOp001) &&& (aOp010 &&& aOp011)) &&& ((aOp100 &&& aOp101) &&& (aOp110 &&& aOp111))
+        >>> (aDassoc *** aDassoc) *** (aDassoc *** aDassoc)
+        >>> aDassoc *** aDassoc
+        >>> aDassoc
+        )
+    >>> aAssoc
+    >>> aMux3Bit *** aMux3Bit
+
+
+
+aOpt4Bit :: (Arrow a)
+         => Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, Input) (Cout, Output)
+         -> Grid a (Cin, (Opt4Bit, Input)) (Output, Cout)
+aOpt4Bit aOp0000 aOp0001 aOp0010 aOp0011 aOp0100 aOp0101 aOp0110 aOp0111  aOp1000 aOp1001 aOp1010 aOp1011 aOp1100 aOp1101 aOp1110 aOp1111
+    =   a_aBC2ABc
+    >>> first aFlip
+    >>> a_ABc2aBC
+    >>> second
+        (       (((aOp0000 &&& aOp0001) &&& (aOp0010 &&& aOp0011)) &&& ((aOp0100 &&& aOp0101) &&& (aOp0110 &&& aOp0111))) 
+            &&& (((aOp1000 &&& aOp1001) &&& (aOp1010 &&& aOp1011)) &&& ((aOp1100 &&& aOp1101) &&& (aOp1110 &&& aOp1111)))
+        >>> ((aDassoc *** aDassoc) *** (aDassoc *** aDassoc)) *** ((aDassoc *** aDassoc) *** (aDassoc *** aDassoc))
+        >>> (aDassoc *** aDassoc) *** (aDassoc *** aDassoc)
+        >>> aDassoc *** aDassoc
+        >>> aDassoc
+        )
+    >>> aAssoc
+    >>> aMux4Bit *** aMux4Bit
+
+
+-- n-Bit Operators --
+--_________________--
+
+aFAD_XOR_AND_OR = aOpt2Bit aFullAdd (noC aXor) (noC aAnd) (noC aOr)
+
+-- Auxillary --
 
 t8b :: Int -> (Bool,  (Bool,  (Bool,  (Bool, (Bool,  (Bool,  (Bool,  (Bool))))))))
 t8b x 
@@ -309,16 +268,16 @@ t8b x
 i2t8b :: [Bool] -> Int -> [Bool]
 i2t8b list x 
     | x == 0
-    = replicate (8 - (length list)) False ++ list
+    = list ++ (replicate (8 - (length list)) False)
 
     | x == 1
-    = replicate (8 - (length list) - 1) False ++ (True : list)
+    = (list ++ [True]) ++ (replicate (8 - (length list) - 1) False)
 
     | x `mod` 2  == 0  
-    = i2t8b (False : list) (x `div` 2)
+    = i2t8b (list ++ [False]) (x `div` 2)
 
     | x `mod` 2 == 1
-    = i2t8b (True : list) ( (x-1) `div` 2)
+    = i2t8b (list ++ [True]) ( (x-1) `div` 2)
 
 inp8b :: Int -> Int -> In8Bit
 inp8b x1 x2
@@ -326,80 +285,5 @@ inp8b x1 x2
     where (bit07: bit06: bit05: bit04: bit03: bit02: bit01: bit00: []) = i2t8b [] x1
           (bit17: bit16: bit15: bit14: bit13: bit12: bit11: bit10: []) = i2t8b [] x2
 
-
-
-
-tAnd 
-    = [ (False, False)    --  [ False
-      , (False, True )    --  , False
-      , (True , False)    --  , False
-      , (True , True )    --  , False
-      ]                   --  ]
-       
-tFullAdd
-    = [ (False, (False, False))   --	[ (False, False)
-      , (False, (False, True ))   --	, (False, True)
-      , (False, (True , False))   --	, (False, True)
-      , (False, (True , True ))   --	, (True,  False)
-                               
-      , (True , (False, False))   --	, (False, True)
-      , (True , (False, True ))   --	, (True,  False)
-      , (True , (True , False))   --	, (True,  False)
-      , (True , (True , True ))   --	, (True,  True)
-      ]                           --    ]
-      
-t1BitALU
-    = [ ((False, False), (False, False))	--  [ (False, False)	[ (False, False)
-      , ((False, False), (False, True ))	--  , (False, True) 	, (False, True)
-      , ((False, False), (True , False))	--  , (False, True) 	, (False, True)
-      , ((False, False), (True , True ))	--  , (True,  True) 	, (True,  False)
-                                                                
-      , ((True , False), (False, False))	--  , (False, True) 	, (False, True)
-      , ((True , False), (False, True ))	--  , (True,  False)	, (True,  False)
-      , ((True , False), (True , False))	--  , (True,  False)	, (True,  False)
-      , ((True , False), (True , True ))	--  , (True,  True) 	, (True,  True)
-                                                                    
-      , ((False, True),  (False, False))	--  , (False, False)	, (False, False)
-      , ((False, True),  (False, True ))	--  , (False, True) 	, (False, False)
-      , ((False, True),  (True , False))	--  , (False, True) 	, (False, False)
-      , ((False, True),  (True , True ))	--  , (True,  True) 	, (True,  True)
-                                                                
-      , ((True , True),  (False, False))	--  , (False, True) 	, (False, False)
-      , ((True , True),  (False, True ))	--  , (True,  False)	, (True,  False)
-      , ((True , True),  (True , False))	--  , (True,  False)	, (True,  False)
-      , ((True , True),  (True , True ))	--  , (True,  True) 	, (True,  True)
-      ]                                 	--  ]                   ]
-
-
-t2HullALU                                   --  runStream (simulate $ a2HullALU aFullAdd (carry_connect_through aAnd)) $ t2HullALU
-    = [ (False, (False, (False, False)))	--	[ (False, False)
-      , (False, (False, (False, True )))	--	, (False, True)
-      , (False, (False, (True , False)))	--	, (False, True)
-      , (False, (False, (True , True )))	--	, (True,  False)
-                                                                
-      , (False, (True , (False, False)))	--	, (False, True)
-      , (False, (True , (False, True )))	--	, (True,  False)
-      , (False, (True , (True , False)))	--	, (True,  False)
-      , (False, (True , (True , True )))	--	, (True,  True)
-                                                                
-      , (True , (False, (False, False)))	--	, (False, False)
-      , (True , (False, (False, True )))	--	, (False, False)
-      , (True , (False, (True , False)))	--	, (False, False)
-      , (True , (False, (True , True )))	--	, (False, True)
-                                                                
-      , (True , (True,  (False, False)))	--	, (False, False)
-      , (True , (True,  (False, True )))	--	, (False, False)
-      , (True , (True,  (True , False)))	--	, (False, False)
-      , (True , (True,  (True , True )))	--	, (False, True)]
-      ]                                
-
-tTestALU4Op1Bit 
-    = [ ( (True, False) , (False, (False, False)) )
-      , ( (True, False) , (False, (False, True)) )
-      , ( (True, False) , (False, (True,  False)) )
-      , ( (True, False) , (False, (True,  True)) )
-      ]
---      , ( (False, False) , (False, (,)) )
---      , ( (False, False) , (False, (,)) )
---      , ( (False, False) , (False, (,)) )
---      , ( (False, False) , (False, (,)) )
+-- Auxillary --
+--___________--
