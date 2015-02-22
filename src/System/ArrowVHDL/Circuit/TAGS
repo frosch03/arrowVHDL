@@ -1,0 +1,639 @@
+
+./Grid.hs,25
+module Circuit.Grid 2,3
+
+./EdgeTransit.hs,275
+module Circuit.EdgeTransit4,5
+type NamedEdge =18,19
+pre ::40,41
+pre =41,42
+generateNamedEdges ::43,44
+generateNamedEdges g44,45
+getAllEdgeNames ::55,56
+getAllEdgeNames =56,57
+getNamedEdge ::64,65
+getNamedEdge nedgs65,66
+getEdgeName ::75,76
+getEdgeName nedgs76,77
+
+./IEEE_STD_LOGIC_1164.hs,41
+module Circuit.IEEE_STD_LOGIC_1164  1,2
+
+./Grid/Datatype.hs,87
+module Circuit.Grid.Datatype3,4
+newtype Grid a20,21
+newtype Grid a b c = GR (a20,21
+
+./Grid/Instance.hs,96
+module Circuit.Grid.Instance11,12
+instance (Arrow37,38
+runGrid ::101,102
+runGrid (GR102,103
+
+./Defaults.hs,1041
+module Circuit.Defaults where1,2
+type KeyChunk =19,20
+type ValChunk =20,21
+type Key   =21,22
+type KeyHalf =22,23
+type Value =23,24
+xor ::25,26
+xor x26,27
+oneNodeCircuit ::30,31
+oneNodeCircuit s31,32
+aId ::33,34
+aId 34,35
+aConst ::48,49
+aConst x49,50
+aAnd ::63,64
+aAnd 64,65
+aOr ::78,79
+aOr79,80
+aNot ::93,94
+aNot94,95
+aXor ::108,109
+aXor 109,110
+aFst ::123,124
+aFst 124,125
+aSnd ::138,139
+aSnd 139,140
+aShiftL ::153,154
+aShiftL 154,155
+aShiftR ::167,168
+aShiftR 168,169
+aAdd ::181,182
+aAdd 182,183
+aFlip ::195,196
+aFlip 196,197
+aSwapSnd ::209,210
+aSwapSnd210,211
+a_ABc2aBC ::223,224
+a_ABc2aBC    224,225
+a_aBC2ABc ::237,238
+a_aBC2ABc    238,239
+aDistr ::254,255
+aDistr 255,256
+aDdistr ::260,261
+aDdistr 261,262
+aShiftL4 ::267,268
+aShiftL4 268,269
+aShiftR5 ::281,282
+aShiftR5 282,283
+aShiftL4addKey ::295,296
+aShiftL4addKey 296,297
+aShiftR5addKey ::300,301
+aShiftR5addKey 301,302
+--aAddMagic ::312,313
+aAddMagic313,314
+aDup ::326,327
+aDup327,328
+aRegister ::340,341
+aRegister 341,342
+
+./Tools.hs,420
+module Circuit.Tools2,3
+write x35,36
+genPicture =36,37
+toCircuit ::43,44
+toCircuit (name,44,45
+filterByName ::55,56
+filterByName s56,57
+replace ::67,68
+replace s68,69
+bypass ::91,92
+bypass s92,93
+rebuildIf ::99,100
+rebuildIf isIt100,101
+grepWires ::118,119
+grepWires f119,120
+leftWires ::121,122
+leftWires =122,123
+rightWires ::124,125
+rightWires =125,126
+solderWires ::127,128
+solderWires =128,129
+
+./Show.hs,44
+module Circuit.Show3,4
+instance Show36,37
+
+./Stream/Datatype.hs,135
+module Circuit.Stream.Datatype2,3
+newtype Stream b17,18
+newtype Stream b c = SF {17,18
+newtype Stream b c = SF { runStream ::17,18
+
+./Stream/Instance.hs,61
+module Circuit.Stream.Instance12,13
+instance Category36,37
+
+./Workers.hs,550
+module Circuit.Workers3,4
+alterCompIDs ::24,25
+alterCompIDs i25,26
+dropCircuit ::39,40
+dropCircuit f40,41
+flatten ::57,58
+flatten g58,59
+dropGenerated ::80,81
+dropGenerated =81,82
+dropID ::83,84
+dropID =84,85
+connectCID ::98,99
+connectCID old_g99,100
+dropEdgesBordering ::111,112
+dropEdgesBordering cid112,113
+mergeEdges ::121,122
+mergeEdges (xs,122,123
+fillEdgeInfoCompID ::136,137
+fillEdgeInfoCompID cid137,138
+fillSrcInfoCompID ::146,147
+fillSrcInfoCompID cid147,148
+fillSnkInfoCompID ::150,151
+fillSnkInfoCompID cid151,152
+
+./Tests.hs,498
+module Circuit.Tests 4,5
+isFromOrToComp ::16,17
+isFromOrToComp cid17,18
+isToOuter ::28,29
+isToOuter (MkEdge29,30
+isFromOuter ::36,37
+isFromOuter (MkEdge37,38
+hasLabel ::45,46
+hasLabel s46,47
+isAtomic ::52,53
+isAtomic g53,54
+isSuperNodeOf ::60,61
+isSuperNodeOf g61,62
+isGenerated ::71,72
+isGenerated s72,73
+isID ::78,79
+isID =79,80
+isCombinatorial ::84,85
+isCombinatorial (MkCombinatorial85,86
+isRegister ::88,89
+isRegister (MkRegister89,90
+isLoop ::92,93
+isLoop (MkLoop93,94
+
+./Graphs.hs,321
+module Circuit.Graphs3,4
+emptyNodeDesc ::26,27
+emptyNodeDesc 27,28
+emptyCircuit ::40,41
+emptyCircuit 41,42
+withLabel ::59,60
+withLabel l60,61
+sinkCount ::63,64
+sinkCount i64,65
+sourceCount ::67,68
+sourceCount i68,69
+arrCircuit 76,77
+throughCircuit 79,80
+idCircuit 82,83
+leftCircuit85,86
+rightCircuit88,89
+
+./Descriptor.hs,1291
+module Circuit.Descriptor2,3
+type PinID =18,19
+type Pins  =19,20
+type ID     =21,22
+type CompID =22,23
+type Tick   =24,25
+type Area   =25,26
+type Anchor       =35,36
+type SinkAnchor   =36,37
+type SourceAnchor =37,38
+type NamedPins =47,48
+type NamedSigs =48,49
+type NamedSnks =49,50
+type NamedSrcs =50,51
+type NamedIOs  =51,52
+nameSig =53,54
+nameExI =54,55
+nameExO =55,56
+nameInI =56,57
+nameInO =57,58
+data NodeDescriptor92,93
+    = MkNode93,94
+      { label   ::94,95
+      , nodeId  ::95,96
+      , sinks   ::96,97
+      , sources ::97,98
+data CircuitDescriptor107,108
+    = MkCombinatorial108,109
+      { nodeDesc  ::109,110
+      , nodes     ::110,111
+      , edges     ::111,112
+      , cycles    ::112,113
+      , space     ::113,114
+    | MkRegister116,117
+      { nodeDesc  ::117,118
+      , bits      ::118,119
+    | MkLoop121,122
+      { nodeDesc  ::122,123
+      , nodes     ::123,124
+      , edges     ::124,125
+      , space     ::125,126
+    | MkComposite128,129
+      { composite ::129,130
+    | NoDescriptor132,133
+type Netlist =135,136
+mkRegister ::160,161
+mkRegister nd161,162
+data Edge171,172
+    = MkEdge {172,173
+    = MkEdge { sourceInfo ::172,173
+             , sinkInfo   ::173,174
+mkPins ::192,193
+mkPins 0193,194
+
+./Splice.hs,548
+module Circuit.Splice4,5
+splice ::29,30
+splice _30,31
+splice' ::35,36
+splice' (rewire,36,37
+connect ::62,63
+connect =63,64
+combine ::70,71
+combine =71,72
+dupCombine ::77,78
+dupCombine =78,79
+delayByRegister ::85,86
+delayByRegister cd@(MkCombinatorial86,87
+loopWithRegister ::98,99
+loopWithRegister cd99,100
+wire ::122,123
+wire cid_l123,124
+wire_ ::133,134
+wire_ cid_l134,135
+parRewire ::157,158
+parRewire sg_u158,159
+dupParRewire ::173,174
+dupParRewire sg_u174,175
+registerLoopRewire ::187,188
+registerLoopRewire cd188,189
+
+./Arrow/Helpers.hs,222
+module Circuit.Helpers3,4
+insert ::21,22
+insert sg22,23
+insEmpty =24,25
+augment ::26,27
+augment sg27,28
+movebrc ::34,35
+movebrc ~(~(x,35,36
+backbrc ::37,38
+backbrc ~(x,38,39
+swapsnd ::40,41
+swapsnd ~(~(x,41,42
+
+./Arrow/Instance.hs,57
+module Circuit.Arrow.Instance14,15
+instance Arrow31,32
+
+./Arrow/Class.hs,498
+module Circuit.Arrow.Class 13,14
+    arr    :: (ShowType b c) => (b -> c) -> a50,51
+    arr    ::50,51
+    first  ::51,52
+    second ::52,53
+    second f53,54
+    (***)  :: a56,57
+    f ***57,58
+    (&&&)  :: a58,59
+class (Arrow a) => ArrowLoop a where67,68
+    loop ::68,69
+class (ArrowLoop a) => ArrowCircuit a where76,77
+    delay ::77,78
+class (Arrow a) => ArrowChoice a where85,86
+    left  ::86,87
+    right ::87,88
+    (+++) :: a88,89
+    (|||) :: a89,90
+    right f91,92
+
+./Show/Tools.hs,55
+module Circuit.Show.Tools0,1
+break ::7,8
+break =8,9
+
+./Show/Simple.hs,185
+module Circuit.Show.Simple0,1
+showCircuit ::8,9
+showCircuit g9,10
+showCircuit' ::13,14
+showCircuit' g14,15
+showEdge ::27,28
+showEdge ed28,29
+showEdges ::33,34
+showEdges =34,35
+
+./Show/DOT.hs,388
+module Circuit.Show.DOT0,1
+showEdge ::25,26
+showEdge (MkEdge26,27
+showCircuit ::42,43
+showCircuit g43,44
+dot_config ::56,57
+dot_config57,58
+dot_outer_nodes ::65,66
+dot_outer_nodes g66,67
+dot_components ::80,81
+dot_components  g81,82
+dot_outer_label ::91,92
+dot_outer_label s92,93
+dot_label ::99,100
+dot_label ips100,101
+dot_connections ::110,111
+dot_connections g111,112
+
+./Show/VHDL.hs,777
+module Circuit.Show.VHDL0,1
+showEdge ::25,26
+showEdge ed26,27
+showCircuit ::39,40
+showCircuit g40,41
+nameEdges ::53,54
+nameEdges pre54,55
+nameGraphPins ::58,59
+nameGraphPins g59,60
+nameSuperPins ::61,62
+nameSuperPins g62,63
+nameSubPins ::66,67
+nameSubPins g67,68
+namePins' ::71,72
+namePins' f72,73
+vhdl_header ::76,77
+vhdl_header 77,78
+vhdl_entity ::86,87
+vhdl_entity g87,88
+vhdl_architecture ::99,100
+vhdl_architecture g100,101
+vhdl_components ::109,110
+vhdl_components g110,111
+vhdl_signals ::127,128
+vhdl_signals _128,129
+vhdl_portmaps ::134,135
+vhdl_portmaps g135,136
+vhdl_portmap ::142,143
+vhdl_portmap superG143,144
+genPortMap ::159,160
+genPortMap namedComps169,170
+namePins ::228,229
+namePins f229,230
+sepBy ::245,246
+sepBy sep246,247
+
+./ShowType.hs,43
+module Circuit.ShowType (ShowType(..))2,3
+
+./Sensors.hs,561
+module Circuit.Sensors3,4
+allCircuits ::21,22
+allCircuits sg22,23
+maxCompID ::34,35
+maxCompID sg35,36
+getComp ::45,46
+getComp g46,47
+getComp' ::51,52
+getComp' g52,53
+superNode ::66,67
+superNode g67,68
+superNode' ::73,74
+    | g `isSuperNodeOf` cid75,76
+nextAtomic ::89,90
+nextAtomic g90,91
+fromCompEdges ::114,115
+fromCompEdges g115,116
+allEdges ::126,127
+allEdges g127,128
+snkPin ::137,138
+snkPin (MkEdge138,139
+srcPin ::140,141
+srcPin (MkEdge141,142
+snkComp ::143,144
+snkComp (MkEdge144,145
+srcComp ::146,147
+srcComp (MkEdge147,148
+
+./Auxillary.hs,441
+module Circuit.Auxillary 2,3
+nextID ::33,34
+nextID []34,35
+onlyInnerEdges ::43,44
+onlyInnerEdges es44,45
+testPreSynth ::65,66
+testPreSynth (GR66,67
+test2PreSynt =68,69
+--synthesize ::70,71
+--synthesize (GR71,72
+synthesize ::72,73
+synthesize (GR73,74
+simulate ::77,78
+simulate f78,79
+toFunctionModel ::86,87
+toFunctionModel =87,88
+insert ::102,103
+insert sg103,104
+insEmpty =105,106
+augment ::107,108
+augment cd_f108,109
+
+./PinTransit.hs,704
+module Circuit.PinTransit4,5
+type NamedPin  =20,21
+type InNames   =21,22
+type OutNames  =22,23
+type NamedComp =24,25
+generateNamedComps ::47,48
+generateNamedComps g48,49
+getNamedInPins ::71,72
+getNamedInPins =72,73
+getInPinNames ::74,75
+getInPinNames cname75,76
+getNamedOutPins ::86,87
+getNamedOutPins =87,88
+getOutPinNames ::89,90
+getOutPinNames cname90,91
+getPinNames ::101,102
+getPinNames f102,103
+getNamedInPin ::116,117
+getNamedInPin =117,118
+getNamedOutPin ::119,120
+getNamedOutPin =120,121
+getInPinName ::122,123
+getInPinName cname123,124
+getOutPinName ::125,126
+getOutPinName cname126,127
+getPinName ::128,129
+getPinName f129,130
+namePins ::141,142
+namePins f142,143
+
+./Arrow.hs,172
+module Circuit.Arrow 9,10
+returnA ::30,31
+returnA =31,32
+movebrc ::37,38
+movebrc ~(~(x,38,39
+backbrc ::40,41
+backbrc ~(x,41,42
+swapsnd ::43,44
+swapsnd ~(~(x,44,45
+
+./Stream.hs,26
+module Circuit.Stream2,3
+
+./ShowType/Instance.hs,63
+module Circuit.ShowType.Instance13,14
+instance ShowType37,38
+
+./ShowType/Class.hs,81
+module Circuit.ShowType.Class12,13
+class ShowType b32,33
+    showType ::33,34
+
+Arrow/Helpers.hs,222
+module Circuit.Helpers3,4
+insert ::21,22
+insert sg22,23
+insEmpty =24,25
+augment ::26,27
+augment sg27,28
+movebrc ::34,35
+movebrc ~(~(x,35,36
+backbrc ::37,38
+backbrc ~(x,38,39
+swapsnd ::40,41
+swapsnd ~(~(x,41,42
+
+Arrow/Instance.hs,57
+module Circuit.Arrow.Instance14,15
+instance Arrow31,32
+
+Arrow/Class.hs,498
+module Circuit.Arrow.Class 13,14
+    arr    :: (ShowType b c) => (b -> c) -> a50,51
+    arr    ::50,51
+    first  ::51,52
+    second ::52,53
+    second f53,54
+    (***)  :: a56,57
+    f ***57,58
+    (&&&)  :: a58,59
+class (Arrow a) => ArrowLoop a where67,68
+    loop ::68,69
+class (ArrowLoop a) => ArrowCircuit a where76,77
+    delay ::77,78
+class (Arrow a) => ArrowChoice a where85,86
+    left  ::86,87
+    right ::87,88
+    (+++) :: a88,89
+    (|||) :: a89,90
+    right f91,92
+
+Grid/Datatype.hs,87
+module Circuit.Grid.Datatype3,4
+newtype Grid a20,21
+newtype Grid a b c = GR (a20,21
+
+Grid/Instance.hs,96
+module Circuit.Grid.Instance11,12
+instance (Arrow37,38
+runGrid ::101,102
+runGrid (GR102,103
+
+Show/Tools.hs,55
+module Circuit.Show.Tools0,1
+break ::7,8
+break =8,9
+
+Show/Simple.hs,185
+module Circuit.Show.Simple0,1
+showCircuit ::8,9
+showCircuit g9,10
+showCircuit' ::13,14
+showCircuit' g14,15
+showEdge ::27,28
+showEdge ed28,29
+showEdges ::33,34
+showEdges =34,35
+
+Show/DOT.hs,388
+module Circuit.Show.DOT0,1
+showEdge ::25,26
+showEdge (MkEdge26,27
+showCircuit ::42,43
+showCircuit g43,44
+dot_config ::56,57
+dot_config57,58
+dot_outer_nodes ::65,66
+dot_outer_nodes g66,67
+dot_components ::80,81
+dot_components  g81,82
+dot_outer_label ::91,92
+dot_outer_label s92,93
+dot_label ::99,100
+dot_label ips100,101
+dot_connections ::110,111
+dot_connections g111,112
+
+Show/VHDL.hs,777
+module Circuit.Show.VHDL0,1
+showEdge ::25,26
+showEdge ed26,27
+showCircuit ::39,40
+showCircuit g40,41
+nameEdges ::53,54
+nameEdges pre54,55
+nameGraphPins ::58,59
+nameGraphPins g59,60
+nameSuperPins ::61,62
+nameSuperPins g62,63
+nameSubPins ::66,67
+nameSubPins g67,68
+namePins' ::71,72
+namePins' f72,73
+vhdl_header ::76,77
+vhdl_header 77,78
+vhdl_entity ::86,87
+vhdl_entity g87,88
+vhdl_architecture ::99,100
+vhdl_architecture g100,101
+vhdl_components ::109,110
+vhdl_components g110,111
+vhdl_signals ::127,128
+vhdl_signals _128,129
+vhdl_portmaps ::134,135
+vhdl_portmaps g135,136
+vhdl_portmap ::142,143
+vhdl_portmap superG143,144
+genPortMap ::159,160
+genPortMap namedComps169,170
+namePins ::228,229
+namePins f229,230
+sepBy ::245,246
+sepBy sep246,247
+
+ShowType/Instance.hs,63
+module Circuit.ShowType.Instance13,14
+instance ShowType37,38
+
+ShowType/Class.hs,81
+module Circuit.ShowType.Class12,13
+class ShowType b32,33
+    showType ::33,34
+
+Stream/Datatype.hs,135
+module Circuit.Stream.Datatype2,3
+newtype Stream b17,18
+newtype Stream b c = SF {17,18
+newtype Stream b c = SF { runStream ::17,18
+
+Stream/Instance.hs,61
+module Circuit.Stream.Instance12,13
+instance Category36,37
